@@ -96,13 +96,13 @@ export const WEAPONS: Record<WeaponType, WeaponDef> = {
   sniper_laser: {
     id: 'sniper_laser',
     nameKey: 'weapon_sniper',
-    damage: 40,
+    damage: 50,
     maxAmmo: 5,
     fireRateMs: 900,
-    laserColor: '#22C55E', // Green
+    laserColor: '#22C55E', // Red
     price: 200,
-    bulletSpeed: 28,
-    spread: 1,
+    bulletSpeed: 58,
+    spread: 5,
   },
 };
 
@@ -709,8 +709,8 @@ export function StreetGangStar({
           y: edge.y,
           vx: 0,
           vy: 0,
-          health: isBus ? 80 : 50,
-          maxHealth: isBus ? 80 : 50,
+          health: isBus ? 20 : 30,
+          maxHealth: isBus ? 20 : 30,
           speed: isBus ? 1.8 : 3.2,
           facingAngle: 0,
           gun: isBus ? 'shotgun_laser' : 'ak_laser',
@@ -834,7 +834,7 @@ export function StreetGangStar({
 
       // 4. UPDATE CIVILIANS & GANGSTER AI
       s.civilians.forEach((civ) => {
-        // Check if any gangster is near (< 110px)
+        // Check if any gangster is near (< 3000px)
         let threatNear = false;
         let threatX = 0;
         let threatY = 0;
@@ -923,9 +923,11 @@ export function StreetGangStar({
           // If close to player, damage player
           const distToPlayer = Math.hypot(p.x - g.x, p.y - g.y);
           if (distToPlayer < 240) {
-            // Apply cover damage reduction (takes only 20% damage)
-            const appliedDamage = p.isCover ? 2 : 10;
-            p.health = Math.max(0, p.health - appliedDamage);
+            if (distToPlayer < 240) {
+  // Don't auto damage, only damage when bullet hits
+}
+            
+
             setHudHealth(p.health);
 
             if (p.health <= 0) {
