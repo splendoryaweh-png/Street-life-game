@@ -955,7 +955,7 @@ export function StreetGangStar({
 
               // Spark particles
               for (let sp = 0; sp < 5; sp++) {
-                s.sparks.push({
+                s.sparks.push({g.health -= l.damage;
                   x: g.x,
                   y: g.y,
                   vx: (Math.random() - 0.5) * 6,
