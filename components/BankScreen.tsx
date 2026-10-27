@@ -44,7 +44,7 @@ interface CurrencyRateInfo {
   name: string;
   symbol: string;
   networkName: string;
-  coinsPerUnit: number; // e.g. 10000 coins = 1 TON
+  coinsPerUnit: number; // e.g. 1000000 coins = 1 TON
   unitValueUsd: number; // estimate
   iconBg: string;
   textColor: string;
@@ -57,7 +57,7 @@ const CURRENCIES: Record<CryptoCurrency, CurrencyRateInfo> = {
     name: 'Toncoin',
     symbol: 'TON',
     networkName: 'The Open Network (TON)',
-    coinsPerUnit: 100000,
+    coinsPerUnit: 1000000,
     unitValueUsd: 5.2,
     iconBg: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
     textColor: 'text-sky-400',
@@ -68,7 +68,7 @@ const CURRENCIES: Record<CryptoCurrency, CurrencyRateInfo> = {
     name: 'Tether USD',
     symbol: 'USDT',
     networkName: 'TRC-20 / TON Tether',
-    coinsPerUnit: 100000,
+    coinsPerUnit: 1000000,
     unitValueUsd: 1.0,
     iconBg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
     textColor: 'text-emerald-400',
@@ -221,7 +221,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
       playClickSound();
       setWithdrawalLockPopup({
         show: true,
-        title: "🔒 Withdrawal Available December 30th",
+        title: "🔒 Withdrawal Available December 20th",
         message: "Keep stacking your coins! Your coins are safe. Withdrawal opens Nov 30, 2026.",
       });
       return; // Stop withdrawal
@@ -497,7 +497,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-[#9CA3AF] font-bold">Toncoin (TON)</span>
                   <span className="text-xs font-black text-sky-400">
-                    {(currentCoins / 10000).toFixed(3)} TON
+                    {(currentCoins / 1000000).toFixed(3)} TON
                   </span>
                 </div>
                 <div className="text-[10px] text-white/50">
@@ -540,7 +540,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
                   </span>
                 </div>
                 <div className="text-[10px] text-white/50">
-                  Rate: 1,000 Coins = $1.00
+                  Rate: 100,000 Coins = $1.00
                 </div>
               </div>
             </div>
@@ -782,7 +782,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
                 </p>
               </div>
               <div className="px-2.5 py-1 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/20 text-[10px] font-black text-[#FFD700]">
-                MIN 1,000 COINS
+                MIN 100,000 COINS
               </div>
             </div>
 
@@ -928,9 +928,9 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
               {/* Quick Select Buttons */}
               <div className="grid grid-cols-4 gap-1.5 pt-1">
                 {[
-                  { label: '1,000', value: 1000 },
-                  { label: '5,000', value: 5000 },
-                  { label: '10,000', value: 10000 },
+                  { label: '100,000', value: 100000 },
+                  { label: '500,000', value: 500000 },
+                  { label: '10000,000', value: 10000000 },
                   { label: 'MAX', value: currentCoins },
                 ].map((chip) => (
                   <button
