@@ -125,7 +125,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
     message: string;
   } | null>(null);
 
-  const WITHDRAWAL_OPEN_DATE = new Date("2026-11-30");
+  const WITHDRAWAL_OPEN_DATE = new Date("2026-12-20");
   const isWithdrawalLocked = new Date() < WITHDRAWAL_OPEN_DATE;
 
   // HISTORY FILTER
