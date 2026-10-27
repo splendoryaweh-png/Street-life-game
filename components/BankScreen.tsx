@@ -57,7 +57,7 @@ const CURRENCIES: Record<CryptoCurrency, CurrencyRateInfo> = {
     name: 'Toncoin',
     symbol: 'TON',
     networkName: 'The Open Network (TON)',
-    coinsPerUnit: 10000,
+    coinsPerUnit: 100000,
     unitValueUsd: 5.2,
     iconBg: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
     textColor: 'text-sky-400',
@@ -68,7 +68,7 @@ const CURRENCIES: Record<CryptoCurrency, CurrencyRateInfo> = {
     name: 'Tether USD',
     symbol: 'USDT',
     networkName: 'TRC-20 / TON Tether',
-    coinsPerUnit: 1000,
+    coinsPerUnit: 100000,
     unitValueUsd: 1.0,
     iconBg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
     textColor: 'text-emerald-400',
@@ -221,14 +221,14 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
       playClickSound();
       setWithdrawalLockPopup({
         show: true,
-        title: "🔒 Withdrawal Available November 30th",
+        title: "🔒 Withdrawal Available December 30th",
         message: "Keep stacking your coins! Your coins are safe. Withdrawal opens Nov 30, 2026.",
       });
       return; // Stop withdrawal
     }
 
-    if (parsedWithdrawCoins < 1000) {
-      onToast('Minimum withdrawal is 1,000 Street Coins');
+    if (parsedWithdrawCoins < 100000) {
+      onToast('Minimum withdrawal is 100,000 Street Coins');
       return;
     }
     if (parsedWithdrawCoins > currentCoins) {
@@ -446,7 +446,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
                   </span>
                 </div>
                 <div className="text-xs font-bold text-[#9CA3AF] flex items-center gap-3">
-                  <span>≈ ${(currentCoins / 1000).toFixed(2)} USD</span>
+                  <span>≈ ${(currentCoins / 100000).toFixed(2)} USD</span>
                   <span className="text-white/20">•</span>
                   <span className="text-sky-400">≈ {(currentCoins / 10000).toFixed(4)} TON</span>
                 </div>
@@ -501,7 +501,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
                   </span>
                 </div>
                 <div className="text-[10px] text-white/50">
-                  Rate: 10,000 Coins = 1.00 TON
+                  Rate: 100,000 Coins = 1.00 USDT
                 </div>
               </div>
 
@@ -996,7 +996,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
                   ? 'bg-white/10 text-white/40 cursor-wait'
                   : isWithdrawalLocked
                   ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-300 border border-white/10 active:scale-95 shadow-md'
-                  : parsedWithdrawCoins >= 1000 &&
+                  : parsedWithdrawCoins >= 1000000 &&
                     parsedWithdrawCoins <= currentCoins &&
                     walletAddress.trim()
                   ? 'bg-gradient-to-r from-emerald-500 via-[#10B981] to-emerald-600 text-black shadow-emerald-500/20 hover:scale-[1.01] active:scale-95'
@@ -1011,7 +1011,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
               ) : isWithdrawalLocked ? (
                 <>
                   <Lock className="w-4 h-4 text-gray-400" />
-                  <span>🔒 Withdrawal - Nov 30</span>
+                  <span>🔒 Withdrawal - Dec 20</span>
                 </>
               ) : (
                 <>
@@ -1313,7 +1313,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
       )}
 
       {/* ========================================================================= */}
-      {/* LOCK MODAL: WITHDRAWAL AVAILABLE NOVEMBER 30TH                            */}
+      {/* LOCK MODAL: WITHDRAWAL AVAILABLE DECEMBER 20TH                            */}
       {/* ========================================================================= */}
       {withdrawalLockPopup && withdrawalLockPopup.show && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
@@ -1339,7 +1339,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
                 Official Payout Gateway
               </span>
               <span className="font-mono text-white text-xs font-bold block">
-                November 30, 2026 • 00:00 UTC
+                December 20, 2026 • 00:00 UTC
               </span>
               <span className="text-[10px] text-gray-400 block">
                 All coins tracked & safely secured in Syndicate Vault
