@@ -120,7 +120,36 @@ export default function StreetLifeApp() {
     }
     initTelegramWebApp();
     
+    
     // Automatically register or recognize Telegram players.
+    const telegramWebApp = window.Telegram?.WebApp as
+      | (typeof window.Telegram.WebApp & { initData?: string })
+      | undefined;
+
+    const telegramInitData = telegramWebApp?.initData;
+
+    if (telegramInitData) {
+      fetch('/api/auth/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData: telegramInitData }),
+        cache: 'no-store',
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            const result = await response.json().catch(() => ({}));
+            console.error(
+              'Telegram account setup failed:',
+              result.error || response.status
+            );
+          } else {
+            console.log('Telegram player account verified.');
+          }
+        })
+        .catch((error) => {
+          console.error('Telegram account setup network error:', error);
+        });
+    }
     const telegramInitData =
   window.Telegram?.WebApp as
     | (typeof window.Telegram.WebApp & { initData?: string })
