@@ -121,28 +121,34 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
         const aimAngle = Math.atan2(targetY - g.y, targetX - g.x); g.facingAngle = aimAngle; g.x += Math.cos(aimAngle) * g.speed; g.y += Math.sin(aimAngle) * g.speed;
         if (targetDist < 260 && now - g.lastShootTime >= 650) { g.lastShootTime = now; const beamLen = 320; const laserEndX = g.x + Math.cos(aimAngle) * beamLen; const laserEndY = g.y + Math.sin(aimAngle) * beamLen; s.lasers.push({ id: `laser_g_${now}_${Math.random()}`, x1: g.x + Math.cos(aimAngle) * 16, y1: g.y + Math.sin(aimAngle) * 16, x2: laserEndX, y2: laserEndY, color: '#EF4444', life: 6, maxLife: 6, isPlayer: false, damage: 10 }); if (targetDist < 350) { playSfx('shoot'); } }
       }
+      // --- START OF HIT LOGIC - ONLY THIS PART CHANGED ---
       for (let lIdx = s.lasers.length - 1; lIdx >= 0; lIdx--) {
         const l = s.lasers[lIdx]; l.life -= 1;
         if (l.isPlayer) {
-          let hitSomething = false;
+          let hit = false;
+          // 1. ENEMY - 3 SHOTS DIE
           for (let gIdx = s.gangsters.length - 1; gIdx >= 0; gIdx--) {
             const g = s.gangsters[gIdx]; const dist = Math.hypot(g.x - l.x2, g.y - l.y2);
-            if (dist < 75) { g.health -= 1; for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); } s.lasers.splice(lIdx, 1); hitSomething = true; if (g.health <= 0) { s.gangsters.splice(gIdx, 1); p.coins += 5; setHudCoins(p.coins); setGangstersKilledCount((k) => k + 1); addGameCoins(5, '+5 SC - Gangster Neutralized!', 'task_reward'); playSfx('coin'); } break; }
+            if (dist < 75) { 
+              g.health -= 1; // 3 shots = die
+              for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); } 
+              s.lasers.splice(lIdx, 1); hit = true;
+              if (g.health <= 0) { s.gangsters.splice(gIdx, 1); p.coins += 5; setHudCoins(p.coins); setGangstersKilledCount((k) => k + 1); addGameCoins(5, '+5 SC - Gangster Neutralized!', 'task_reward'); playSfx('coin'); } 
+              break; 
+            }
           }
-          if(hitSomething) continue;
+          if(hit) continue;
+          // 2. CAR - 10 SHOTS EXPLODE - NO EXTRA COIN
           for (let cIdx = s.cars.length - 1; cIdx >= 0; cIdx--) {
             const car = s.cars[cIdx]; const dist = Math.hypot(car.x - l.x2, car.y - l.y2);
-            if (dist < 60) {
-              car.health -= 1;
-              for (let sp = 0; sp < 3; sp++) { s.sparks.push({ x: car.x, y: car.y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, color: '#f97316', life: 12 }); }
+            if (dist < 90) {
+              car.health -= 1; // 10 shots = explode
+              for (let sp = 0; sp < 3; sp++) { s.sparks.push({ x: car.x, y: car.y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, color: '#f97316', life: 10 }); }
               s.lasers.splice(lIdx, 1);
               if (car.health <= 0) {
-                for (let sp = 0; sp < 15; sp++) { s.sparks.push({ x: car.x, y: car.y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, color: sp % 2 === 0 ? '#ff0000' : '#ffaa00', life: 25 }); }
+                // EXPLODE EFFECT ONLY - NO COIN ADDED
+                for (let sp = 0; sp < 12; sp++) { s.sparks.push({ x: car.x, y: car.y, vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.5) * 9, color: sp % 2 === 0 ? '#ff0000' : '#ffaa00', life: 20 }); }
                 s.cars.splice(cIdx, 1);
-                p.coins += 20;
-                setHudCoins(p.coins);
-                addGameCoins(20, '+20 SC - Car Destroyed!', 'task_reward');
-                playSfx('coin');
               }
               break;
             }
@@ -158,6 +164,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
         }
         if (l.life <= 0 && s.lasers[lIdx]) { s.lasers.splice(lIdx, 1); }
       }
+      // --- END OF HIT LOGIC ---
       for (let spIdx = s.sparks.length - 1; spIdx >= 0; spIdx--) { const sp = s.sparks[spIdx]; sp.x += sp.vx; sp.y += sp.vy; sp.life -= 1; if (sp.life <= 0) s.sparks.splice(spIdx, 1); }
       ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save(); ctx.translate(-cameraX, -cameraY);
       ctx.fillStyle = cityData.theme.groundGrassColor; ctx.fillRect(0, 0, cityData.mapWidth, cityData.mapHeight);
