@@ -288,7 +288,7 @@ export const StreetRaceMultiplayer: React.FC<StreetRaceMultiplayerProps> = ({
       }
     };
 
-    onToast(`7KM Highway Race Started! Finish line at 7,000m`);
+    onToast(`70KM Highway Race Started! Finish line at 70,000m`);
   };
 
   // Keyboard controls listener
@@ -733,7 +733,7 @@ export const StreetRaceMultiplayer: React.FC<StreetRaceMultiplayerProps> = ({
           </button>
         </div>
 
-        {/* Center: Distance & Time Header as specified: "Distance: 2.3km / 7km - Time: 08:23 - Speed: 85 km/h" */}
+        {/* Center: Distance & Time Header as specified: "Distance: 2.3km / 70km - Time: 08:23 - Speed: 85 km/h" */}
         <div className="flex flex-col items-center pointer-events-auto">
           <div className="bg-slate-900/90 border border-red-500/40 px-5 py-2 rounded-2xl shadow-xl shadow-red-500/10 backdrop-blur flex items-center gap-4">
             <div className="flex items-center gap-1.5">
@@ -842,7 +842,7 @@ export const StreetRaceMultiplayer: React.FC<StreetRaceMultiplayerProps> = ({
         </span>
       </div>
 
-      {/* MOBILE ON-SCREEN CONTROLS (STEERING BUTTONS ON LEFT, GAS/BRAKE/NITRO ON RIGHT) */}
+      {/* MOBILE ON-SCREEN CONTROLS (STEERING BUTTONS ON LEFT, GAS/BRAKE ON RIGHT,NITRO ON TOP LEFT BAR) */}
       <div className="md:hidden">
         {/* Steering Buttons */}
         <div className="absolute bottom-6 left-6 flex gap-3 z-30 pointer-events-auto">
@@ -910,9 +910,9 @@ export const StreetRaceMultiplayer: React.FC<StreetRaceMultiplayerProps> = ({
         <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/60 rounded-3xl p-6 max-w-md w-full text-center shadow-2xl shadow-amber-500/20">
             <Trophy className="w-16 h-16 text-amber-400 mx-auto mb-3 animate-bounce" />
-            <h2 className="text-2xl font-black text-white">7KM HIGHWAY COMPLETE!</h2>
+            <h2 className="text-2xl font-black text-white">70KM HIGHWAY COMPLETE!</h2>
             <p className="text-sm text-slate-300 mt-1">
-              You crossed the finish line of the 7-Kilometer endurance run!
+              You crossed the finish line of the 70-Kilometer endurance run!
             </p>
 
             <div className="my-5 p-4 rounded-2xl bg-slate-800/60 border border-slate-700 space-y-2.5 text-left">
