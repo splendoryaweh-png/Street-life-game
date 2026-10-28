@@ -121,11 +121,11 @@ export default function StreetLifeApp() {
     initTelegramWebApp();
     
     // Automatically register or recognize Telegram players.
-    const telegramInitData = (
+    const telegramInitData =
   window.Telegram?.WebApp as
     | (typeof window.Telegram.WebApp & { initData?: string })
     | undefined
-)?.initData;
+)?.initData; 
 
     if (telegramInitData) {
       fetch('/api/auth/telegram', {
