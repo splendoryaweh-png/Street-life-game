@@ -16,7 +16,7 @@ export const WEAPONS: Record<WeaponType, WeaponDef> = {
   sniper_laser: { id: 'sniper_laser', nameKey: 'weapon_sniper', damage: 65, maxAmmo: 5, fireRateMs: 900, laserColor: '#22C55E', price: 200, bulletSpeed: 58, spread: 5 },
 };
 export interface LaserBeam { id: string; x1: number; y1: number; x2: number; y2: number; color: string; life: number; maxLife: number; isPlayer: boolean; damage: number; }
-export interface CityCar { id: string; x: number; y: number; vx: number; vy: number; speed: number; direction: 'horizontal' | 'vertical'; width: number; height: number; color: string; isOccupied: boolean; hasDriver: boolean; driverType: 'civilian' | 'player' | 'gangster' | null; }
+export interface CityCar { id: string; x: number; y: number; vx: number; vy: number; speed: number; direction: 'horizontal' | 'vertical'; width: number; height: number; color: string; isOccupied: boolean; hasDriver: boolean; driverType: 'civilian' | 'player' | 'gangster' | null; health: number; maxHealth: number; }
 export interface Civilian { id: string; x: number; y: number; vx: number; vy: number; speed: number; facingAngle: number; state: 'walking' | 'scared' | 'saved'; color: string; }
 export interface Gangster { id: string; type: 'fighter_motor' | 'fighter_bus'; x: number; y: number; vx: number; vy: number; health: number; maxHealth: number; speed: number; facingAngle: number; gun: WeaponType; lastShootTime: number; vehicleType: 'motorcycle' | 'bus'; }
 export interface SparkParticle { x: number; y: number; vx: number; vy: number; color: string; life: number; }
@@ -55,7 +55,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   }, [soundEnabled]);
   const initTrafficAndCivilians = useCallback(() => {
     const s = gameStateRef.current; const cars: CityCar[] = []; const colors = ['#38BDF8', '#F97316', '#A855F7', '#EF4444', '#10B981', '#E2E8F0', '#FACC15'];
-    cityData.roads.forEach((road, idx) => { if (idx < 10) { const isHoriz = road.direction === 'horizontal'; const carW = isHoriz ? 54 : 30; const carH = isHoriz ? 30 : 54; const startX = isHoriz ? (idx * 380) % cityData.mapWidth : road.x + 30; const startY = isHoriz ? road.y + 40 : (idx * 380) % cityData.mapHeight; const speed = 2.4 + (idx % 3) * 0.5; cars.push({ id: `car_${idx}`, x: startX, y: startY, vx: isHoriz ? speed : 0, vy: isHoriz ? 0 : speed, speed, direction: road.direction, width: carW, height: carH, color: colors[idx % colors.length], isOccupied: false, hasDriver: true, driverType: 'civilian' }); } });
+    cityData.roads.forEach((road, idx) => { if (idx < 10) { const isHoriz = road.direction === 'horizontal'; const carW = isHoriz ? 54 : 30; const carH = isHoriz ? 30 : 54; const startX = isHoriz ? (idx * 380) % cityData.mapWidth : road.x + 30; const startY = isHoriz ? road.y + 40 : (idx * 380) % cityData.mapHeight; const speed = 2.4 + (idx % 3) * 0.5; cars.push({ id: `car_${idx}`, x: startX, y: startY, vx: isHoriz ? speed : 0, vy: isHoriz ? 0 : speed, speed, direction: road.direction, width: carW, height: carH, color: colors[idx % colors.length], isOccupied: false, hasDriver: true, driverType: 'civilian', health: 10, maxHealth: 10 }); } });
     s.cars = cars; const civs: Civilian[] = []; const civColors = ['#94A3B8', '#CBD5E1', '#E2E8F0', '#F1F5F9', '#64748B'];
     for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length] }); } s.civilians = civs;
   }, [cityData]);
@@ -76,7 +76,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   }, [onToast, playSfx]);
   const handleJump = useCallback(() => { const s = gameStateRef.current; const p = s.player; if (p.isJumping || p.inCarId) return; p.isJumping = true; p.jumpVy = 8.5; playPickupSound(); onToast('LEAP JUMP! 🚀'); }, [onToast]);
   const shootPlayerLaser = useCallback(() => {
-    const s = gameStateRef.current; const p = s.player; if (p.isReloading) return; if (p.ammo <= 0) { handleReload(); return; } const wDef = WEAPONS[p.gun]; const now = Date.now(); if (now - p.lastShootTime < wDef.fireRateMs) return; p.lastShootTime = now; p.ammo -= 1; setHudAmmo(p.ammo); playSfx('shoot');
+    const s = gameStateRef.current; const p = s.player; if (p.isReloading) return; if (p.ammo <= 0) { handleReload(); return; } const wDef = WEAPONS[s.player.gun]; const now = Date.now(); if (now - p.lastShootTime < wDef.fireRateMs) return; p.lastShootTime = now; p.ammo -= 1; setHudAmmo(p.ammo); playSfx('shoot');
     const startX = p.inCarId ? (s.cars.find((c) => c.id === p.inCarId)?.x || p.x) : p.x + Math.cos(p.facingAngle) * 22; const startY = p.inCarId ? (s.cars.find((c) => c.id === p.inCarId)?.y || p.y) : p.y + Math.sin(p.facingAngle) * 22; const baseAngle = p.facingAngle; const spreadAngles = wDef.spread === 3 ? [baseAngle - 0.14, baseAngle, baseAngle + 0.14] : [baseAngle];
     spreadAngles.forEach((ang) => { const beamLength = 450; const endX = startX + Math.cos(ang) * beamLength; const endY = startY + Math.sin(ang) * beamLength; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, life: 7, maxLife: 7, isPlayer: true, damage: wDef.damage }); });
   }, [handleReload, playSfx]);
@@ -98,7 +98,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       if (s.keys.mouseLeft) { shootPlayerLaser(); }
       if (now - s.lastSpawnTime >= 5000) {
         s.lastSpawnTime = now; const edge = cityData.gangsterSpawnEdges[Math.floor(Math.random() * cityData.gangsterSpawnEdges.length)]; const isBus = Math.random() > 0.5;
-        s.gangsters.push({ id: `gangster_${Date.now()}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: isBus ? 70 : 35, maxHealth: isBus ? 70 : 35, speed: isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isBus ? 'bus' : 'motorcycle' });
+        s.gangsters.push({ id: `gangster_${Date.now()}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: 3, maxHealth: 3, speed: isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isBus ? 'bus' : 'motorcycle' });
       }
       if (p.isJumping) { p.jumpOffset += p.jumpVy; p.jumpVy -= 0.65; if (p.jumpOffset <= 0) { p.jumpOffset = 0; p.jumpVy = 0; p.isJumping = false; } }
       let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
@@ -124,9 +124,28 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       for (let lIdx = s.lasers.length - 1; lIdx >= 0; lIdx--) {
         const l = s.lasers[lIdx]; l.life -= 1;
         if (l.isPlayer) {
+          let hitSomething = false;
           for (let gIdx = s.gangsters.length - 1; gIdx >= 0; gIdx--) {
             const g = s.gangsters[gIdx]; const dist = Math.hypot(g.x - l.x2, g.y - l.y2);
-            if (dist < 75) { g.health -= l.damage; for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); } s.lasers.splice(lIdx, 1); if (g.health <= 0) { s.gangsters.splice(gIdx, 1); p.coins += 5; setHudCoins(p.coins); setGangstersKilledCount((k) => k + 1); addGameCoins(5, '+5 SC - Gangster Neutralized!', 'task_reward'); playSfx('coin'); } break; }
+            if (dist < 75) { g.health -= 1; for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); } s.lasers.splice(lIdx, 1); hitSomething = true; if (g.health <= 0) { s.gangsters.splice(gIdx, 1); p.coins += 5; setHudCoins(p.coins); setGangstersKilledCount((k) => k + 1); addGameCoins(5, '+5 SC - Gangster Neutralized!', 'task_reward'); playSfx('coin'); } break; }
+          }
+          if(hitSomething) continue;
+          for (let cIdx = s.cars.length - 1; cIdx >= 0; cIdx--) {
+            const car = s.cars[cIdx]; const dist = Math.hypot(car.x - l.x2, car.y - l.y2);
+            if (dist < 60) {
+              car.health -= 1;
+              for (let sp = 0; sp < 3; sp++) { s.sparks.push({ x: car.x, y: car.y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, color: '#f97316', life: 12 }); }
+              s.lasers.splice(lIdx, 1);
+              if (car.health <= 0) {
+                for (let sp = 0; sp < 15; sp++) { s.sparks.push({ x: car.x, y: car.y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, color: sp % 2 === 0 ? '#ff0000' : '#ffaa00', life: 25 }); }
+                s.cars.splice(cIdx, 1);
+                p.coins += 20;
+                setHudCoins(p.coins);
+                addGameCoins(20, '+20 SC - Car Destroyed!', 'task_reward');
+                playSfx('coin');
+              }
+              break;
+            }
           }
         } else {
           const distToPlayer = Math.hypot(p.x - l.x2, p.y - l.y2);
