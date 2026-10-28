@@ -68,14 +68,12 @@ export default function StreetLifeApp() {
   const [leaderboard] = useState<LeaderboardEntry[]>(() => getLeaderboard());
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Reactive Game State Store (streetLife_save_v2)
   const gameState: UserGameState = useSyncExternalStore(
     subscribeGameState,
     getGameStateSnapshot,
     () => SERVER_GAME_STATE_SNAPSHOT
   );
 
-  // Reactive Telegram User Store
   const telegramUser = useSyncExternalStore<TelegramUser | null>(
     subscribeTelegramUser,
     getTelegramUserSnapshot,
@@ -86,7 +84,6 @@ export default function StreetLifeApp() {
   const activeGameState = isMounted ? gameState : SERVER_GAME_STATE_SNAPSHOT;
   const activeTelegramUser = isMounted ? telegramUser : null;
 
-  // Modals
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isTonModalOpen, setIsTonModalOpen] = useState(false);
   const [isShooterModalOpen, setIsShooterModalOpen] = useState(false);
@@ -109,7 +106,7 @@ export default function StreetLifeApp() {
     setShowNovelModal(false);
   };
 
-  // Initial loading window + background police heat decay timer + bot notification listener
+  // FIXED - CLEAN SINGLE TELEGRAM AUTH (NO MORE DUPLICATES - NO MORE GUEST BUG)
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
@@ -120,15 +117,12 @@ export default function StreetLifeApp() {
     }
     initTelegramWebApp();
     
-    
-    // Automatically register or recognize Telegram players.
-    const telegramWebApp = window.Telegram?.WebApp as
-      | (typeof window.Telegram.WebApp & { initData?: string })
-      | undefined;
-
+    // Automatically register or recognize Telegram players - ONE TIME ONLY
+    const telegramWebApp = window.Telegram?.WebApp as any;
     const telegramInitData = telegramWebApp?.initData;
 
     if (telegramInitData) {
+      console.log("Sending real Telegram ID to server - No more Guest!");
       fetch('/api/auth/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -138,141 +132,26 @@ export default function StreetLifeApp() {
         .then(async (response) => {
           if (!response.ok) {
             const result = await response.json().catch(() => ({}));
-            console.error(
-              'Telegram account setup failed:',
-              result.error || response.status
-            );
+            console.error('Telegram account setup failed:', result.error || response.status);
           } else {
-            console.log('Telegram player account verified.');
+            console.log('Telegram player account verified - Real account!');
           }
         })
         .catch((error) => {
           console.error('Telegram account setup network error:', error);
         });
+    } else {
+      console.log("Opened outside Telegram - Guest mode (Open inside Telegram bot to get real ID)");
     }
-    const telegramWebApp = window.Telegram?.WebApp as
-      | (typeof window.Telegram.WebApp & { initData?: string })
-      | undefined;
 
-    const telegramInitData = telegramWebApp?.initData;
-
-    if (telegramInitData) {
-      fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData: telegramInitData }),
-        cache: 'no-store',
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            const result = await response.json().catch(() => ({}));
-            console.error(
-              'Telegram account setup failed:',
-              result.error || response.status
-            );
-          } else {
-            console.log('Telegram player account verified.');
-          }
-        })
-        .catch((error) => {
-          console.error('Telegram account setup network error:', error);
-        });
-    }
-    
-    
-    // Automatically register or recognize Telegram players.
-    const telegramWebApp = window.Telegram?.WebApp as
-      | (typeof window.Telegram.WebApp & { initData?: string })
-      | undefined;
-
-    const telegramInitData = telegramWebApp?.initData;
-
-    if (telegramInitData) {
-      fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData: telegramInitData }),
-        cache: 'no-store',
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            const result = await response.json().catch(() => ({}));
-            console.error(
-              'Telegram account setup failed:',
-              result.error || response.status
-            );
-          } else {
-            console.log('Telegram player account verified.');
-          }
-        })
-        .catch((error) => {
-          console.error('Telegram account setup network error:', error);
-        });
-    }
-    const telegramWebApp = window.Telegram?.WebApp as
-      | (typeof window.Telegram.WebApp & { initData?: string })
-      | undefined;
-
-    const telegramInitData = telegramWebApp?.initData;
-
-    if (telegramInitData) {
-      fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData: telegramInitData }),
-        cache: 'no-store',
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            const result = await response.json().catch(() => ({}));
-            console.error(
-              'Telegram account setup failed:',
-              result.error || response.status
-            );
-          } else {
-            console.log('Telegram player account verified.');
-          }
-        })
-        .catch((error) => {
-          console.error('Telegram account setup network error:', error);
-        });
-    }
-    const telegramInitData =
-  window.Telegram?.WebApp as
-    | (typeof window.Telegram.WebApp & { initData?: string })
-    | undefined
-)?.initData; 
-
-    if (telegramInitData) {
-      fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData: telegramInitData }),
-        cache: 'no-store',
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            const result = await response.json().catch(() => ({}));
-            console.warn(
-              'Telegram account setup failed:',
-              result.error || response.status
-            );
-          }
-        })
-        .catch((error) => {
-          console.warn('Telegram account setup network error:', error);
-        });
-    }
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 600);
 
-    // Periodic police heat decay (-1% every 2 min) & cooldown check
     const decayTimer = setInterval(() => {
       tickGameState();
     }, 10000);
 
-    // Real-time listener for automated Telegram Bot notifications
     const handleBotNotification = (e: Event) => {
       const customEvent = e as CustomEvent<BotNotification>;
       if (customEvent.detail) {
@@ -297,7 +176,6 @@ export default function StreetLifeApp() {
     }, 2800);
   };
 
-  // Claim Daily Reward
   const handleClaimDailyReward = (rewardAmount: number, bonusItem?: string) => {
     playCoinSound();
     const newTotal = gameState.streetCoin + rewardAmount;
@@ -309,14 +187,12 @@ export default function StreetLifeApp() {
     );
   };
 
-  // Simulate Playing 1 Game (Unlock daily reward)
   const handleSimulatePlayGame = () => {
     playCoinSound();
     saveHasPlayedToday(true);
     showToast('Game completed! Daily Reward is now unlocked 🔓');
   };
 
-  // Reset test lock
   const handleResetTestLock = () => {
     playClickSound();
     resetDailyTestState();
@@ -347,21 +223,18 @@ export default function StreetLifeApp() {
 
   return (
     <div className="min-h-screen w-full bg-[#0A0A0A] text-white flex flex-col items-center justify-between selection:bg-[#FFD700] selection:text-black overflow-y-auto">
-      {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-[#FFD700] text-black font-bold text-xs shadow-xl shadow-[#FFD700]/30 animate-in fade-in slide-in-from-top duration-200">
           {toastMessage}
         </div>
       )}
 
-      {/* AUTOMATED TELEGRAM BOT NOTIFICATION BANNER */}
       {botAlert && (
         <div className="fixed top-16 left-4 right-4 z-[260] max-w-md mx-auto animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="rounded-2xl bg-[#0D1520]/95 border-2 border-cyan-400 p-3.5 shadow-[0_0_30px_rgba(6,182,212,0.4)] backdrop-blur-xl flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400 flex items-center justify-center shrink-0">
               <Bot className="w-5 h-5 text-cyan-400 animate-pulse" />
             </div>
-
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 flex items-center gap-1">
@@ -375,10 +248,8 @@ export default function StreetLifeApp() {
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-
               <h4 className="text-xs font-black text-white mt-0.5">{botAlert.title}</h4>
               <p className="text-[11px] text-gray-300 mt-0.5 leading-snug">{botAlert.message}</p>
-
               {botAlert.reward && (
                 <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FFD700]/20 text-[#FFD700] text-[10px] font-black border border-[#FFD700]/30">
                   <span>🪙 +{botAlert.reward} SC Credited</span>
@@ -389,7 +260,6 @@ export default function StreetLifeApp() {
         </div>
       )}
 
-      {/* TOP BAR (Fixed Top with Hide/Show animation) */}
       <div
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
           isChromeHidden
@@ -409,7 +279,6 @@ export default function StreetLifeApp() {
         />
       </div>
 
-      {/* IMMERSIVE TOGGLE BUTTON (Player can hide and show top and bottom buttons) */}
       <button
         onClick={() => {
           playClickSound();
@@ -431,7 +300,6 @@ export default function StreetLifeApp() {
         {isChromeHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
       </button>
 
-      {/* MAIN CONTAINER (Mobile-First max-w-md centered, fully scrollable) */}
       <main
         className={`w-full max-w-md mx-auto ${
           isChromeHidden ? 'pt-3 pb-16' : 'pt-14 pb-28'
@@ -517,17 +385,12 @@ export default function StreetLifeApp() {
           />
         ) : (
           <div className="w-full flex-1 min-h-[calc(100dvh-5rem)] overflow-y-auto pb-40 pt-4 px-4 overscroll-contain space-y-4">
-            {/* CENTER LOGO */}
             <CenterLogo />
-
-            {/* HERO BALANCE CARD with Transactions History CTA & Street Novel CTA */}
             <HeroBalanceCard
               streetCoin={activeGameState.streetCoin}
               onOpenTransactions={() => setIsTransactionsOpen(true)}
               onOpenNovel={() => setShowNovelModal(true)}
             />
-
-            {/* SYNDICATE QUICK ACCESS DOCK (One-tap shortcuts to all modules) */}
             <div className="rounded-2xl bg-[#121214] border border-white/10 p-3 shadow-xl">
               <div className="flex items-center justify-between mb-2 px-1">
                 <span className="text-[10px] font-black uppercase tracking-wider text-[#FFD700] flex items-center gap-1">
@@ -552,7 +415,6 @@ export default function StreetLifeApp() {
                     Tasks
                   </span>
                 </button>
-
                 <button
                   onClick={() => {
                     playClickSound();
@@ -569,7 +431,6 @@ export default function StreetLifeApp() {
                     Bank
                   </span>
                 </button>
-
                 <button
                   onClick={() => {
                     playClickSound();
@@ -586,7 +447,6 @@ export default function StreetLifeApp() {
                     Watch
                   </span>
                 </button>
-
                 <Link
                   href="/daily-free"
                   onClick={() => playClickSound()}
@@ -599,7 +459,6 @@ export default function StreetLifeApp() {
                     Daily Free
                   </span>
                 </Link>
-
                 <button
                   onClick={() => {
                     playClickSound();
@@ -616,7 +475,6 @@ export default function StreetLifeApp() {
                     Warzone
                   </span>
                 </button>
-
                 <button
                   onClick={() => {
                     playClickSound();
@@ -633,7 +491,6 @@ export default function StreetLifeApp() {
                     Studio
                   </span>
                 </button>
-
                 <button
                   onClick={() => {
                     playClickSound();
@@ -650,7 +507,6 @@ export default function StreetLifeApp() {
                     Games
                   </span>
                 </button>
-
                 <button
                   onClick={() => {
                     playClickSound();
@@ -669,8 +525,6 @@ export default function StreetLifeApp() {
                 </button>
               </div>
             </div>
-
-            {/* DAILY REWARD STRIP */}
             <DailyRewardStrip
               hasPlayedToday={activeGameState.hasPlayedToday}
               dailyStreak={activeGameState.dailyStreak}
@@ -679,8 +533,6 @@ export default function StreetLifeApp() {
               onSimulatePlayGame={handleSimulatePlayGame}
               onResetTestLock={handleResetTestLock}
             />
-
-            {/* SYNDICATE REFERRALS (Kept on HOME tab) */}
             <ReferralCard
               myReferralCode={activeGameState.myReferralCode}
               referralsCount={activeGameState.referralsCount}
@@ -690,16 +542,12 @@ export default function StreetLifeApp() {
               onSimulateReferral={handleSimulateReferral}
               onToast={showToast}
             />
-
-            {/* LEADERBOARD - Top Hustlers (with shimmer skeleton loader) */}
             <Leaderboard
               entries={leaderboard}
               userCoins={activeGameState.streetCoin}
               userName={activeTelegramUser?.first_name ? `${activeTelegramUser.first_name}` : 'You'}
               isLoading={isLoading}
             />
-
-            {/* GAME CARDS (3 working games: Galaxy Shooter, Street Race, Street Rider) */}
             <GameCards
               onPlayShooter={() => setIsShooterModalOpen(true)}
               onPlayRace={() => setIsRaceModalOpen(true)}
@@ -711,7 +559,6 @@ export default function StreetLifeApp() {
         )}
       </main>
 
-      {/* BOTTOM NAV (Fixed Bottom, 6 Tabs) - Hidden when 3D game is active or player toggles hidden */}
       {!is3DGameActive && (
         <div
           className={`fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ${
@@ -731,7 +578,6 @@ export default function StreetLifeApp() {
         </div>
       )}
 
-      {/* MODALS */}
       <ProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
@@ -750,7 +596,6 @@ export default function StreetLifeApp() {
         onToast={showToast}
       />
 
-      {/* GAME 1: Street Galaxy Shooter */}
       <StreetGalaxyShooterModal
         isOpen={isShooterModalOpen}
         onClose={() => setIsShooterModalOpen(false)}
@@ -758,7 +603,6 @@ export default function StreetLifeApp() {
         onToast={showToast}
       />
 
-      {/* GAME 2: Street Race (3D Follow Cam, Traffic Avoidance, Coins, Garage) */}
       <StreetRaceModal
         isOpen={isRaceModalOpen}
         onClose={() => setIsRaceModalOpen(false)}
@@ -768,7 +612,6 @@ export default function StreetLifeApp() {
         onToast={showToast}
       />
 
-      {/* GAME 3: Street Rider (2km Delivery, 60s Countdown, Bike Garage, +100 Coins) */}
       <StreetRiderModal
         isOpen={isRiderModalOpen}
         onClose={() => setIsRiderModalOpen(false)}
@@ -779,7 +622,6 @@ export default function StreetLifeApp() {
         onToast={showToast}
       />
 
-      {/* Transactions Ledger Modal (Last 10 Coin Earning Events) */}
       <TransactionsModal
         isOpen={isTransactionsOpen}
         onClose={() => setIsTransactionsOpen(false)}
@@ -787,7 +629,6 @@ export default function StreetLifeApp() {
         currentBalance={activeGameState.streetCoin}
       />
 
-      {/* Street Novel Modal (Center popup, coming soon with extensible novelContent div) */}
       {showNovelModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
@@ -797,12 +638,9 @@ export default function StreetLifeApp() {
             className="relative w-full max-w-sm rounded-2xl bg-[#111] border-2 border-[#FFD700] p-6 shadow-[0_0_35px_rgba(255,215,0,0.35)] text-center animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Title: "📚 STREET NOVEL" in yellow bold */}
             <h3 className="text-lg font-bold text-[#FFD700] uppercase tracking-wider mb-3">
               📚 STREET NOVEL
             </h3>
-
-            {/* Extensible novel content container */}
             <div id="novelContent" className="space-y-2 mb-6">
               <div className="text-2xl font-bold text-white">
                 Coming Soon
@@ -811,8 +649,6 @@ export default function StreetLifeApp() {
                 The streets have stories. Chapters will unlock as your empire grows.
               </p>
             </div>
-
-            {/* Close Button: yellow background, black text */}
             <button
               type="button"
               onClick={() => {
