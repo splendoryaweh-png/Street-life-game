@@ -71,8 +71,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     if (nearestCar) { if (nearestCar.hasDriver && nearestCar.driverType === 'civilian') { nearestCar.hasDriver = false; nearestCar.driverType = 'player'; nearestCar.isOccupied = true; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('siren'); onToast(t('car_hijacked')); } else if (!nearestCar.isOccupied) { nearestCar.isOccupied = true; nearestCar.hasDriver = true; nearestCar.driverType = 'player'; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('click'); onToast(t('car_enter')); } }
   }, [onToast, playSfx, t]);
   const handleToggleCover = useCallback(() => {
-    const s = gameStateRef.current; const p = s.player;
-    p.isCover = !p.isCover; setHudInCover(p.isCover); playSfx('click'); onToast(p.isCover ? 'SHIELD ON 🛡️ - Bullet Protection!' : 'Shield OFF');
+    const s = gameStateRef.current; const p = s.player; p.isCover = !p.isCover; setHudInCover(p.isCover); playSfx('click'); onToast(p.isCover ? 'SHIELD ON 🛡️ - Bullet Protection!' : 'Shield OFF');
   }, [onToast, playSfx]);
   const handleJump = useCallback(() => { const s = gameStateRef.current; const p = s.player; if (p.isJumping || p.inCarId) return; p.isJumping = true; p.jumpVy = 8.5; playPickupSound(); onToast('LEAP JUMP! 🚀'); }, [onToast]);
   const shootPlayerLaser = useCallback(() => {
@@ -121,50 +120,59 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
         const aimAngle = Math.atan2(targetY - g.y, targetX - g.x); g.facingAngle = aimAngle; g.x += Math.cos(aimAngle) * g.speed; g.y += Math.sin(aimAngle) * g.speed;
         if (targetDist < 260 && now - g.lastShootTime >= 650) { g.lastShootTime = now; const beamLen = 320; const laserEndX = g.x + Math.cos(aimAngle) * beamLen; const laserEndY = g.y + Math.sin(aimAngle) * beamLen; s.lasers.push({ id: `laser_g_${now}_${Math.random()}`, x1: g.x + Math.cos(aimAngle) * 16, y1: g.y + Math.sin(aimAngle) * 16, x2: laserEndX, y2: laserEndY, color: '#EF4444', life: 6, maxLife: 6, isPlayer: false, damage: 10 }); if (targetDist < 350) { playSfx('shoot'); } }
       }
-      // --- START OF HIT LOGIC - ONLY THIS PART CHANGED ---
+
+      // ===== FIXED HIT LOGIC START =====
+      function distToSegment(px: number, py: number, x1: number, y1: number, x2: number, y2: number) {
+        const l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+        if (l2 === 0) return Math.hypot(px - x1, py - y1);
+        let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+        t = Math.max(0, Math.min(1, t));
+        return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+      }
       for (let lIdx = s.lasers.length - 1; lIdx >= 0; lIdx--) {
         const l = s.lasers[lIdx]; l.life -= 1;
         if (l.isPlayer) {
           let hit = false;
-          // 1. ENEMY - 3 SHOTS DIE
           for (let gIdx = s.gangsters.length - 1; gIdx >= 0; gIdx--) {
-            const g = s.gangsters[gIdx]; const dist = Math.hypot(g.x - l.x2, g.y - l.y2);
-            if (dist < 75) { 
-              g.health -= 1; // 3 shots = die
-              for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); } 
+            const g = s.gangsters[gIdx];
+            if (distToSegment(g.x, g.y, l.x1, l.y1, l.x2, l.y2) < 38) {
+              g.health -= 1; // 3 shots die
+              for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); }
               s.lasers.splice(lIdx, 1); hit = true;
-              if (g.health <= 0) { s.gangsters.splice(gIdx, 1); p.coins += 5; setHudCoins(p.coins); setGangstersKilledCount((k) => k + 1); addGameCoins(5, '+5 SC - Gangster Neutralized!', 'task_reward'); playSfx('coin'); } 
-              break; 
+              if (g.health <= 0) {
+                for (let sp = 0; sp < 16; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, color: sp % 2 ? '#ff0000' : '#ffaa00', life: 22 }); }
+                s.gangsters.splice(gIdx, 1); p.coins += 5; setHudCoins(p.coins); setGangstersKilledCount(k => k + 1); addGameCoins(5, '+5 SC', 'task_reward'); playSfx('coin');
+              }
+              break;
             }
           }
-          if(hit) continue;
-          // 2. CAR - 10 SHOTS EXPLODE - NO EXTRA COIN
+          if (hit) continue;
           for (let cIdx = s.cars.length - 1; cIdx >= 0; cIdx--) {
-            const car = s.cars[cIdx]; const dist = Math.hypot(car.x - l.x2, car.y - l.y2);
-            if (dist < 90) {
-              car.health -= 1; // 10 shots = explode
+            const car = s.cars[cIdx];
+            if (distToSegment(car.x, car.y, l.x1, l.y1, l.x2, l.y2) < 48) {
+              car.health -= 1; // 10 shots explode
+              s.lasers.splice(lIdx, 1); hit = true;
               for (let sp = 0; sp < 3; sp++) { s.sparks.push({ x: car.x, y: car.y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, color: '#f97316', life: 10 }); }
-              s.lasers.splice(lIdx, 1);
               if (car.health <= 0) {
-                // EXPLODE EFFECT ONLY - NO COIN ADDED
-                for (let sp = 0; sp < 12; sp++) { s.sparks.push({ x: car.x, y: car.y, vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.5) * 9, color: sp % 2 === 0 ? '#ff0000' : '#ffaa00', life: 20 }); }
+                for (let sp = 0; sp < 20; sp++) { s.sparks.push({ x: car.x, y: car.y, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12, color: sp % 2 ? '#ff0000' : '#ffaa00', life: 26 }); }
                 s.cars.splice(cIdx, 1);
               }
               break;
             }
           }
+          if (hit) continue;
         } else {
-          const distToPlayer = Math.hypot(p.x - l.x2, p.y - l.y2);
-          if (distToPlayer < 42) {
-            const isDriver = !!p.inCarId; let appliedDamage = 10; if (p.isCover) appliedDamage = 1; else if (isDriver) appliedDamage = 3;
-            p.health = Math.max(0, p.health - appliedDamage); setHudHealth(p.health); s.lasers.splice(lIdx, 1);
+          if (Math.hypot(p.x - l.x2, p.y - l.y2) < 42 || distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 30) {
+            const isDriver = !!p.inCarId; let dmg = 10; if (p.isCover) dmg = 1; else if (isDriver) dmg = 3;
+            p.health = Math.max(0, p.health - dmg); setHudHealth(p.health); s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 4; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, color: '#38BDF8', life: 12 }); }
             if (p.health <= 0) { playSfx('siren'); onToast(t('player_down')); p.health = 100; p.x = 1900; p.y = 1800; setHudHealth(100); }
           }
         }
         if (l.life <= 0 && s.lasers[lIdx]) { s.lasers.splice(lIdx, 1); }
       }
-      // --- END OF HIT LOGIC ---
+      // ===== FIXED HIT LOGIC END =====
+
       for (let spIdx = s.sparks.length - 1; spIdx >= 0; spIdx--) { const sp = s.sparks[spIdx]; sp.x += sp.vx; sp.y += sp.vy; sp.life -= 1; if (sp.life <= 0) s.sparks.splice(spIdx, 1); }
       ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save(); ctx.translate(-cameraX, -cameraY);
       ctx.fillStyle = cityData.theme.groundGrassColor; ctx.fillRect(0, 0, cityData.mapWidth, cityData.mapHeight);
