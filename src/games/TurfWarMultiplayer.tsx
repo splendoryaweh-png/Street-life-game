@@ -1,156 +1,30 @@
 'use client';
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Swords,
-  Shield,
-  Heart,
-  Skull,
-  Crosshair,
-  Trophy,
-  Coins,
-  Crown,
-  Zap,
-  Volume2,
-  VolumeX,
-  Flame,
-  Clock,
-  Sparkles,
-  Users,
-  Bus,
-  ArrowLeft,
-  RotateCcw,
-  Target,
-  Radio,
-  Share2,
-  Check,
-  AlertCircle,
-  Award,
-} from 'lucide-react';
+import { Swords, Shield, Heart, Skull, Crosshair, Trophy, Coins, Crown, Zap, Volume2, VolumeX, Flame, Clock, Sparkles, Users, Bus, ArrowLeft, RotateCcw, Target, Radio, Share2, Check, AlertCircle, Award } from 'lucide-react';
 import { TurfWarLobby, TurfRole, TurfLobbyPlayer } from './TurfWarLobby';
-import {
-  playShootSound,
-  playPunchSound,
-  playCoinSound,
-  playSuccessSound,
-  playClickSound,
-  playSirenSound,
-} from '@/lib/sound';
+import { playShootSound, playPunchSound, playCoinSound, playSuccessSound, playClickSound, playSirenSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
 import confetti from 'canvas-confetti';
 
-export interface TurfWarMultiplayerProps {
-  onBack: () => void;
-  onToast: (msg: string) => void;
-  currentCoins: number;
-  initialRoomCode?: string;
-}
+export interface TurfWarMultiplayerProps { onBack: () => void; onToast: (msg: string) => void; currentCoins: number; initialRoomCode?: string; }
+interface PlayerState { id: string; name: string; role: TurfRole; x: number; y: number; vx: number; vy: number; angle: number; hp: number; maxHp: number; armor: number; maxArmor: number; kills: number; score: number; color: string; isMe: boolean; isAlive: boolean; isFiring: boolean; ammo: number; maxAmmo: number; isReloading: boolean; reloadProgress: number; hitCount: number; inTankId: string | null; insideBuildingId: string | null; }
+interface Enemy { id: string; type: 'thug' | 'enforcer'; x: number; y: number; vx: number; vy: number; hp: number; maxHp: number; speed: number; damage: number; radius: number; color: string; lastAttack: number; targetPlayerId: string; hitCount: number; }
+interface Tank { id: string; x: number; y: number; angle: number; hp: number; maxHp: number; occupiedBy: string | null; isExploded: boolean; barracksId: string; }
+interface Bullet { id: string; playerId: string; x: number; y: number; vx: number; vy: number; damage: number; color: string; life: number; radius: number; isTankShell: boolean; }
+interface Particle { x: number; y: number; vx: number; vy: number; life: number; maxLife: number; color: string; size: number; }
+interface FloatingText { id: string; text: string; x: number; y: number; color: string; alpha: number; vy: number; }
+interface TurfZone { id: string; name: string; x: number; y: number; radius: number; control: number; color: string; }
+interface Barracks { id: string; x: number; y: number; w: number; h: number; doorX: number; doorY: number; doorW: number; }
 
-interface PlayerState {
-  id: string;
-  name: string;
-  role: TurfRole;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  angle: number;
-  hp: number;
-  maxHp: number;
-  armor: number;
-  maxArmor: number;
-  kills: number;
-  score: number;
-  color: string;
-  isMe: boolean;
-  isAlive: boolean;
-  isFiring: boolean;
-  ammo: number;
-  maxAmmo: number;
-  isReloading: boolean;
-  reloadProgress: number;
-}
+const MATCH_DURATION_SECONDS = 3600;
 
-interface Enemy {
-  id: string;
-  type: 'thug' | 'enforcer' | 'boss' | 'bus';
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  hp: number;
-  maxHp: number;
-  speed: number;
-  damage: number;
-  radius: number;
-  color: string;
-  lastAttack: number;
-  targetPlayerId: string;
-}
-
-interface Bullet {
-  id: string;
-  playerId: string;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  damage: number;
-  color: string;
-  life: number;
-  radius: number;
-}
-
-interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  color: string;
-  size: number;
-}
-
-interface FloatingText {
-  id: string;
-  text: string;
-  x: number;
-  y: number;
-  color: string;
-  alpha: number;
-  vy: number;
-}
-
-interface TurfZone {
-  id: string;
-  name: string;
-  x: number;
-  y: number;
-  radius: number;
-  control: number; // -100 (Enemy) to 100 (Players)
-  color: string;
-}
-
-const MATCH_DURATION_SECONDS = 3600; // 1 HOUR PER MATCH
-
-export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({
-  onBack,
-  onToast,
-  currentCoins,
-  initialRoomCode,
-}) => {
-  // Lobby state vs In-game state
+export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, onToast, currentCoins, initialRoomCode }) => {
   const [inGame, setInGame] = useState(false);
   const [roomCode, setRoomCode] = useState(initialRoomCode || '');
   const [isHost, setIsHost] = useState(true);
   const [myRole, setMyRole] = useState<TurfRole>('attacker');
   const [lobbyPlayers, setLobbyPlayers] = useState<TurfLobbyPlayer[]>([]);
-
-  // Sound toggle
   const [soundEnabled, setSoundEnabled] = useState(true);
-
-  // Match stats
   const [matchTimeRemaining, setMatchTimeRemaining] = useState(MATCH_DURATION_SECONDS);
   const [currentWave, setCurrentWave] = useState(1);
   const [waveEnemiesRemaining, setWaveEnemiesRemaining] = useState(5);
@@ -158,30 +32,31 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({
   const [earnedCoins, setEarnedCoins] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isHourVictory, setIsHourVictory] = useState(false);
-
-  // My Player ID
-  const myPlayerId = useRef<string>(
-    'p_' + Math.random().toString(36).substring(2, 8)
-  );
-
-  // Canvas & Game loop refs
+  const [nearTankPrompt, setNearTankPrompt] = useState<string | null>(null);
+  const myPlayerId = useRef<string>('p_' + Math.random().toString(36).substring(2, 8));
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const requestRef = useRef<number | null>(null);
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
-
-  // Live game entities stored in refs for 60fps performance
   const playersRef = useRef<Map<string, PlayerState>>(new Map());
   const enemiesRef = useRef<Enemy[]>([]);
+  const tanksRef = useRef<Tank[]>([]);
   const bulletsRef = useRef<Bullet[]>([]);
   const particlesRef = useRef<Particle[]>([]);
   const floatingTextsRef = useRef<FloatingText[]>([]);
   const turfZonesRef = useRef<TurfZone[]>([
-    { id: 'zone_a', name: 'TURF ALPHA (North)', x: 400, y: 220, radius: 90, control: 50, color: '#10B981' },
-    { id: 'zone_b', name: 'TURF BRAVO (Central)', x: 800, y: 600, radius: 110, control: 20, color: '#3B82F6' },
-    { id: 'zone_c', name: 'TURF CHARLIE (South)', x: 1200, y: 980, radius: 90, control: -30, color: '#F59E0B' },
+    { id: 'zone_a', name: 'BARRACKS ALPHA', x: 900, y: 700, radius: 220, control: 50, color: '#10B981' },
+    { id: 'zone_b', name: 'BARRACKS BRAVO (HQ)', x: 3000, y: 3000, radius: 300, control: 20, color: '#3B82F6' },
+    { id: 'zone_c', name: 'BARRACKS CHARLIE', x: 5100, y: 5300, radius: 220, control: -30, color: '#F59E0B' },
+  ]);
+  const barracksBuildingsRef = useRef<Barracks[]>([
+    { id: 'bld_a1', x: 700, y: 500, w: 240, h: 160, doorX: 800, doorY: 660, doorW: 40 },
+    { id: 'bld_a2', x: 1000, y: 750, w: 220, h: 140, doorX: 1000, doorY: 800, doorW: 40 },
+    { id: 'bld_b1', x: 2800, y: 2700, w: 300, h: 200, doorX: 2950, doorY: 2900, doorW: 50 },
+    { id: 'bld_b2', x: 3200, y: 2800, w: 260, h: 180, doorX: 3200, doorY: 2890, doorW: 50 },
+    { id: 'bld_b3', x: 2900, y: 3200, w: 280, h: 180, doorX: 3000, doorY: 3200, doorW: 50 },
+    { id: 'bld_c1', x: 4900, y: 5100, w: 240, h: 160, doorX: 5000, doorY: 5260, doorW: 40 },
+    { id: 'bld_c2', x: 5200, y: 5300, w: 220, h: 140, doorX: 5200, doorY: 5350, doorW: 40 },
   ]);
 
-  // Keys & Input state
   const keysRef = useRef<{ [key: string]: boolean }>({});
   const joystickPosRef = useRef<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false });
   const touchAimRef = useRef<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false });
@@ -189,1178 +64,487 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({
   const lastShootTimeRef = useRef<number>(0);
   const lastSyncTimeRef = useRef<number>(0);
   const waveSpawningRef = useRef<boolean>(false);
-
-  // Camera viewport offset
   const cameraRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Map boundaries
-  const MAP_WIDTH = 1600;
-  const MAP_HEIGHT = 1200;
+  // 6000 WIDE MAP AS YOU TALK
+  const MAP_WIDTH = 6000;
+  const MAP_HEIGHT = 6000;
 
-  // Initialize my player
-  const initMyPlayer = useCallback(
-    (role: TurfRole, name = 'You') => {
-      const isAttacker = role === 'attacker';
-      const maxHp = isAttacker ? 220 : 320;
-      const maxArmor = isAttacker ? 100 : 250;
-      const myState: PlayerState = {
-        id: myPlayerId.current,
-        name,
-        role,
-        x: 800 + (Math.random() * 80 - 40),
-        y: 600 + (Math.random() * 80 - 40),
-        vx: 0,
-        vy: 0,
-        angle: 0,
-        hp: maxHp,
-        maxHp,
-        armor: maxArmor,
-        maxArmor,
-        kills: 0,
-        score: 0,
-        color: isAttacker ? '#EF4444' : '#3B82F6',
-        isMe: true,
-        isAlive: true,
-        isFiring: false,
-        ammo: 30,
-        maxAmmo: 30,
-        isReloading: false,
-        reloadProgress: 0,
-      };
+  const initMyPlayer = useCallback((role: TurfRole, name = 'You') => {
+    const isAttacker = role === 'attacker';
+    const myState: PlayerState = {
+      id: myPlayerId.current, name, role,
+      x: 3000 + (Math.random() * 80 - 40), y: 3000 + (Math.random() * 80 - 40),
+      vx: 0, vy: 0, angle: 0,
+      hp: 100, maxHp: 100, armor: 100, maxArmor: 100,
+      kills: 0, score: 0, color: isAttacker ? '#FACC15' : '#3B82F6',
+      isMe: true, isAlive: true, isFiring: false, ammo: 30, maxAmmo: 30, isReloading: false, reloadProgress: 0, hitCount: 0, inTankId: null, insideBuildingId: null,
+    };
+    playersRef.current.set(myPlayerId.current, myState);
+  }, []);
 
-      playersRef.current.set(myPlayerId.current, myState);
-    },
-    []
-  );
+  const initTanks = useCallback(() => {
+    const tanks: Tank[] = [];
+    // 5 tanks per barracks = 15 total
+    const barracksPos = [
+      { id: 'barracks_a', cx: 900, cy: 700 },
+      { id: 'barracks_b', cx: 3000, cy: 3000 },
+      { id: 'barracks_c', cx: 5100, cy: 5300 },
+    ];
+    barracksPos.forEach(bp => {
+      for (let i = 0; i < 5; i++) {
+        tanks.push({
+          id: `tank_${bp.id}_${i}`,
+          x: bp.cx + (i % 3) * 90 - 90 + (Math.random()*20-10),
+          y: bp.cy + Math.floor(i/3)*90 - 40 + (Math.random()*20-10),
+          angle: -Math.PI/2 + Math.random()*0.4-0.2,
+          hp: 15, maxHp: 15, // 15 hits for weak gun, attacker does 2 damage = 7-8 hits
+          occupiedBy: null,
+          isExploded: false,
+          barracksId: bp.id,
+        });
+      }
+    });
+    tanksRef.current = tanks;
+  }, []);
 
-  // Spawn unlimited wave formula:
-  // enemyCount = wave * 2 + 3
-  // enemyHealth = 100 + wave * 15
-  // enemyDamage = 10 + wave * 2
   const spawnUnlimitedWave = useCallback((waveNum: number) => {
     waveSpawningRef.current = true;
     const enemyCount = waveNum * 2 + 3;
-    const baseHp = 100 + waveNum * 15;
-    const baseDmg = 10 + waveNum * 2;
     const newEnemies: Enemy[] = [];
-
-    // Boss bus or armored enforcer every 3 waves
-    const hasBossBus = waveNum % 3 === 0;
-
     for (let i = 0; i < enemyCount; i++) {
-      // Spawn at perimeter
       const side = Math.floor(Math.random() * 4);
-      let ex = 0;
-      let ey = 0;
-      if (side === 0) {
-        ex = Math.random() * MAP_WIDTH;
-        ey = -50;
-      } else if (side === 1) {
-        ex = MAP_WIDTH + 50;
-        ey = Math.random() * MAP_HEIGHT;
-      } else if (side === 2) {
-        ex = Math.random() * MAP_WIDTH;
-        ey = MAP_HEIGHT + 50;
-      } else {
-        ex = -50;
-        ey = Math.random() * MAP_HEIGHT;
-      }
-
+      let ex = 0, ey = 0;
+      if (side === 0) { ex = Math.random() * MAP_WIDTH; ey = -80; }
+      else if (side === 1) { ex = MAP_WIDTH + 80; ey = Math.random() * MAP_HEIGHT; }
+      else if (side === 2) { ex = Math.random() * MAP_WIDTH; ey = MAP_HEIGHT + 80; }
+      else { ex = -80; ey = Math.random() * MAP_HEIGHT; }
       const isEnforcer = i % 4 === 0;
       newEnemies.push({
-        id: `enemy_w${waveNum}_${i}_${Math.random()}`,
-        type: isEnforcer ? 'enforcer' : 'thug',
-        x: ex,
-        y: ey,
-        vx: 0,
-        vy: 0,
-        hp: isEnforcer ? Math.round(baseHp * 1.6) : baseHp,
-        maxHp: isEnforcer ? Math.round(baseHp * 1.6) : baseHp,
-        speed: isEnforcer ? 1.8 : 2.3,
-        damage: isEnforcer ? Math.round(baseDmg * 1.4) : baseDmg,
-        radius: isEnforcer ? 22 : 16,
-        color: isEnforcer ? '#9333EA' : '#DC2626',
-        lastAttack: 0,
-        targetPlayerId: myPlayerId.current,
+        id: `enemy_w${waveNum}_${i}_${Math.random()}`, type: isEnforcer ? 'enforcer' : 'thug',
+        x: ex, y: ey, vx: 0, vy: 0,
+        hp: isEnforcer ? 4 : 3, maxHp: isEnforcer ? 4 : 3,
+        speed: isEnforcer ? 2.8 : 3.5, damage: 1, radius: 18,
+        color: isEnforcer ? '#7C3AED' : '#DC2626', lastAttack: 0, targetPlayerId: myPlayerId.current, hitCount: 0,
       });
     }
-
-    if (hasBossBus) {
-      newEnemies.push({
-        id: `enemy_bus_${waveNum}`,
-        type: 'bus',
-        x: Math.random() > 0.5 ? -100 : MAP_WIDTH + 100,
-        y: MAP_HEIGHT / 2 + (Math.random() * 200 - 100),
-        vx: 0,
-        vy: 0,
-        hp: baseHp * 4,
-        maxHp: baseHp * 4,
-        speed: 1.2,
-        damage: baseDmg * 2.2,
-        radius: 42,
-        color: '#EAB308',
-        lastAttack: 0,
-        targetPlayerId: myPlayerId.current,
-      });
-      playSirenSound();
-    }
-
     enemiesRef.current = newEnemies;
     setWaveEnemiesRemaining(newEnemies.length);
     waveSpawningRef.current = false;
   }, []);
 
-  // Start match from Lobby
-  const handleStartMatch = (
-    code: string,
-    host: boolean,
-    role: TurfRole,
-    players: TurfLobbyPlayer[]
-  ) => {
-    setRoomCode(code);
-    setIsHost(host);
-    setMyRole(role);
-    setLobbyPlayers(players);
-    setInGame(true);
-
+  const handleStartMatch = (code: string, host: boolean, role: TurfRole, players: TurfLobbyPlayer[]) => {
+    setRoomCode(code); setIsHost(host); setMyRole(role); setLobbyPlayers(players); setInGame(true);
     initMyPlayer(role);
-
-    // Register teammates
+    initTanks();
     players.forEach((p) => {
       if (p.id !== myPlayerId.current) {
         playersRef.current.set(p.id, {
-          id: p.id,
-          name: p.name,
-          role: p.role,
-          x: 800 + (Math.random() * 100 - 50),
-          y: 600 + (Math.random() * 100 - 50),
-          vx: 0,
-          vy: 0,
-          angle: 0,
-          hp: p.role === 'attacker' ? 220 : 320,
-          maxHp: p.role === 'attacker' ? 220 : 320,
-          armor: p.role === 'attacker' ? 100 : 250,
-          maxArmor: p.role === 'attacker' ? 100 : 250,
-          kills: 0,
-          score: 0,
-          color: p.role === 'attacker' ? '#EF4444' : '#3B82F6',
-          isMe: false,
-          isAlive: true,
-          isFiring: false,
-          ammo: 30,
-          maxAmmo: 30,
-          isReloading: false,
-          reloadProgress: 0,
+          id: p.id, name: p.name, role: p.role, x: 3000 + (Math.random() * 100 - 50), y: 3000 + (Math.random() * 100 - 50),
+          vx: 0, vy: 0, angle: 0, hp: 100, maxHp: 100, armor: 100, maxArmor: 100, kills: 0, score: 0,
+          color: p.role === 'attacker' ? '#FACC15' : '#3B82F6', isMe: false, isAlive: true, isFiring: false, ammo: 30, maxAmmo: 30, isReloading: false, reloadProgress: 0, hitCount: 0, inTankId: null, insideBuildingId: null,
         });
       }
     });
-
-    // Host spawns wave 1
-    if (host) {
-      spawnUnlimitedWave(1);
-    }
-
-    // Set up BroadcastChannel
-    const channelName = `turfwar_${code}`;
-    const channel = new BroadcastChannel(channelName);
-    broadcastChannelRef.current = channel;
-
+    if (host) { spawnUnlimitedWave(1); }
+    const channelName = `turfwar_${code}`; const channel = new BroadcastChannel(channelName); broadcastChannelRef.current = channel;
     channel.onmessage = (event) => {
-      const data = event.data;
-      if (!data) return;
-
+      const data = event.data; if (!data) return;
       if (data.type === 'PLAYER_SYNC') {
         const p = playersRef.current.get(data.id);
-        if (p && !p.isMe) {
-          p.x = data.x;
-          p.y = data.y;
-          p.angle = data.angle;
-          p.hp = data.hp;
-          p.armor = data.armor;
-          p.kills = data.kills;
-          p.isFiring = data.isFiring;
-          p.isAlive = data.isAlive;
-        } else if (!p && data.id !== myPlayerId.current) {
-          playersRef.current.set(data.id, {
-            id: data.id,
-            name: data.name || 'Teammate',
-            role: data.role || 'defender',
-            x: data.x,
-            y: data.y,
-            vx: 0,
-            vy: 0,
-            angle: data.angle,
-            hp: data.hp,
-            maxHp: data.maxHp || 250,
-            armor: data.armor,
-            maxArmor: data.maxArmor || 150,
-            kills: data.kills || 0,
-            score: 0,
-            color: data.role === 'attacker' ? '#EF4444' : '#3B82F6',
-            isMe: false,
-            isAlive: data.isAlive ?? true,
-            isFiring: data.isFiring ?? false,
-            ammo: 30,
-            maxAmmo: 30,
-            isReloading: false,
-            reloadProgress: 0,
-          });
-        }
-      } else if (data.type === 'BULLET_SPAWN') {
-        if (data.playerId !== myPlayerId.current) {
-          bulletsRef.current.push(data.bullet);
-        }
-      } else if (data.type === 'ENEMY_SYNC' && !host) {
-        enemiesRef.current = data.enemies;
-        setCurrentWave(data.wave);
-        setWaveEnemiesRemaining(data.enemies.length);
-      } else if (data.type === 'WAVE_ADVANCE') {
-        setCurrentWave(data.wave);
-        if (host) {
-          spawnUnlimitedWave(data.wave);
-        }
-      } else if (data.type === 'MATCH_TICK' && !host) {
-        setMatchTimeRemaining(data.remaining);
-      }
+        if (p && !p.isMe) { p.x = data.x; p.y = data.y; p.angle = data.angle; p.hp = data.hp; p.armor = data.armor; p.kills = data.kills; p.isFiring = data.isFiring; p.isAlive = data.isAlive; (p as any).inTankId = data.inTankId; }
+      } else if (data.type === 'BULLET_SPAWN') { if (data.playerId !== myPlayerId.current) { bulletsRef.current.push(data.bullet); } }
+      else if (data.type === 'TANK_SYNC' && !host) { tanksRef.current = data.tanks; }
+      else if (data.type === 'ENEMY_SYNC' && !host) { enemiesRef.current = data.enemies; setCurrentWave(data.wave); setWaveEnemiesRemaining(data.enemies.length); }
+      else if (data.type === 'WAVE_ADVANCE') { setCurrentWave(data.wave); if (host) { spawnUnlimitedWave(data.wave); } }
+      else if (data.type === 'MATCH_TICK' && !host) { setMatchTimeRemaining(data.remaining); }
     };
-
-    onToast(`Joined 1-Hour Turf War: ${code}!`);
+    onToast(`Joined Barracks Turf War: ${code}!`);
   };
 
-  // Keyboard controls
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      keysRef.current[e.key.toLowerCase()] = true;
-      if (e.key.toLowerCase() === 'r') {
-        triggerReload();
-      }
-      if (e.key === ' ' || e.code === 'Space') {
-        isShootingRef.current = true;
-      }
+    const handleKeyDown = (e: KeyboardEvent) => { 
+      keysRef.current[e.key.toLowerCase()] = true; 
+      if (e.key.toLowerCase() === 'r') { triggerReload(); } 
+      if (e.key === ' ' || e.code === 'Space') { isShootingRef.current = true; }
+      if (e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 'e') { tryEnterExitTank(); }
     };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      keysRef.current[e.key.toLowerCase()] = false;
-      if (e.key === ' ' || e.code === 'Space') {
-        isShootingRef.current = false;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
+    const handleKeyUp = (e: KeyboardEvent) => { keysRef.current[e.key.toLowerCase()] = false; if (e.key === ' ' || e.code === 'Space') { isShootingRef.current = false; } };
+    window.addEventListener('keydown', handleKeyDown); window.addEventListener('keyup', handleKeyUp);
+    return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
   }, []);
 
-  // Reload action
   const triggerReload = () => {
-    const me = playersRef.current.get(myPlayerId.current);
-    if (!me || me.isReloading || me.ammo === me.maxAmmo) return;
-    me.isReloading = true;
-    me.reloadProgress = 0;
+    const me = playersRef.current.get(myPlayerId.current); if (!me || me.isReloading || me.ammo === me.maxAmmo) return;
+    me.isReloading = true; me.reloadProgress = 0;
   };
 
-  // 1-Hour Match Countdown Timer (Decrements every second)
+  const tryEnterExitTank = () => {
+    const me = playersRef.current.get(myPlayerId.current); if (!me || !me.isAlive) return;
+    if (me.inTankId) {
+      const tank = tanksRef.current.find(t=>t.id===me.inTankId); if (tank) { tank.occupiedBy = null; }
+      me.inTankId = null; me.x += 60; setNearTankPrompt(null); onToast('Exited Tank');
+      return;
+    }
+    let closest: Tank | null = null; let minD = 70;
+    tanksRef.current.forEach(t=>{ if (!t.isExploded && !t.occupiedBy) { const d = Math.hypot(me.x - t.x, me.y - t.y); if (d < minD) { minD = d; closest = t; } } });
+    if (closest) {
+      (closest as Tank).occupiedBy = me.id; me.inTankId = (closest as Tank).id; me.x = (closest as Tank).x; me.y = (closest as Tank).y; setNearTankPrompt(null); onToast('Entered Armored Tank - Drive with WASD, F to exit');
+    }
+  };
+
   useEffect(() => {
     if (!inGame || isGameOver || isHourVictory) return;
-
     const timer = setInterval(() => {
       setMatchTimeRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleMatchHourCompleted();
-          return 0;
-        }
-
-        // Host syncs time tick
-        if (isHost && broadcastChannelRef.current) {
-          broadcastChannelRef.current.postMessage({
-            type: 'MATCH_TICK',
-            remaining: prev - 1,
-          });
-        }
-
+        if (prev <= 1) { clearInterval(timer); handleMatchHourCompleted(); return 0; }
+        if (isHost && broadcastChannelRef.current) { broadcastChannelRef.current.postMessage({ type: 'MATCH_TICK', remaining: prev - 1 }); }
         return prev - 1;
       });
     }, 1000);
-
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inGame, isGameOver, isHourVictory, isHost]);
 
-  // Handle 1-Hour Match Completion
   const handleMatchHourCompleted = () => {
     setIsHourVictory(true);
-    // Rewards: 10 coins per kill, 100 per wave, 1000 bonus for 1 hour
-    const killBonus = totalKills * 10;
-    const waveBonus = currentWave * 100;
-    const hourBonus = 1000;
-    const totalAward = killBonus + waveBonus + hourBonus;
-
-    setEarnedCoins(totalAward);
-    addGameCoins(totalAward, `+${totalAward} SC - 1-Hour Turf War Survived!`, 'wave_complete');
-    playSuccessSound();
-    confetti({ particleCount: 150, spread: 90 });
-    onToast(`1-HOUR SURVIVED! +${totalAward} Street Coins!`);
+    const killBonus = totalKills * 10; const waveBonus = currentWave * 100; const hourBonus = 1000; const totalAward = killBonus + waveBonus + hourBonus;
+    setEarnedCoins(totalAward); addGameCoins(totalAward, `+${totalAward} SC - Barracks Survived!`, 'wave_complete'); playSuccessSound(); confetti({ particleCount: 150, spread: 90 }); onToast(`1-HOUR SURVIVED! +${totalAward} SC!`);
   };
-
-  // Player died
   const handlePlayerDied = () => {
-    setIsGameOver(true);
-    const killBonus = totalKills * 10;
-    const waveBonus = Math.max(0, (currentWave - 1) * 100);
-    const totalAward = killBonus + waveBonus;
-    setEarnedCoins(totalAward);
-    if (totalAward > 0) {
-      addGameCoins(totalAward, `+${totalAward} SC - Turf War Wave ${currentWave} Reached`, 'wave_complete');
-    }
-    playPunchSound();
+    setIsGameOver(true); const killBonus = totalKills * 10; const waveBonus = Math.max(0, (currentWave - 1) * 100); const totalAward = killBonus + waveBonus;
+    setEarnedCoins(totalAward); if (totalAward > 0) { addGameCoins(totalAward, `+${totalAward} SC - Wave ${currentWave}`, 'wave_complete'); } playPunchSound();
   };
 
-  // Fire bullet
   const fireBullet = (me: PlayerState, angle: number) => {
-    if (me.ammo <= 0) {
-      triggerReload();
-      return;
-    }
-    me.ammo -= 1;
-    const speed = 14;
+    if (me.ammo <= 0) { triggerReload(); return; }
+    const inTank = me.inTankId ? tanksRef.current.find(t=>t.id===me.inTankId) : null;
+    if (!inTank) { me.ammo -= 1; }
     const isAttacker = me.role === 'attacker';
-    const baseDamage = isAttacker ? 42 : 28;
-
+    const damage = inTank ? 4 : (isAttacker ? 2 : 1); // Tank shell = 4, attacker gun = 2 (7 shots), defender =1 (15 shots)
+    const speed = inTank ? 18 : 16;
+    const radius = inTank ? 7 : 4.5;
+    const life = inTank ? 90 : 75;
     const bulletId = `b_${myPlayerId.current}_${Date.now()}_${Math.random()}`;
-    const newBullet: Bullet = {
-      id: bulletId,
-      playerId: me.id,
-      x: me.x + Math.cos(angle) * 24,
-      y: me.y + Math.sin(angle) * 24,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      damage: baseDamage,
-      color: isAttacker ? '#F87171' : '#60A5FA',
-      life: 65,
-      radius: isAttacker ? 4.5 : 3.5,
-    };
-
+    const newBullet: Bullet = { id: bulletId, playerId: me.id, x: me.x + Math.cos(angle) * (inTank ? 50 : 28), y: me.y + Math.sin(angle) * (inTank ? 50 : 28), vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, damage, color: inTank ? '#FACC15' : (isAttacker ? '#FACC15' : '#60A5FA'), life, radius, isTankShell: !!inTank };
     bulletsRef.current.push(newBullet);
-
-    // Attacker role spreads an extra mini flare bullet
-    if (isAttacker) {
-      const spreadAngle = angle + (Math.random() * 0.2 - 0.1);
-      bulletsRef.current.push({
-        id: bulletId + '_s',
-        playerId: me.id,
-        x: me.x + Math.cos(spreadAngle) * 20,
-        y: me.y + Math.sin(spreadAngle) * 20,
-        vx: Math.cos(spreadAngle) * (speed * 0.95),
-        vy: Math.sin(spreadAngle) * (speed * 0.95),
-        damage: 18,
-        color: '#FBBF24',
-        life: 50,
-        radius: 3,
-      });
-    }
-
-    if (soundEnabled) {
-      playShootSound();
-    }
-
-    // Sync bullet to network
-    if (broadcastChannelRef.current) {
-      broadcastChannelRef.current.postMessage({
-        type: 'BULLET_SPAWN',
-        playerId: me.id,
-        bullet: newBullet,
-      });
-    }
+    if (soundEnabled) { playShootSound(); }
+    if (broadcastChannelRef.current) { broadcastChannelRef.current.postMessage({ type: 'BULLET_SPAWN', playerId: me.id, bullet: newBullet }); }
   };
 
-  // Main 60fps Game Loop
+  const drawHumanPlayer = (ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, shirtColor: string, helmetColor: string) => {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(0, 14, 14, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#111827'; ctx.fillRect(-4, 8, 3.5, 11); ctx.fillRect(1.5, 8, 3.5, 11); ctx.fillStyle = '#000'; ctx.fillRect(-4.5, 18, 5, 2.5); ctx.fillRect(1.5, 18, 5, 2.5);
+    ctx.fillStyle = shirtColor; ctx.beginPath(); (ctx as any).roundRect(-8, -7, 16, 16, 4); ctx.fill();
+    ctx.fillStyle = '#FDBA74'; ctx.fillRect(-9, -3, 3, 9);
+    ctx.save(); ctx.translate(6, -1); ctx.rotate(0.2); ctx.fillStyle = '#FDBA74'; ctx.fillRect(0, -2, 8, 3); ctx.fillStyle = '#1F2937'; ctx.fillRect(7, -2, 16, 3); ctx.restore();
+    ctx.fillStyle = '#FDBA74'; ctx.beginPath(); ctx.arc(0, -11, 6.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = helmetColor; ctx.beginPath(); ctx.arc(0, -15, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  };
+
+  const drawTank = (ctx: CanvasRenderingContext2D, tank: Tank, isMyTank: boolean) => {
+    if (tank.isExploded) {
+      ctx.save(); ctx.translate(tank.x, tank.y); ctx.fillStyle = '#1F2937'; ctx.beginPath(); ctx.arc(0,0,30,0,Math.PI*2); ctx.fill(); ctx.fillStyle = '#EF4444'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign='center'; ctx.fillText('💥',0,5); ctx.restore(); return;
+    }
+    ctx.save(); ctx.translate(tank.x, tank.y); ctx.rotate(tank.angle);
+    ctx.fillStyle = isMyTank ? '#FACC15' : '#334155'; ctx.strokeStyle = isMyTank ? '#FEF08A' : '#475569'; ctx.lineWidth = 2;
+    ctx.beginPath(); (ctx as any).roundRect(-38, -22, 76, 44, 8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#1E293B'; ctx.beginPath(); ctx.arc(0,0,16,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#0F172A'; ctx.fillRect(10, -4, 46, 8);
+    ctx.fillStyle = '#FACC15'; ctx.beginPath(); ctx.arc(50,0,4,0,Math.PI*2); ctx.fill();
+    // tracks
+    ctx.fillStyle = '#0F172A'; ctx.fillRect(-38, -26, 76, 6); ctx.fillRect(-38, 20, 76, 6);
+    // HP bar for tank
+    ctx.rotate(-tank.angle); ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(-30, -36, 60, 6); ctx.fillStyle = tank.hp <=5 ? '#EF4444' : '#22C55E'; ctx.fillRect(-30, -36, 60*(tank.hp/tank.maxHp), 6);
+    ctx.font = 'bold 9px monospace'; ctx.fillStyle='#FFF'; ctx.textAlign='center'; ctx.fillText(`${tank.hp}/${tank.maxHp}`,0,-38);
+    ctx.restore();
+  };
+
   useEffect(() => {
     if (!inGame || isGameOver || isHourVictory) return;
-
     let animId: number;
-
     const loop = (timestamp: number) => {
-      const canvas = canvasRef.current;
-      if (!canvas) {
-        animId = requestAnimationFrame(loop);
-        return;
-      }
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        animId = requestAnimationFrame(loop);
-        return;
-      }
-
+      const canvas = canvasRef.current; if (!canvas) { animId = requestAnimationFrame(loop); return; }
+      const ctx = canvas.getContext('2d'); if (!ctx) { animId = requestAnimationFrame(loop); return; }
       const me = playersRef.current.get(myPlayerId.current);
+      let showPrompt: string | null = null;
       if (me && me.isAlive) {
-        // --- 1. MOVEMENT UPDATE ---
-        let moveX = 0;
-        let moveY = 0;
-        const keys = keysRef.current;
-
-        if (keys['w'] || keys['arrowup']) moveY -= 1;
-        if (keys['s'] || keys['arrowdown']) moveY += 1;
-        if (keys['a'] || keys['arrowleft']) moveX -= 1;
-        if (keys['d'] || keys['arrowright']) moveX += 1;
-
-        // Add joystick vector
-        if (joystickPosRef.current.active) {
-          moveX += joystickPosRef.current.x;
-          moveY += joystickPosRef.current.y;
-        }
-
+        let moveX = 0, moveY = 0; const keys = keysRef.current;
+        if (keys['w'] || keys['arrowup']) moveY -= 1; if (keys['s'] || keys['arrowdown']) moveY += 1; if (keys['a'] || keys['arrowleft']) moveX -= 1; if (keys['d'] || keys['arrowright']) moveX += 1;
+        if (joystickPosRef.current.active) { moveX += joystickPosRef.current.x; moveY += joystickPosRef.current.y; }
         const len = Math.hypot(moveX, moveY);
-        const speed = me.role === 'attacker' ? 4.2 : 3.6;
-
-        if (len > 0.05) {
-          me.vx = (moveX / Math.max(1, len)) * speed;
-          me.vy = (moveY / Math.max(1, len)) * speed;
-          me.x = Math.max(30, Math.min(MAP_WIDTH - 30, me.x + me.vx));
-          me.y = Math.max(30, Math.min(MAP_HEIGHT - 30, me.y + me.vy));
-        } else {
-          me.vx = 0;
-          me.vy = 0;
-        }
-
-        // Aiming angle
-        if (touchAimRef.current.active) {
-          me.angle = Math.atan2(touchAimRef.current.y, touchAimRef.current.x);
-        } else if (len > 0.1) {
-          me.angle = Math.atan2(me.vy, me.vx);
-        }
-
-        // Reload update
-        if (me.isReloading) {
-          me.reloadProgress += 0.035;
-          if (me.reloadProgress >= 1) {
-            me.ammo = me.maxAmmo;
-            me.isReloading = false;
-            me.reloadProgress = 0;
-          }
-        }
-
-        // Shooting
-        if (isShootingRef.current && timestamp - lastShootTimeRef.current > 180) {
-          if (!me.isReloading) {
-            fireBullet(me, me.angle);
-            lastShootTimeRef.current = timestamp;
-          }
-        }
-
-        // Defender health/armor regeneration perk
-        if (me.role === 'defender' && timestamp % 60 < 2) {
-          if (me.armor < me.maxArmor) me.armor = Math.min(me.maxArmor, me.armor + 1);
-          if (me.hp < me.maxHp) me.hp = Math.min(me.maxHp, me.hp + 0.5);
-        }
-
-        // Camera follow me
-        cameraRef.current.x = me.x - canvas.width / 2;
-        cameraRef.current.y = me.y - canvas.height / 2;
-        // Clamp camera
-        cameraRef.current.x = Math.max(0, Math.min(MAP_WIDTH - canvas.width, cameraRef.current.x));
-        cameraRef.current.y = Math.max(0, Math.min(MAP_HEIGHT - canvas.height, cameraRef.current.y));
-      }
-
-      // --- 2. UPDATE BULLETS ---
-      for (let i = bulletsRef.current.length - 1; i >= 0; i--) {
-        const b = bulletsRef.current[i];
-        b.x += b.vx;
-        b.y += b.vy;
-        b.life -= 1;
-
-        // Check bullet hit on enemies
-        let hit = false;
-        for (let j = enemiesRef.current.length - 1; j >= 0; j--) {
-          const e = enemiesRef.current[j];
-          const dist = Math.hypot(b.x - e.x, b.y - e.y);
-          if (dist < e.radius + b.radius) {
-            hit = true;
-            e.hp -= b.damage;
-
-            // Floating damage number
-            floatingTextsRef.current.push({
-              id: Math.random().toString(),
-              text: `-${b.damage}`,
-              x: e.x + (Math.random() * 20 - 10),
-              y: e.y - 15,
-              color: '#F87171',
-              alpha: 1,
-              vy: -1.2,
-            });
-
-            // Splatter particles
-            for (let p = 0; p < 4; p++) {
-              particlesRef.current.push({
-                x: e.x,
-                y: e.y,
-                vx: (Math.random() - 0.5) * 5,
-                vy: (Math.random() - 0.5) * 5,
-                life: 18,
-                maxLife: 18,
-                color: '#EF4444',
-                size: Math.random() * 3 + 2,
-              });
-            }
-
-            // Enemy killed?
-            if (e.hp <= 0) {
-              enemiesRef.current.splice(j, 1);
-              setWaveEnemiesRemaining(enemiesRef.current.length);
-
-              // Update killer stats
-              const killer = playersRef.current.get(b.playerId);
-              if (killer) {
-                killer.kills += 1;
-                killer.score += 50;
-                if (killer.isMe) {
-                  setTotalKills((k) => k + 1);
-                  playCoinSound();
-                }
+        // SPEED NO TOUCH - ORIGINAL 4.2 / 3.6
+        let speed = me.role === 'attacker' ? 4.2 : 3.6;
+        let currentTank: Tank | undefined = undefined;
+        if (me.inTankId) { currentTank = tanksRef.current.find(t=>t.id===me.inTankId); if (currentTank && !currentTank.isExploded) { speed = 5.0; } }
+        if (len > 0.05) { 
+          me.vx = (moveX / Math.max(1, len)) * speed; me.vy = (moveY / Math.max(1, len)) * speed; 
+          // simple collision with barracks walls (if not inside)
+          const nextX = me.x + me.vx; const nextY = me.y + me.vy;
+          let canMove = true;
+          if (!me.insideBuildingId && !me.inTankId) {
+            for (const b of barracksBuildingsRef.current) {
+              if (nextX > b.x && nextX < b.x + b.w && nextY > b.y && nextY < b.y + b.h) {
+                const inDoor = nextX > b.doorX && nextX < b.doorX + b.doorW && ((nextY >= b.y + b.h - 6 && nextY <= b.y + b.h + 6) || (nextX >= b.x -6 && nextX <= b.x +6));
+                if (!inDoor) { canMove = false; }
               }
+            }
+          }
+          if (canMove) { me.x = Math.max(30, Math.min(MAP_WIDTH - 30, me.x + me.vx)); me.y = Math.max(30, Math.min(MAP_HEIGHT - 30, me.y + me.vy)); }
+        } else { me.vx = 0; me.vy = 0; }
+        if (touchAimRef.current.active) { me.angle = Math.atan2(touchAimRef.current.y, touchAimRef.current.x); if (currentTank) { currentTank.angle = me.angle; } } else if (len > 0.1) { me.angle = Math.atan2(me.vy, me.vx); if (currentTank) { currentTank.angle = me.angle; } }
+        // Check building entry
+        if (!me.inTankId) {
+          if (!me.insideBuildingId) {
+            for (const b of barracksBuildingsRef.current) {
+              if (me.x > b.doorX && me.x < b.doorX + b.doorW && me.y > b.y + b.h - 10 && me.y < b.y + b.h + 20) {
+                me.insideBuildingId = b.id; onToast('Entered Barracks Building'); break;
+              }
+            }
+          } else {
+            const b = barracksBuildingsRef.current.find(bb=>bb.id===me.insideBuildingId);
+            if (b) {
+              if (me.x < b.x -10 || me.x > b.x + b.w +10 || me.y < b.y -10 || me.y > b.y + b.h +30) { me.insideBuildingId = null; onToast('Exited Building'); }
+              else {
+                // clamp inside
+                me.x = Math.max(b.x+10, Math.min(b.x+b.w-10, me.x));
+                me.y = Math.max(b.y+10, Math.min(b.y+b.h-10, me.y));
+              }
+            }
+          }
+        }
+        // Check near tank for prompt
+        if (!me.inTankId) {
+          let closestD = 70; let found=false;
+          tanksRef.current.forEach(t=>{ if (!t.isExploded && !t.occupiedBy) { const d = Math.hypot(me.x - t.x, me.y - t.y); if (d < closestD) { found=true; closestD=d; } } });
+          if (found) { showPrompt = 'PRESS F / E TO ENTER TANK'; }
+        } else { showPrompt = 'IN TANK - WASD DRIVE, F TO EXIT, SPACE TO FIRE'; }
+        if (me.isReloading) { me.reloadProgress += 0.04; if (me.reloadProgress >= 1) { me.ammo = me.maxAmmo; me.isReloading = false; me.reloadProgress = 0; } }
+        if (isShootingRef.current && timestamp - lastShootTimeRef.current > (me.inTankId ? 300 : 180)) { if (!me.isReloading || me.inTankId) { fireBullet(me, me.angle); lastShootTimeRef.current = timestamp; } }
+        if (me.inTankId && currentTank) { currentTank.x = me.x; currentTank.y = me.y; }
+        cameraRef.current.x = me.x - canvas.width / 2; cameraRef.current.y = me.y - canvas.height / 2;
+        cameraRef.current.x = Math.max(0, Math.min(MAP_WIDTH - canvas.width, cameraRef.current.x)); cameraRef.current.y = Math.max(0, Math.min(MAP_HEIGHT - canvas.height, cameraRef.current.y));
+      }
+      if (showPrompt !== nearTankPrompt) { setNearTankPrompt(showPrompt); }
 
-              // Death burst particles
-              for (let p = 0; p < 12; p++) {
-                particlesRef.current.push({
-                  x: e.x,
-                  y: e.y,
-                  vx: (Math.random() - 0.5) * 8,
-                  vy: (Math.random() - 0.5) * 8,
-                  life: 25,
-                  maxLife: 25,
-                  color: e.color,
-                  size: Math.random() * 5 + 3,
+      // BULLETS - check tanks + enemies
+      for (let i = bulletsRef.current.length - 1; i >= 0; i--) {
+        const b = bulletsRef.current[i]; b.x += b.vx; b.y += b.vy; b.life -= 1; let hit = false;
+        // hit tanks
+        for (const tank of tanksRef.current) {
+          if (tank.isExploded) continue;
+          const dist = Math.hypot(b.x - tank.x, b.y - tank.y);
+          if (dist < 42) {
+            hit = true;
+            if (b.playerId !== tank.occupiedBy) {
+              tank.hp -= b.damage;
+              floatingTextsRef.current.push({ id: Math.random().toString(), text: `-${b.damage} TANK ${tank.hp}/${tank.maxHp}`, x: tank.x, y: tank.y - 30, color: '#FACC15', alpha: 1, vy: -1.2 });
+              if (tank.hp <= 0) {
+                tank.isExploded = true; tank.occupiedBy = null;
+                // explosion damage - reduce HP only, no kill unless close
+                playersRef.current.forEach(pl=>{
+                  const d = Math.hypot(pl.x - tank.x, pl.y - tank.y);
+                  if (d < 180) {
+                    if (d < 90) { pl.hp = Math.max(1, pl.hp - 30); pl.hitCount +=1; floatingTextsRef.current.push({ id: Math.random().toString(), text: '-30 EXPLOSION', x: pl.x, y: pl.y -20, color:'#EF4444', alpha:1, vy:-1}); if (pl.isMe && pl.hp<=0) { pl.isAlive=false; handlePlayerDied(); } }
+                    else { pl.hp = Math.max(1, pl.hp - 10); }
+                  }
+                  if (pl.inTankId === tank.id) { pl.inTankId = null; }
                 });
+                for (let p = 0; p < 30; p++) { particlesRef.current.push({ x: tank.x, y: tank.y, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12, life: 35, maxLife: 35, color: Math.random()>0.5 ? '#FACC15' : '#EF4444', size: Math.random() * 6 + 3 }); }
+                if (soundEnabled) { playSirenSound(); }
               }
             }
             break;
           }
         }
-
-        if (hit || b.life <= 0 || b.x < 0 || b.x > MAP_WIDTH || b.y < 0 || b.y > MAP_HEIGHT) {
-          bulletsRef.current.splice(i, 1);
+        if (!hit) {
+          for (let j = enemiesRef.current.length - 1; j >= 0; j--) {
+            const e = enemiesRef.current[j]; const dist = Math.hypot(b.x - e.x, b.y - e.y);
+            if (dist < e.radius + b.radius + 8) {
+              hit = true; e.hitCount += 1; e.hp -= b.damage;
+              floatingTextsRef.current.push({ id: Math.random().toString(), text: `HIT ${e.hitCount}/${e.maxHp}`, x: e.x, y: e.y - 20, color: '#FACC15', alpha: 1, vy: -1.2 });
+              if (e.hp <= 0 || e.hitCount >= e.maxHp) {
+                enemiesRef.current.splice(j, 1); setWaveEnemiesRemaining(enemiesRef.current.length);
+                const killer = playersRef.current.get(b.playerId); if (killer) { killer.kills += 1; if (killer.isMe) { setTotalKills(k=>k+1); playCoinSound(); } }
+                for (let p = 0; p < 14; p++) { particlesRef.current.push({ x: e.x, y: e.y, vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.5) * 9, life: 26, maxLife: 26, color: e.color, size: Math.random() * 5 + 3 }); }
+              }
+              break;
+            }
+          }
         }
+        if (hit || b.life <= 0 || b.x < 0 || b.x > MAP_WIDTH || b.y < 0 || b.y > MAP_HEIGHT) { bulletsRef.current.splice(i, 1); }
       }
 
-      // --- 3. HOST UPDATES ENEMIES & WAVES ---
       if (isHost && !waveSpawningRef.current) {
-        // If all enemies cleared, advance wave infinitely!
-        if (enemiesRef.current.length === 0) {
-          const nextWave = currentWave + 1;
-          setCurrentWave(nextWave);
-          spawnUnlimitedWave(nextWave);
-
-          // Broadcast next wave
-          if (broadcastChannelRef.current) {
-            broadcastChannelRef.current.postMessage({
-              type: 'WAVE_ADVANCE',
-              wave: nextWave,
-            });
-          }
-
-          floatingTextsRef.current.push({
-            id: Math.random().toString(),
-            text: `WAVE ${nextWave} - UNLIMITED!`,
-            x: MAP_WIDTH / 2,
-            y: MAP_HEIGHT / 2,
-            color: '#FBBF24',
-            alpha: 1.5,
-            vy: -0.5,
-          });
-        }
-
-        // AI Enemy pathfinding towards closest player
+        if (enemiesRef.current.length === 0) { const nextWave = currentWave + 1; setCurrentWave(nextWave); spawnUnlimitedWave(nextWave); if (broadcastChannelRef.current) { broadcastChannelRef.current.postMessage({ type: 'WAVE_ADVANCE', wave: nextWave }); } }
         enemiesRef.current.forEach((enemy) => {
-          let closestPlayer: PlayerState | null = null;
-          let minDist = 999999;
-
-          playersRef.current.forEach((player) => {
-            if (player.isAlive) {
-              const d = Math.hypot(player.x - enemy.x, player.y - enemy.y);
-              if (d < minDist) {
-                minDist = d;
-                closestPlayer = player;
-              }
-            }
-          });
-
+          let closestPlayer: PlayerState | null = null; let minDist = 999999;
+          playersRef.current.forEach((player) => { if (player.isAlive) { const d = Math.hypot(player.x - enemy.x, player.y - enemy.y); if (d < minDist) { minDist = d; closestPlayer = player; } } });
           if (closestPlayer) {
-            const target: PlayerState = closestPlayer;
-            const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-            enemy.vx = Math.cos(angle) * enemy.speed;
-            enemy.vy = Math.sin(angle) * enemy.speed;
-            enemy.x += enemy.vx;
-            enemy.y += enemy.vy;
-
-            // Attack player if in melee reach
-            if (minDist < enemy.radius + 18) {
-              if (Date.now() - enemy.lastAttack > 900) {
-                enemy.lastAttack = Date.now();
-                // Apply damage (absorbed by armor first)
-                if (target.armor > 0) {
-                  const absorbed = Math.min(target.armor, enemy.damage);
-                  target.armor -= absorbed;
-                  const leftover = enemy.damage - absorbed;
-                  target.hp = Math.max(0, target.hp - leftover);
-                } else {
-                  target.hp = Math.max(0, target.hp - enemy.damage);
-                }
-
-                // Check death
-                if (target.hp <= 0 && target.isAlive) {
-                  target.isAlive = false;
-                  if (target.isMe) {
-                    handlePlayerDied();
-                  }
-                }
-              }
-            }
+            const target: PlayerState = closestPlayer; const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+            enemy.vx = Math.cos(angle) * enemy.speed; enemy.vy = Math.sin(angle) * enemy.speed; enemy.x += enemy.vx; enemy.y += enemy.vy;
+            if (minDist < enemy.radius + 20) { if (Date.now() - enemy.lastAttack > 800) { enemy.lastAttack = Date.now(); target.hitCount += 1; if (target.armor > 0) { target.armor = Math.max(0, target.armor - 33); } else { target.hp = Math.max(0, target.hp - 34); } if (target.hitCount >= 3 || target.hp <= 0) { target.isAlive = false; if (target.isMe) { handlePlayerDied(); } } } }
           }
         });
-
-        // Periodic sync of enemies
         if (timestamp - lastSyncTimeRef.current > 120 && broadcastChannelRef.current) {
-          lastSyncTimeRef.current = timestamp;
-          broadcastChannelRef.current.postMessage({
-            type: 'ENEMY_SYNC',
-            enemies: enemiesRef.current,
-            wave: currentWave,
-          });
+          lastSyncTimeRef.current = timestamp; broadcastChannelRef.current.postMessage({ type: 'ENEMY_SYNC', enemies: enemiesRef.current, wave: currentWave }); broadcastChannelRef.current.postMessage({ type: 'TANK_SYNC', tanks: tanksRef.current });
         }
       }
-
-      // Sync my player state across network
       if (me && timestamp - lastSyncTimeRef.current > 60 && broadcastChannelRef.current) {
-        broadcastChannelRef.current.postMessage({
-          type: 'PLAYER_SYNC',
-          id: me.id,
-          name: me.name,
-          role: me.role,
-          x: me.x,
-          y: me.y,
-          angle: me.angle,
-          hp: me.hp,
-          armor: me.armor,
-          kills: me.kills,
-          isFiring: isShootingRef.current,
-          isAlive: me.isAlive,
-        });
+        broadcastChannelRef.current.postMessage({ type: 'PLAYER_SYNC', id: me.id, name: me.name, role: me.role, x: me.x, y: me.y, angle: me.angle, hp: me.hp, armor: me.armor, kills: me.kills, isFiring: isShootingRef.current, isAlive: me.isAlive, inTankId: me.inTankId });
       }
 
-      // --- 4. RENDER FRAME ---
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.translate(-cameraRef.current.x, -cameraRef.current.y);
+      // RENDER
+      ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save(); ctx.translate(-cameraRef.current.x, -cameraRef.current.y);
+      ctx.fillStyle = '#0F172A'; ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+      ctx.strokeStyle = '#1E293B'; ctx.lineWidth = 1;
+      for (let x = 0; x < MAP_WIDTH; x += 200) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, MAP_HEIGHT); ctx.stroke(); }
+      for (let y = 0; y < MAP_HEIGHT; y += 200) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(MAP_WIDTH, y); ctx.stroke(); }
 
-      // Draw map background (Dark asphalt & grid lines)
-      ctx.fillStyle = '#0F172A';
-      ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+      // Fence around barracks
+      turfZonesRef.current.forEach(zone=>{ ctx.save(); ctx.strokeStyle='#475569'; ctx.setLineDash([18,12]); ctx.lineWidth=4; ctx.beginPath(); ctx.arc(zone.x, zone.y, zone.radius+30, 0, Math.PI*2); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); });
 
-      // Grid / street block lines
-      ctx.strokeStyle = '#1E293B';
-      ctx.lineWidth = 2;
-      for (let x = 0; x < MAP_WIDTH; x += 100) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, MAP_HEIGHT);
-        ctx.stroke();
-      }
-      for (let y = 0; y < MAP_HEIGHT; y += 100) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(MAP_WIDTH, y);
-        ctx.stroke();
-      }
-
-      // Turf Zones
-      turfZonesRef.current.forEach((zone) => {
+      // Barracks Buildings
+      barracksBuildingsRef.current.forEach(b=>{
+        const meInside = me?.insideBuildingId === b.id;
         ctx.save();
-        ctx.beginPath();
-        ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
-        ctx.fillStyle = zone.color + '22';
-        ctx.fill();
-        ctx.strokeStyle = zone.color;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        // Zone label
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(zone.name, zone.x, zone.y - zone.radius - 8);
-        ctx.restore();
-      });
-
-      // Draw Enemies
-      enemiesRef.current.forEach((e) => {
-        ctx.save();
-        ctx.translate(e.x, e.y);
-
-        if (e.type === 'bus') {
-          // Armored Syndicate Bus
-          ctx.fillStyle = '#1E293B';
-          ctx.fillRect(-38, -20, 76, 40);
-          ctx.fillStyle = '#F59E0B';
-          ctx.fillRect(-35, -18, 70, 36);
-          ctx.fillStyle = '#111827';
-          ctx.fillRect(-20, -14, 40, 28);
-          ctx.fillStyle = '#EF4444';
-          ctx.beginPath();
-          ctx.arc(32, 0, 6, 0, Math.PI * 2);
-          ctx.fill();
+        ctx.fillStyle = meInside ? '#1E293B' : '#334155'; ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.strokeStyle = '#475569'; ctx.lineWidth = 3; ctx.strokeRect(b.x+4, b.y+4, b.w-8, b.h-8);
+        // door
+        ctx.fillStyle = '#FACC15'; ctx.fillRect(b.doorX, b.doorY, b.doorW, 8);
+        // interior items if inside
+        if (meInside) {
+          ctx.fillStyle = '#475569'; ctx.fillRect(b.x+20, b.y+20, 40, 20); ctx.fillRect(b.x+b.w-60, b.y+30, 40, 20);
+          ctx.fillStyle='#94A3B8'; ctx.font='bold 10px sans-serif'; ctx.fillText('BARRACKS INTERIOR - CAMERA FOLLOWS', b.x+20, b.y+60);
         } else {
-          // Regular thug or enforcer
-          ctx.fillStyle = e.color;
-          ctx.beginPath();
-          ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = '#FFFFFF';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-
-          // Gun direction
-          const angle = Math.atan2(e.vy, e.vx);
-          ctx.strokeStyle = '#111827';
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.lineTo(Math.cos(angle) * (e.radius + 8), Math.sin(angle) * (e.radius + 8));
-          ctx.stroke();
+          // windows
+          ctx.fillStyle = '#1E293B'; for (let i=0;i<3;i++){ ctx.fillRect(b.x+15+i*50, b.y+15, 28, 28); }
         }
-
-        // Enemy Health Bar
-        const barW = e.radius * 2 + 10;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(-barW / 2, -e.radius - 12, barW, 5);
-        ctx.fillStyle = '#EF4444';
-        const hpPct = Math.max(0, e.hp / e.maxHp);
-        ctx.fillRect(-barW / 2, -e.radius - 12, barW * hpPct, 5);
-
         ctx.restore();
       });
 
-      // Draw Bullets
-      bulletsRef.current.forEach((b) => {
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-        ctx.fillStyle = b.color;
-        ctx.shadowColor = b.color;
-        ctx.shadowBlur = 8;
-        ctx.fill();
-        ctx.restore();
+      // Watch Towers
+      turfZonesRef.current.forEach(zone=>{ [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([dx,dy])=>{ const tx = zone.x + dx*(zone.radius+50); const ty = zone.y + dy*(zone.radius+50); ctx.fillStyle='#475569'; ctx.fillRect(tx-12, ty-12, 24, 24); ctx.fillStyle='#1E293B'; ctx.beginPath(); ctx.arc(tx, ty-16, 6, 0, Math.PI*2); ctx.fill(); }); });
+
+      turfZonesRef.current.forEach((zone) => {
+        ctx.save(); ctx.beginPath(); ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2); ctx.fillStyle = zone.color + '18'; ctx.fill(); ctx.strokeStyle = zone.color; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(zone.name, zone.x, zone.y - zone.radius - 38); ctx.restore();
       });
 
-      // Draw Players (Co-op Teammates & Me)
+      // Tanks
+      tanksRef.current.forEach(t=>{ const pl = playersRef.current.get(myPlayerId.current); const isMy = pl?.inTankId === t.id; drawTank(ctx, t, !!isMy); });
+
+      enemiesRef.current.forEach((e) => {
+        ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(Math.atan2(e.vy, e.vx));
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 12, 12, 5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#111827'; ctx.fillRect(-3, 6, 3, 9); ctx.fillRect(1, 6, 3, 9);
+        ctx.fillStyle = e.color; ctx.beginPath(); (ctx as any).roundRect(-7, -6, 14, 14, 3); ctx.fill();
+        ctx.fillStyle = '#FDBA74'; ctx.beginPath(); ctx.arc(0, -10, 5.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#1F2937'; ctx.beginPath(); ctx.arc(0, -13, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.rotate(-Math.atan2(e.vy, e.vx)); const barW = 30; ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(-barW / 2, -22, barW, 4); ctx.fillStyle = '#FACC15'; ctx.fillRect(-barW / 2, -22, barW * (e.hp / e.maxHp), 4); ctx.restore();
+      });
+
+      bulletsRef.current.forEach((b) => { ctx.save(); ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fillStyle = b.color; ctx.shadowColor = b.color; ctx.shadowBlur = b.isTankShell ? 16 : 10; ctx.fill(); ctx.restore(); });
+
       playersRef.current.forEach((player) => {
         if (!player.isAlive) return;
-
-        ctx.save();
-        ctx.translate(player.x, player.y);
-
-        // Role aura
-        ctx.beginPath();
-        ctx.arc(0, 0, 26, 0, Math.PI * 2);
-        ctx.fillStyle = player.role === 'attacker' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)';
-        ctx.fill();
-
-        // Player body
-        ctx.beginPath();
-        ctx.arc(0, 0, 18, 0, Math.PI * 2);
-        ctx.fillStyle = player.color;
-        ctx.fill();
-        ctx.strokeStyle = player.isMe ? '#FBBF24' : '#FFFFFF';
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-
-        // Gun direction
-        ctx.strokeStyle = '#1E293B';
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(player.angle) * 26, Math.sin(player.angle) * 26);
-        ctx.stroke();
-
-        // Floating name & role
-        ctx.font = 'bold 11px sans-serif';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.textAlign = 'center';
-        ctx.fillText(
-          `${player.name} (${player.role.toUpperCase()})`,
-          0,
-          -30
-        );
-
-        // Health & Armor bars
-        const barW = 36;
-        // Armor bar (blue)
-        if (player.maxArmor > 0) {
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-          ctx.fillRect(-barW / 2, -26, barW, 3);
-          ctx.fillStyle = '#3B82F6';
-          ctx.fillRect(-barW / 2, -26, barW * (player.armor / player.maxArmor), 3);
-        }
-        // Health bar (green)
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.fillRect(-barW / 2, -22, barW, 4);
-        ctx.fillStyle = '#10B981';
-        ctx.fillRect(-barW / 2, -22, barW * (player.hp / player.maxHp), 4);
-
-        ctx.restore();
+        if (player.inTankId) { return; }
+        drawHumanPlayer(ctx, player.x, player.y, player.angle, player.color, '#FACC15');
+        ctx.save(); ctx.translate(player.x, player.y); ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#FFF'; ctx.textAlign = 'center'; ctx.fillText(`${player.name} (${player.role.toUpperCase()})`, 0, -32); const barW = 38; ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(-barW / 2, -28, barW, 3); ctx.fillStyle = '#3B82F6'; ctx.fillRect(-barW / 2, -28, barW * (player.armor / player.maxArmor), 3); ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(-barW / 2, -24, barW, 4); ctx.fillStyle = '#22C55E'; ctx.fillRect(-barW / 2, -24, barW * (player.hp / player.maxHp), 4); ctx.restore();
       });
 
-      // Draw Particles
-      for (let i = particlesRef.current.length - 1; i >= 0; i--) {
-        const p = particlesRef.current[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= 1;
-        if (p.life <= 0) {
-          particlesRef.current.splice(i, 1);
-          continue;
-        }
-        ctx.save();
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life / p.maxLife;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
+      for (let i = particlesRef.current.length - 1; i >= 0; i--) { const p = particlesRef.current[i]; p.x += p.vx; p.y += p.vy; p.life -= 1; if (p.life <= 0) { particlesRef.current.splice(i, 1); continue; } ctx.save(); ctx.fillStyle = p.color; ctx.globalAlpha = p.life / p.maxLife; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+      for (let i = floatingTextsRef.current.length - 1; i >= 0; i--) { const ft = floatingTextsRef.current[i]; ft.y += ft.vy; ft.alpha -= 0.02; if (ft.alpha <= 0) { floatingTextsRef.current.splice(i, 1); continue; } ctx.save(); ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = ft.color; ctx.globalAlpha = Math.max(0, ft.alpha); ctx.textAlign = 'center'; ctx.fillText(ft.text, ft.x, ft.y); ctx.restore(); }
+      ctx.restore();
 
-      // Draw Floating Texts
-      for (let i = floatingTextsRef.current.length - 1; i >= 0; i--) {
-        const ft = floatingTextsRef.current[i];
-        ft.y += ft.vy;
-        ft.alpha -= 0.02;
-        if (ft.alpha <= 0) {
-          floatingTextsRef.current.splice(i, 1);
-          continue;
-        }
-        ctx.save();
-        ctx.font = 'bold 14px sans-serif';
-        ctx.fillStyle = ft.color;
-        ctx.globalAlpha = Math.max(0, ft.alpha);
-        ctx.textAlign = 'center';
-        ctx.fillText(ft.text, ft.x, ft.y);
-        ctx.restore();
-      }
-
-      ctx.restore(); // Restore camera translation
+      // MINI MAP SMALL 62px
+      const mmSize = 62; const mmX = canvas.width - mmSize - 12; const mmY = canvas.height - mmSize - 180;
+      ctx.save(); ctx.fillStyle = 'rgba(8,10,18,0.9)'; ctx.beginPath(); (ctx as any).roundRect(mmX, mmY, mmSize, mmSize, 10); ctx.fill(); ctx.strokeStyle = 'rgba(255,215,0,0.6)'; ctx.lineWidth = 1; ctx.stroke();
+      barracksBuildingsRef.current.forEach((b) => { const bx = mmX + (b.x / MAP_WIDTH) * mmSize; const by = mmY + (b.y / MAP_HEIGHT) * mmSize; ctx.fillStyle = '#475569'; ctx.fillRect(bx, by, 2, 2); });
+      tanksRef.current.forEach((t) => { if (t.isExploded) return; const tx = mmX + (t.x / MAP_WIDTH) * mmSize; const ty = mmY + (t.y / MAP_HEIGHT) * mmSize; ctx.fillStyle = t.occupiedBy ? '#FACC15' : '#EAB308'; ctx.beginPath(); ctx.arc(tx, ty, 1.8, 0, Math.PI * 2); ctx.fill(); });
+      enemiesRef.current.forEach((e) => { const ex = mmX + (e.x / MAP_WIDTH) * mmSize; const ey = mmY + (e.y / MAP_HEIGHT) * mmSize; ctx.fillStyle = '#EF4444'; ctx.beginPath(); ctx.arc(ex, ey, 1.2, 0, Math.PI * 2); ctx.fill(); });
+      playersRef.current.forEach((pl) => { const px = mmX + (pl.x / MAP_WIDTH) * mmSize; const py = mmY + (pl.y / MAP_HEIGHT) * mmSize; ctx.fillStyle = pl.isMe ? '#FACC15' : '#38BDF8'; ctx.beginPath(); ctx.arc(px, py, 2.2, 0, Math.PI * 2); ctx.fill(); });
+      ctx.fillStyle = '#FFD700'; ctx.font = 'bold 6px monospace'; ctx.textAlign = 'right'; ctx.fillText('RADAR 6K', mmX + mmSize - 3, mmY + mmSize - 3); ctx.restore();
 
       animId = requestAnimationFrame(loop);
     };
-
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inGame, isGameOver, isHourVictory, isHost, currentWave, soundEnabled]);
+  }, [inGame, isGameOver, isHourVictory, isHost, currentWave, soundEnabled, nearTankPrompt]);
 
-  // Touch joystick handler
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    const touch = e.touches[0];
-    const rect = e.currentTarget.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const dx = touch.clientX - centerX;
-    const dy = touch.clientY - centerY;
-    const dist = Math.hypot(dx, dy);
-    const maxR = rect.width / 2;
-    joystickPosRef.current = {
-      x: dx / Math.max(dist, maxR),
-      y: dy / Math.max(dist, maxR),
-      active: true,
-    };
+    const touch = e.touches[0]; const rect = e.currentTarget.getBoundingClientRect(); const centerX = rect.left + rect.width / 2; const centerY = rect.top + rect.height / 2;
+    const dx = touch.clientX - centerX; const dy = touch.clientY - centerY; const dist = Math.hypot(dx, dy); const maxR = rect.width / 2;
+    joystickPosRef.current = { x: dx / Math.max(dist, maxR), y: dy / Math.max(dist, maxR), active: true };
   };
-
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    const touch = e.touches[0];
-    const rect = e.currentTarget.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const dx = touch.clientX - centerX;
-    const dy = touch.clientY - centerY;
-    const dist = Math.hypot(dx, dy);
-    const maxR = rect.width / 2;
-    joystickPosRef.current = {
-      x: dx / Math.max(dist, maxR),
-      y: dy / Math.max(dist, maxR),
-      active: true,
-    };
+    const touch = e.touches[0]; const rect = e.currentTarget.getBoundingClientRect(); const centerX = rect.left + rect.width / 2; const centerY = rect.top + rect.height / 2;
+    const dx = touch.clientX - centerX; const dy = touch.clientY - centerY; const dist = Math.hypot(dx, dy); const maxR = rect.width / 2;
+    joystickPosRef.current = { x: dx / Math.max(dist, maxR), y: dy / Math.max(dist, maxR), active: true };
   };
+  const handleTouchEnd = () => { joystickPosRef.current = { x: 0, y: 0, active: false }; };
+  const formatTime = (secs: number) => { const m = Math.floor(secs / 60); const s = secs % 60; return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`; };
 
-  const handleTouchEnd = () => {
-    joystickPosRef.current = { x: 0, y: 0, active: false };
-  };
-
-  // Format MM:SS for match timer
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  // Render Lobby screen if not in match yet
-  if (!inGame) {
-    return (
-      <TurfWarLobby
-        onBack={onBack}
-        onStartMatch={handleStartMatch}
-        currentCoins={currentCoins}
-        initialRoomCode={initialRoomCode}
-        onToast={onToast}
-      />
-    );
-  }
-
+  if (!inGame) { return <TurfWarLobby onBack={onBack} onStartMatch={handleStartMatch} currentCoins={currentCoins} initialRoomCode={initialRoomCode} onToast={onToast} />; }
   const me = playersRef.current.get(myPlayerId.current);
 
   return (
     <div className="relative w-full h-screen bg-slate-950 overflow-hidden select-none font-sans text-white">
-      {/* Canvas */}
-      <canvas
-        ref={canvasRef}
-        width={typeof window !== 'undefined' ? window.innerWidth : 1200}
-        height={typeof window !== 'undefined' ? window.innerHeight : 800}
-        className="w-full h-full block"
-      />
-
-      {/* TOP HUD BAR */}
-      <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-slate-950/90 via-slate-950/60 to-transparent flex items-center justify-between z-20 pointer-events-none">
-        {/* Left: Back / Room code / Sound */}
+      <canvas ref={canvasRef} width={typeof window !== 'undefined' ? window.innerWidth : 1200} height={typeof window !== 'undefined' ? window.innerHeight : 800} className="w-full h-full block" />
+      <div className="absolute top-0 left-0 right-0 p-2 bg-gradient-to-b from-slate-950/90 via-slate-950/60 to-transparent flex items-center justify-between z-20 pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
-          <button
-            onClick={onBack}
-            className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50 backdrop-blur transition-all"
-            title="Leave Match"
-          >
-            <ArrowLeft className="w-5 h-5 text-white" />
-          </button>
-          <div className="bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700/60 backdrop-blur">
-            <span className="text-xs text-slate-400 block font-mono">ROOM CODE</span>
-            <span className="text-sm font-black text-amber-400 font-mono tracking-wider">{roomCode}</span>
-          </div>
-          <button
-            onClick={() => setSoundEnabled((v) => !v)}
-            className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50"
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-red-400" />}
-          </button>
+          <button onClick={onBack} className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50 backdrop-blur"><ArrowLeft className="w-5 h-5 text-white" /></button>
+          <div className="bg-slate-900/80 px-3 py-1 rounded-xl border border-slate-700/60 backdrop-blur"><span className="text-[9px] text-slate-400 block font-mono">ROOM</span><span className="text-xs font-black text-amber-400 font-mono">{roomCode}</span></div>
         </div>
-
-        {/* Center: 1 HOUR MATCH TIMER + WAVE UNLIMITED */}
         <div className="flex flex-col items-center pointer-events-auto">
-          <div className="flex items-center gap-2 bg-slate-900/90 border border-amber-500/40 px-4 py-1.5 rounded-2xl shadow-lg shadow-amber-500/10 backdrop-blur">
-            <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
-            <span className="text-xs font-bold text-amber-300">
-              MATCH TIME: <span className="font-mono text-base font-black text-white">{formatTime(matchTimeRemaining)}</span> remaining
-            </span>
-            <span className="text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-slate-800 border border-slate-600 text-cyan-300">
-              Role: {myRole}
-            </span>
-          </div>
-          <div className="mt-1 flex items-center gap-2">
-            <span className="bg-red-500/20 text-red-400 text-xs font-black px-3 py-0.5 rounded-full border border-red-500/40 flex items-center gap-1">
-              <Flame className="w-3.5 h-3.5" /> WAVE: {currentWave} - UNLIMITED
-            </span>
-            <span className="text-[11px] text-slate-400 font-mono">
-              Enemies: {waveEnemiesRemaining}
-            </span>
-          </div>
+          <div className="flex items-center gap-2 bg-slate-900/90 border border-amber-500/40 px-3 py-1 rounded-2xl shadow-lg backdrop-blur"><Clock className="w-3 h-3 text-amber-400 animate-pulse" /><span className="text-[10px] font-bold text-amber-300">MATCH: <span className="font-mono text-xs font-black text-white">{formatTime(matchTimeRemaining)}</span></span><span className="text-[9px] px-2 py-0.5 rounded font-bold bg-slate-800 border border-slate-600 text-cyan-300">{myRole} {me?.insideBuildingId ? '| INSIDE' : ''} {me?.inTankId ? '| IN TANK' : ''}</span></div>
+          <div className="mt-1 flex items-center gap-2"><span className="bg-red-500/20 text-red-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-red-500/40 flex items-center gap-1"><Flame className="w-3 h-3" /> WAVE: {currentWave} BARRACKS</span><span className="text-[10px] text-slate-400 font-mono">Tanks: {tanksRef.current.filter(t=>!t.isExploded).length}/15</span></div>
         </div>
-
-        {/* Right: Kills & Coin Payout preview */}
         <div className="flex items-center gap-2 pointer-events-auto">
-          <div className="bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700/60 flex items-center gap-2">
-            <Skull className="w-4 h-4 text-red-400" />
-            <div>
-              <span className="text-[10px] text-slate-400 block uppercase">Kills</span>
-              <span className="text-sm font-black text-white font-mono">{totalKills}</span>
-            </div>
-          </div>
-          <div className="bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-            <Coins className="w-4 h-4 text-amber-400" />
-            <span className="text-sm font-black text-amber-300 font-mono">
-              {totalKills * 10 + currentWave * 100} SC
-            </span>
-          </div>
+          <div className="bg-slate-900/80 px-2 py-1 rounded-xl border border-slate-700/60 flex items-center gap-1.5"><Skull className="w-3.5 h-3.5 text-red-400" /><span className="text-xs font-black font-mono">{totalKills}</span></div>
+          <div className="bg-amber-500/10 border border-amber-500/30 px-2 py-1 rounded-xl flex items-center gap-1"><Coins className="w-3.5 h-3.5 text-amber-400" /><span className="text-xs font-black text-amber-300 font-mono">{totalKills * 10 + currentWave * 100}</span></div>
         </div>
       </div>
 
-      {/* PLAYER HEALTH & AMMO HUD (BOTTOM-LEFT / BOTTOM-CENTER) */}
-      {me && (
-        <div className="absolute bottom-4 left-4 z-20 pointer-events-none flex flex-col gap-1.5 bg-slate-900/80 p-3 rounded-2xl border border-slate-700/60 backdrop-blur w-64 shadow-xl">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="flex items-center gap-1 text-red-400">
-              <Heart className="w-3.5 h-3.5 fill-red-500" /> HP
-            </span>
-            <span className="font-mono text-slate-200">
-              {Math.round(me.hp)} / {me.maxHp}
-            </span>
-          </div>
-          <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-            <div
-              className="h-full bg-gradient-to-r from-red-600 to-rose-400 transition-all duration-100"
-              style={{ width: `${Math.max(0, (me.hp / me.maxHp) * 100)}%` }}
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-xs font-bold mt-1">
-            <span className="flex items-center gap-1 text-blue-400">
-              <Shield className="w-3.5 h-3.5 fill-blue-500" /> ARMOR
-            </span>
-            <span className="font-mono text-slate-200">
-              {Math.round(me.armor)} / {me.maxArmor}
-            </span>
-          </div>
-          <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-            <div
-              className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-100"
-              style={{ width: `${Math.max(0, (me.armor / me.maxArmor) * 100)}%` }}
-            />
-          </div>
-
-          {/* Ammo & Reloading */}
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-mono">
-              AMMO: <span className="font-black text-amber-400">{me.ammo}/{me.maxAmmo}</span>
-            </span>
-            {me.isReloading && (
-              <span className="text-xs text-amber-400 font-bold animate-pulse flex items-center gap-1">
-                <RotateCcw className="w-3 h-3 animate-spin" /> Reloading...
-              </span>
-            )}
-          </div>
+      {nearTankPrompt && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 bg-amber-500 text-slate-950 px-4 py-1.5 rounded-full font-black text-xs animate-pulse border-2 border-amber-300 pointer-events-none">
+          {nearTankPrompt}
         </div>
       )}
 
-      {/* MOBILE TOUCH CONTROLS (JOYSTICK ON LEFT, SHOOT/RELOAD ON RIGHT) */}
-      <div className="md:hidden">
-        {/* Virtual Joystick */}
-        <div
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          className="absolute bottom-6 left-6 w-32 h-32 rounded-full bg-slate-900/60 border-2 border-slate-600/50 backdrop-blur z-30 flex items-center justify-center touch-none"
-        >
-          <div
-            className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/30 transition-transform"
-            style={{
-              transform: `translate(${joystickPosRef.current.x * 35}px, ${joystickPosRef.current.y * 35}px)`,
-            }}
-          />
+      {me && (
+        <div className="absolute bottom-4 left-4 z-20 pointer-events-none flex flex-col gap-1 bg-slate-900/85 p-2.5 rounded-2xl border border-slate-700/60 backdrop-blur w-48 shadow-xl scale-[0.75] origin-bottom-left">
+          <div className="flex items-center justify-between text-[10px] font-bold"><span className="flex items-center gap-1 text-red-400"><Heart className="w-3 h-3 fill-red-500" /> HP</span><span className="font-mono text-slate-200">{Math.round(me.hp)}/{me.maxHp} {me.inTankId ? '(TANK)' : ''}</span></div>
+          <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700"><div className="h-full bg-gradient-to-r from-red-600 to-rose-400 transition-all" style={{ width: `${Math.max(0, (me.hp / me.maxHp) * 100)}%` }} /></div>
+          <div className="flex items-center justify-between text-[10px] font-bold mt-0.5"><span className="flex items-center gap-1 text-blue-400"><Shield className="w-3 h-3 fill-blue-500" /> ARMOR</span><span className="font-mono">{Math.round(me.armor)}/{me.maxArmor}</span></div>
+          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-600 to-cyan-400" style={{ width: `${Math.max(0, (me.armor / me.maxArmor) * 100)}%` }} /></div>
+          <div className="mt-1 flex items-center justify-between"><span className="text-[10px] text-slate-400 font-mono">AMMO: <span className="font-black text-amber-400">{me.ammo}/{me.maxAmmo}</span></span>{me.isReloading && <span className="text-[9px] text-amber-400 font-bold animate-pulse flex items-center gap-1"><RotateCcw className="w-2.5 h-2.5 animate-spin" /> Reload</span>}</div>
+          <div className="text-[8px] text-slate-400 font-mono mt-1">GUN: Attacker 2dmg=7 shots tank | Defender 1dmg=15 shots tank</div>
         </div>
+      )}
 
-        {/* Shoot & Reload buttons */}
-        <div className="absolute bottom-6 right-6 flex flex-col gap-3 z-30 pointer-events-auto">
-          <button
-            onClick={triggerReload}
-            className="w-14 h-14 rounded-full bg-slate-800/80 border border-slate-600 flex items-center justify-center active:scale-95 shadow-lg"
-          >
-            <RotateCcw className="w-6 h-6 text-amber-400" />
-          </button>
-          <button
-            onTouchStart={() => (isShootingRef.current = true)}
-            onTouchEnd={() => (isShootingRef.current = false)}
-            onMouseDown={() => (isShootingRef.current = true)}
-            onMouseUp={() => (isShootingRef.current = false)}
-            className="w-20 h-20 rounded-full bg-gradient-to-tr from-red-600 to-rose-500 border-2 border-red-300 flex items-center justify-center shadow-xl shadow-red-500/40 active:scale-95"
-          >
-            <Crosshair className="w-9 h-9 text-white animate-pulse" />
-          </button>
+      <div className="md:hidden">
+        <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} className="absolute bottom-6 left-6 w-28 h-28 rounded-full bg-slate-900/60 border-2 border-slate-600/50 backdrop-blur z-30 flex items-center justify-center touch-none">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/30 transition-transform" style={{ transform: `translate(${joystickPosRef.current.x * 32}px, ${joystickPosRef.current.y * 32}px)` }} />
+        </div>
+        <div className="absolute bottom-6 right-6 flex flex-col gap-2 z-30 pointer-events-auto">
+          <button onClick={tryEnterExitTank} className="w-12 h-12 rounded-full bg-amber-500 border-2 border-amber-300 flex items-center justify-center active:scale-95 shadow-lg text-[10px] font-black text-slate-900">F</button>
+          <button onClick={triggerReload} className="w-12 h-12 rounded-full bg-slate-800/80 border border-slate-600 flex items-center justify-center active:scale-95 shadow-lg"><RotateCcw className="w-5 h-5 text-amber-400" /></button>
+          <button onTouchStart={() => (isShootingRef.current = true)} onTouchEnd={() => (isShootingRef.current = false)} onMouseDown={() => (isShootingRef.current = true)} onMouseUp={() => (isShootingRef.current = false)} className="w-18 h-18 rounded-full bg-gradient-to-tr from-red-600 to-rose-500 border-2 border-red-300 flex items-center justify-center shadow-xl shadow-red-500/40 active:scale-95"><Crosshair className="w-8 h-8 text-white animate-pulse" /></button>
         </div>
       </div>
 
-      {/* 1-HOUR SURVIVAL VICTORY MODAL */}
       {isHourVictory && (
         <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/60 rounded-3xl p-6 max-w-md w-full text-center shadow-2xl shadow-amber-500/20">
-            <Trophy className="w-16 h-16 text-amber-400 mx-auto mb-3 animate-bounce" />
-            <h2 className="text-2xl font-black text-white">1-HOUR MATCH COMPLETED!</h2>
-            <p className="text-sm text-slate-300 mt-1">
-              You held your gang territory against infinite enemy waves!
-            </p>
-
-            <div className="my-5 p-4 rounded-2xl bg-slate-800/60 border border-slate-700 space-y-2 text-left">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Waves Survived:</span>
-                <span className="font-bold text-amber-400 font-mono">Wave {currentWave}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Total Kills:</span>
-                <span className="font-bold text-red-400 font-mono">{totalKills}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">1-Hour Survival Bonus:</span>
-                <span className="font-bold text-emerald-400 font-mono">+1,000 SC</span>
-              </div>
-              <div className="border-t border-slate-700 pt-2 flex justify-between font-black text-base text-amber-300">
-                <span>Total Coins Earned:</span>
-                <span>+{earnedCoins} SC</span>
-              </div>
-            </div>
-
-            <button
-              onClick={onBack}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-base hover:brightness-110 shadow-lg shadow-amber-500/30 transition-all"
-            >
-              Collect Rewards & Return
-            </button>
-          </div>
+          <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/60 rounded-3xl p-6 max-w-md w-full text-center"><Trophy className="w-16 h-16 text-amber-400 mx-auto mb-3 animate-bounce" /><h2 className="text-2xl font-black text-white">BARRACKS HELD!</h2><div className="my-5 p-4 rounded-2xl bg-slate-800/60 border border-slate-700 space-y-2 text-left"><div className="flex justify-between text-sm"><span className="text-slate-400">Tanks Left:</span><span className="font-bold text-amber-400 font-mono">{tanksRef.current.filter(t=>!t.isExploded).length}</span></div><div className="flex justify-between text-sm"><span className="text-slate-400">Kills:</span><span className="font-bold text-red-400 font-mono">{totalKills}</span></div><div className="border-t border-slate-700 pt-2 flex justify-between font-black text-base text-amber-300"><span>Total:</span><span>+{earnedCoins} SC</span></div></div><button onClick={onBack} className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black">Collect</button></div>
         </div>
       )}
-
-      {/* GAME OVER (DIED) MODAL - AS SPECIFIED: "You Died - Wave X reached" */}
       {isGameOver && !isHourVictory && (
         <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-red-500/60 rounded-3xl p-6 max-w-md w-full text-center shadow-2xl shadow-red-500/20">
-            <Skull className="w-16 h-16 text-red-500 mx-auto mb-3 animate-pulse" />
-            <h2 className="text-2xl font-black text-white">YOU DIED</h2>
-            <p className="text-base text-amber-400 font-bold mt-1">
-              Wave {currentWave} reached - UNLIMITED
-            </p>
-
-            <div className="my-5 p-4 rounded-2xl bg-slate-800/60 border border-slate-700 space-y-2 text-left">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Time Survived:</span>
-                <span className="font-mono text-slate-200">
-                  {formatTime(MATCH_DURATION_SECONDS - matchTimeRemaining)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Enemies Defeated:</span>
-                <span className="font-mono text-red-400 font-bold">{totalKills}</span>
-              </div>
-              <div className="border-t border-slate-700 pt-2 flex justify-between font-black text-base text-amber-300">
-                <span>Street Coins Rewarded:</span>
-                <span>+{earnedCoins} SC</span>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setIsGameOver(false);
-                  initMyPlayer(myRole);
-                }}
-                className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold border border-slate-600 transition-all"
-              >
-                Respawn & Rejoin
-              </button>
-              <button
-                onClick={onBack}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-500 text-white font-bold hover:brightness-110 shadow-lg shadow-red-500/30 transition-all"
-              >
-                Exit Match
-              </button>
-            </div>
-          </div>
+          <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-red-500/60 rounded-3xl p-6 max-w-md w-full text-center"><Skull className="w-16 h-16 text-red-500 mx-auto mb-3 animate-pulse" /><h2 className="text-2xl font-black text-white">YOU DIED</h2><p className="text-base text-amber-400 font-bold mt-1">Wave {currentWave}</p><div className="flex gap-3 mt-4"><button onClick={() => { setIsGameOver(false); initMyPlayer(myRole); }} className="flex-1 py-3 rounded-xl bg-slate-800 text-white font-bold border border-slate-600">Respawn</button><button onClick={onBack} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-500 text-white font-bold">Exit</button></div></div>
         </div>
       )}
     </div>
   );
 };
-
 export default TurfWarMultiplayer;
