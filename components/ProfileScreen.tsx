@@ -87,7 +87,7 @@ export function ProfileScreen({
     : 'Street Hustler (Guest)';
   const username = telegramUser?.username ? `@${telegramUser.username}` : 'No Telegram handle';
   const userId = telegramUser?.id ? String(telegramUser.id) : 'STREET-GUEST-001';
-  const referralLink = `https://t.me/StreetLifeBot?start=${gameState.myReferralCode}`;
+  const referralLink = `https://t.me/Streetlifebot_bot?startapp=${encodeURIComponent(gameState.myReferralCode)}`;
 
   const copyToClipboard = (text: string, type: 'code' | 'link') => {
     if (navigator?.clipboard) {
