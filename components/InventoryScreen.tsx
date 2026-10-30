@@ -731,7 +731,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
     let feedbackMsg = '';
 
     if (studioId === 'celebrity_studio') {
-      earnedCoins = 10000;
+      earnedCoins = 10;
       earnedFans = 2500;
       feedbackMsg = '🌟 WORLDWIDE HIT! Viral across charts! Earned 10,000 SC + 2,500 fans!';
     } else if (studioId === 'hitmaker_studio') {
@@ -2654,7 +2654,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
         onCompleteChain={(totalCoins) => {
           setShowAdsgramChain(false);
           addGameCoins(totalCoins, `+${totalCoins} SC - Adsgram 3-Chain Completed`, 'ad_reward');
-          onToast(`🔥 +${totalCoins} SC credited from Adsgram Chain!`);
+          onToast(`🔥 +${totalCoins} 10 SC credited from Adsgram Chain!`);
         }}
       />
     </div>
