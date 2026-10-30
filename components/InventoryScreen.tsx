@@ -196,8 +196,8 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
   const unlockedBeatsCount = BEAT_LIBRARY.filter((b) => isBeatUnlocked(b, playerStudioLevel)).length;
   const isStudioUnlocked = playerStudioLevel >= 1;
 
-  // Low balance threshold: < 1,000 SC
-  const isBalanceLow = gameState.streetCoin < 1000;
+  // Low balance threshold: < 10 SC
+  const isBalanceLow = gameState.streetCoin < 10;
 
   // Ensure live video stream attaches to the preview element once mounted
   useEffect(() => {
@@ -281,7 +281,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
     const cost = item.price;
 
     if (gameState.streetCoin < cost) {
-      onToast(`Insufficient funds! Need ${cost.toLocaleString()} SC. Watch ad for +1,000 SC.`);
+      onToast(`Insufficient funds! Need ${cost.toLocaleString()} SC. Watch ad for +10 SC.`);
       return;
     }
 
@@ -547,7 +547,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
     const cost = targetBeat.requiredCoins || targetCatalogItem.price;
 
     if (gameState.streetCoin < cost) {
-      onToast(`Insufficient funds! Need ${cost.toLocaleString()} SC for Studio Level ${targetLevel}. Watch ad for +1,000 SC.`);
+      onToast(`Insufficient funds! Need ${cost.toLocaleString()} SC for Studio Level ${targetLevel}. Watch ad for +10 SC.`);
       return;
     }
 
@@ -679,7 +679,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
           }
           return next;
         });
-      }, 1000);
+      }, 10);
     } catch {
       // Fallback live studio mode if mic is denied/unavailable
       setIsRecording(true);
@@ -700,7 +700,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
           }
           return next;
         });
-      }, 1000);
+      }, 10);
     }
   };
 
@@ -985,7 +985,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
           </div>
         )}
 
-        {/* 2. CURRENCY RULE: "Watch ad to get 1,000 SC" PROMPT */}
+        {/* 2. CURRENCY RULE: "Watch ad to get 10 SC" PROMPT */}
         <div className="pt-1 space-y-1.5">
           {isBalanceLow && (
             <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-400/40 text-[10px] text-amber-300 font-bold flex items-center justify-between">
