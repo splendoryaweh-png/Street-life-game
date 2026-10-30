@@ -2063,7 +2063,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   <button
                     onClick={() => setShowAdsgramChain(true)}
                     type="button"
-                    title="Watch 3 Ads for 1,000 SC"
+                    title="Watch 3 Ads for 10 SC"
                     className="px-3.5 py-4 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
                   >
                     <Tv className="w-4 h-4" />
