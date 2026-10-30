@@ -991,7 +991,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-400/40 text-[10px] text-amber-300 font-bold flex items-center justify-between">
               <span className="flex items-center gap-1">
                 <span>⚠️</span>
-                <span>Low Balance (&lt; 1,000 SC). Watch ad to replenish funds!</span>
+                <span>Low Balance (&lt; 10 SC). Watch ad to replenish funds!</span>
               </span>
               <span className="font-mono text-yellow-400 font-black">+10 SC</span>
             </div>
@@ -2067,7 +2067,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                     className="px-3.5 py-4 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
                   >
                     <Tv className="w-4 h-4" />
-                    <span>+1,000 SC</span>
+                    <span>+10 SC</span>
                   </button>
                 </div>
                 <p className="text-[10px] text-gray-400">
