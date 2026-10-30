@@ -52,14 +52,8 @@ function QuickHustleHub({ isAdmin, onNavigate, onToast }: { isAdmin: boolean; on
       </div>
       <div className="grid grid-cols-4 gap-3">
         {items.map((it: any) => {
-          const Icon = it.icon;
-          const isAdm = it.label === 'Admin';
-          return (
-            <button key={it.label} onClick={() => { playClickSound(); if (it.daily) { document.getElementById('daily-strip')?.scrollIntoView({ behavior: 'smooth' }); return; } if (isAdm && !isAdmin) { onToast('🔒 Admin only'); return; } onNavigate(it.tab); }} className={`flex flex-col items-center gap-2 py-3.5 rounded-2xl border bg-[#1E1E1E] border-white/10 active:scale-95 ${isAdm && !isAdmin ? 'opacity-40' : ''}`}>
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isAdm ? 'bg-red-500/10' : 'bg-[#2A2A2A]'}`}><Icon className={`w-5 h-5 ${isAdm ? 'text-red-400' : 'text-white'}`} /></div>
-              <span className="text-[10px] font-bold text-gray-300">{it.label}</span>
-            </button>
-          );
+          const Icon = it.icon; const isAdm = it.label === 'Admin';
+          return (<button key={it.label} onClick={() => { playClickSound(); if (it.daily) { document.getElementById('daily-strip')?.scrollIntoView({ behavior: 'smooth' }); return; } if (isAdm && !isAdmin) { onToast('🔒 Admin only'); return; } onNavigate(it.tab); }} className={`flex flex-col items-center gap-2 py-3.5 rounded-2xl border bg-[#1E1E1E] border-white/10 active:scale-95 ${isAdm && !isAdmin ? 'opacity-40' : ''}`}><div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isAdm ? 'bg-red-500/10' : 'bg-[#2A2A2A]'}`}><Icon className={`w-5 h-5 ${isAdm ? 'text-red-400' : 'text-white'}`} /></div><span className="text-[10px] font-bold text-gray-300">{it.label}</span></button>);
         })}
       </div>
     </div>
@@ -79,7 +73,45 @@ export default function StreetLifeApp() {
   const isAdmin = Boolean(activeTelegramUser && (ADMIN_IDS.includes(String(activeTelegramUser.id)) || ADMIN_USERNAMES.includes(activeTelegramUser.username || "")));
   const [isProfileOpen, setIsProfileOpen] = useState(false); const [isTonModalOpen, setIsTonModalOpen] = useState(false); const [isShooterModalOpen, setIsShooterModalOpen] = useState(false); const [isRaceModalOpen, setIsRaceModalOpen] = useState(false); const [isRiderModalOpen, setIsRiderModalOpen] = useState(false); const [isTransactionsOpen, setIsTransactionsOpen] = useState(false); const [showNovelModal, setShowNovelModal] = useState(false); const [is3DGameActive, setIs3DGameActive] = useState(false); const [toastMessage, setToastMessage] = useState<string | null>(null); const [botAlert, setBotAlert] = useState<BotNotification | null>(null); const [isChromeHidden, setIsChromeHidden] = useState(false);
   const closeAllModals = () => { setIsProfileOpen(false); setIsTonModalOpen(false); setIsShooterModalOpen(false); setIsRaceModalOpen(false); setIsRiderModalOpen(false); setIsTransactionsOpen(false); setShowNovelModal(false); };
-  useEffect(() => { setIsMounted(true); try { window?.Telegram?.WebApp?.ready?.(); window?.Telegram?.WebApp?.expand?.(); } catch {} initTelegramWebApp(); const wa = (window as any).Telegram?.WebApp; if (wa?.initData) { fetch('/api/auth/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: wa.initData }) }).catch(() => {}); } const t = setTimeout(() => setIsLoading(false), 600); const d = setInterval(() => tickGameState(), 10000); const h = (e: Event) => { const ce = e as CustomEvent<BotNotification>; if (ce.detail) { setBotAlert(ce.detail); playSuccessSound(); } }; window.addEventListener('streetlife_bot_notification', h); return () => { clearTimeout(t); clearInterval(d); window.removeEventListener('streetlife_bot_notification', h); }; }, []);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    try { window?.Telegram?.WebApp?.ready?.(); window?.Telegram?.WebApp?.expand?.(); } catch {}
+    initTelegramWebApp();
+    
+    // ✅ FIXED REFERRAL LOGIC - NO MORE "user doesn't exist" ERROR
+    const wa: any = (window as any).Telegram?.WebApp;
+    const telegramInitData = wa?.initData;
+    const startParam = wa?.initDataUnsafe?.start_param as string | undefined;
+    
+    if (telegramInitData) {
+      fetch('/api/auth/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          initData: telegramInitData, 
+          referralCode: startParam ? startParam.toUpperCase() : null 
+        }),
+        cache: 'no-store',
+      }).then(r => r.json()).then(d => {
+        console.log('Auth result:', d);
+        if (d.referralApplied) {
+          setTimeout(() => showToast(`🎉 Welcome bonus +5 SC applied! Invite ${startParam?.toUpperCase()}!`), 1000);
+        }
+      }).catch(() => {});
+    }
+    
+    if (startParam) {
+      console.log('Invite code detected:', startParam);
+    }
+
+    const t = setTimeout(() => setIsLoading(false), 600);
+    const d = setInterval(() => tickGameState(), 10000);
+    const h = (e: Event) => { const ce = e as CustomEvent<BotNotification>; if (ce.detail) { setBotAlert(ce.detail); playSuccessSound(); } };
+    window.addEventListener('streetlife_bot_notification', h);
+    return () => { clearTimeout(t); clearInterval(d); window.removeEventListener('streetlife_bot_notification', h); };
+  }, []);
+
   const showToast = (msg: string) => { setToastMessage(msg); setTimeout(() => setToastMessage(null), 2800); };
   const handleClaimDailyReward = (a: number, b?: string) => { playCoinSound(); saveDailyClaim(gameState.streetCoin + a, gameState.dailyStreak >= 7 ? 1 : gameState.dailyStreak + 1); showToast(`Claimed +${a} SC ${b ? `& ${b}` : ''}!`); };
   const handleSimulatePlayGame = () => { playCoinSound(); saveHasPlayedToday(true); showToast('Game completed! Daily Reward unlocked 🔓'); };
