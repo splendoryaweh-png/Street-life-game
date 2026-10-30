@@ -30,20 +30,40 @@ import { StreetRaceModal } from '@/components/StreetRaceModal';
 import { StreetRiderModal } from '@/components/StreetRiderModal';
 import { TransactionsModal } from '@/components/TransactionsModal';
 
-function getTelegramUserSnapshot(): TelegramUser | null { if (typeof window === 'undefined') return null; return window.Telegram?.WebApp?.initDataUnsafe?.user || null; }
-function subscribeTelegramUser(callback: () => void) { if (typeof window === 'undefined') return () => {}; window.addEventListener('load', callback); const interval = setInterval(() => { if (window.Telegram?.WebApp?.initDataUnsafe?.user) { callback(); clearInterval(interval); } }, 500); setTimeout(() => clearInterval(interval), 10000); return () => { window.removeEventListener('load', callback); clearInterval(interval); }; }
+function getTelegramUserSnapshot(): TelegramUser | null { 
+  if (typeof window === 'undefined') return null; 
+  // @ts-ignore
+  return window.Telegram?.WebApp?.initDataUnsafe?.user || null; 
+}
+
+function subscribeTelegramUser(callback: () => void) { 
+  if (typeof window === 'undefined') return () => {}; 
+  window.addEventListener('load', callback); 
+  const interval = setInterval(() => { 
+    // @ts-ignore
+    if (window.Telegram?.WebApp?.initDataUnsafe?.user) { 
+      callback(); 
+      clearInterval(interval); 
+    } 
+  }, 500); 
+  setTimeout(() => clearInterval(interval), 10000); 
+  return () => { 
+    window.removeEventListener('load', callback); 
+    clearInterval(interval); 
+  }; 
+}
 
 function QuickHustleHub({ isAdmin, onNavigate, onToast }: { isAdmin: boolean; onNavigate: (tab: NavTab) => void; onToast: (msg: string) => void }) {
   const items = [
-    { label: 'Tasks', icon: CheckSquare, tab: 'TASKS' },
-    { label: 'Bank', icon: Wallet, tab: 'BANK' },
-    { label: 'Watch', icon: Tv, tab: 'WATCH' },
-    { label: 'Daily Free', icon: Gift, tab: 'HOME', daily: true },
-    { label: 'Warzone', icon: Swords, tab: 'WAR' },
-    { label: 'Studio', icon: Mic2, tab: 'STUDIO' },
-    { label: 'Games', icon: Gamepad2, tab: 'GAMES' },
-    { label: 'Admin', icon: Shield, tab: 'ADMIN' },
-  ] as any;
+    { label: 'Tasks', icon: CheckSquare, tab: 'TASKS' as NavTab },
+    { label: 'Bank', icon: Wallet, tab: 'BANK' as NavTab },
+    { label: 'Watch', icon: Tv, tab: 'WATCH' as NavTab },
+    { label: 'Daily Free', icon: Gift, tab: 'HOME' as NavTab, daily: true },
+    { label: 'Warzone', icon: Swords, tab: 'WAR' as NavTab },
+    { label: 'Studio', icon: Mic2, tab: 'STUDIO' as NavTab },
+    { label: 'Games', icon: Gamepad2, tab: 'GAMES' as NavTab },
+    { label: 'Admin', icon: Shield, tab: 'ADMIN' as NavTab },
+  ];
   return (
     <div className="w-full rounded-[20px] bg-[#151515] border border-white/10 p-4">
       <div className="flex items-center justify-between mb-4">
@@ -76,13 +96,21 @@ export default function StreetLifeApp() {
   
   useEffect(() => {
     setIsMounted(true);
-    try { window?.Telegram?.WebApp?.ready?.(); window?.Telegram?.WebApp?.expand?.(); } catch {}
+    try { 
+      // @ts-ignore
+      window?.Telegram?.WebApp?.ready?.(); 
+      // @ts-ignore
+      window?.Telegram?.WebApp?.expand?.(); 
+    } catch {}
     initTelegramWebApp();
     
-    // ✅ FIXED REFERRAL LOGIC - NO MORE "user doesn't exist" ERROR
+    // ✅ FIXED: Dynamic referral - reads ANY code, not hardcoded
+    // @ts-ignore
     const wa: any = (window as any).Telegram?.WebApp;
     const telegramInitData = wa?.initData;
-    const startParam = wa?.initDataUnsafe?.start_param as string | undefined;
+    const urlParams = new URLSearchParams(window.location.search);
+    const rawCode = wa?.initDataUnsafe?.start_param || urlParams.get('startapp') || urlParams.get('start') || null;
+    const startParam = rawCode ? String(rawCode).trim().toUpperCase() : null;
     
     if (telegramInitData) {
       fetch('/api/auth/telegram', {
@@ -90,13 +118,13 @@ export default function StreetLifeApp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           initData: telegramInitData, 
-          referralCode: startParam ? startParam.toUpperCase() : null 
+          referralCode: startParam
         }),
         cache: 'no-store',
       }).then(r => r.json()).then(d => {
         console.log('Auth result:', d);
         if (d.referralApplied) {
-          setTimeout(() => showToast(`🎉 Welcome bonus +5 SC applied! Invite ${startParam?.toUpperCase()}!`), 1000);
+          setTimeout(() => showToast(`🎉 Welcome bonus +5 SC! Invited by ${startParam}!`), 1000);
         }
       }).catch(() => {});
     }
