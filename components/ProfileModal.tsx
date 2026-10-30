@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { TelegramUser } from '@/types/game';
 import {
   X,
@@ -8,13 +9,9 @@ import {
   Check,
   ShieldCheck,
   ReceiptText,
-  Shield,
   Clock,
   Mail,
-  KeyRound,
-  Lock,
   Send,
-  Headphones,
 } from 'lucide-react';
 import { playClickSound, playSuccessSound } from '@/lib/sound';
 import {
@@ -36,6 +33,8 @@ interface ProfileModalProps {
   onOpenTransactions?: () => void;
   onOpenAdmin?: () => void;
 }
+
+const BOT_USERNAME = 'Streetlifebot_bot';
 
 export function ProfileModal({
   isOpen,
@@ -68,8 +67,8 @@ export function ProfileModal({
   const [adminLoginInput, setAdminLoginInput] = useState<string>('');
   const [longPressProgress, setLongPressProgress] = useState<number>(0);
 
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const longPressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   if (!isOpen) return null;
 
@@ -78,11 +77,12 @@ export function ProfileModal({
     : 'Street Hustler (Guest)';
   const username = telegramUser?.username ? `@${telegramUser.username}` : 'No Telegram handle';
   const userId = telegramUser?.id ? String(telegramUser.id) : 'STREET-GUEST-001';
-  const referralLink = `https://t.me/StreetLifeBot?start=${myReferralCode}`;
 
-  const copyToClipboard = (text: string, type: 'code' | 'link') => {
-    if (navigator?.clipboard) {
-      navigator.clipboard.writeText(text);
+  const referralLink = `https://t.me/${BOT_USERNAME}?startapp=${encodeURIComponent(myReferralCode)}`;
+
+  const copyToClipboard = async (text: string, type: 'code' | 'link') => {
+    try {
+      await navigator.clipboard.writeText(text);
       if (type === 'code') {
         setCopiedCode(true);
         setTimeout(() => setCopiedCode(false), 2000);
@@ -90,10 +90,11 @@ export function ProfileModal({
         setCopiedLink(true);
         setTimeout(() => setCopiedLink(false), 2000);
       }
+    } catch (error) {
+      console.error('Could not copy to clipboard:', error);
     }
   };
 
-  // Avatar Long Press (3 seconds secret)
   const handleAvatarPointerDown = () => {
     setLongPressProgress(0);
     const start = Date.now();
@@ -151,7 +152,7 @@ export function ProfileModal({
       }
     } else {
       playClickSound();
-      console.warn('Invalid admin credentials. Only augustinejackson222@gmail.com has access.');
+      console.warn('Invalid admin credentials. Only the configured admin email has access.');
     }
   };
 
@@ -165,7 +166,6 @@ export function ProfileModal({
         className="relative w-full max-w-sm rounded-3xl bg-[#151515] border border-white/10 p-5 shadow-2xl text-left space-y-4 max-h-[90vh] overflow-y-auto overscroll-contain"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        {/* Close Button */}
         <button
           onClick={onClose}
           type="button"
@@ -175,7 +175,6 @@ export function ProfileModal({
           <X className="w-4 h-4" />
         </button>
 
-        {/* Modal Header with Avatar */}
         <div className="flex items-center gap-3 pt-1">
           <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#FFD700] bg-black flex items-center justify-center shrink-0 shadow-lg shadow-[#FFD700]/20 relative">
             {telegramUser?.photo_url ? (
@@ -201,7 +200,6 @@ export function ProfileModal({
           </div>
         </div>
 
-        {/* STUDIO RENT COUNTDOWN TIMER */}
         <div className="p-3 rounded-2xl bg-gradient-to-r from-[#1E1B10] to-[#141414] border border-[#FFD700]/30 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-[#FFD700]/20 border border-[#FFD700]/40 flex items-center justify-center text-[#FFD700]">
@@ -228,7 +226,6 @@ export function ProfileModal({
           </span>
         </div>
 
-        {/* Balance & Stats Strip */}
         <div className="grid grid-cols-2 gap-2 pt-1">
           <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5">
             <span className="text-[10px] text-[#9CA3AF] block">Street Coins</span>
@@ -244,9 +241,6 @@ export function ProfileModal({
           </div>
         </div>
 
-
-
-        {/* Email Address Section */}
         <form onSubmit={handleSaveEmail} className="space-y-1.5 pt-1">
           <label className="text-[11px] font-bold text-gray-300 flex items-center justify-between">
             <span className="flex items-center gap-1">
@@ -272,7 +266,6 @@ export function ProfileModal({
           </div>
         </form>
 
-        {/* Coin Transactions Ledger Button */}
         {onOpenTransactions && (
           <button
             onClick={() => {
@@ -288,7 +281,6 @@ export function ProfileModal({
           </button>
         )}
 
-        {/* Referral Section (All 10 SC) */}
         <div className="space-y-2 pt-1">
           <label className="text-xs font-bold text-white flex items-center justify-between">
             <span>My Referral Code</span>
@@ -319,7 +311,6 @@ export function ProfileModal({
           </button>
         </div>
 
-        {/* Support & Contact on Telegram (@Gammyadmin) */}
         <div className="pt-2 border-t border-white/5 space-y-2">
           <button
             onClick={() => {
@@ -337,7 +328,6 @@ export function ProfileModal({
           </div>
         </div>
 
-        {/* One Device One Account Notice */}
         <div className="pt-2 border-t border-white/5 space-y-1">
           <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-semibold">
             <ShieldCheck className="w-3.5 h-3.5" />
