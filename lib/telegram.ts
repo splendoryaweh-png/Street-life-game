@@ -1,3 +1,4 @@
+
 import { TelegramUser } from '@/types/game';
 
 declare global {
@@ -18,12 +19,20 @@ declare global {
   }
 }
 
+// ============================================================================
+// OFFICIAL STREET LIFE BOT
+// ============================================================================
+
+export const STREET_LIFE_BOT_USERNAME = 'Streetlifebot_bot';
+export const STREET_LIFE_BOT_URL = `https://t.me/${STREET_LIFE_BOT_USERNAME}`;
+
 export function initTelegramWebApp(): TelegramUser | null {
   if (typeof window === 'undefined') return null;
 
   try {
     window?.Telegram?.WebApp?.ready?.();
     window?.Telegram?.WebApp?.expand?.();
+
     if (window?.Telegram?.WebApp?.initDataUnsafe?.user) {
       return window.Telegram.WebApp.initDataUnsafe.user;
     }
@@ -61,13 +70,12 @@ export const TELEGRAM_OFFICIAL_CHANNELS = {
 
 // ============================================================================
 // SIMULATED TELEGRAM API: USER CHAT BOOST VALIDATION
-// (Modeled after Telegram Bot API getUserChatBoosts endpoint)
 // ============================================================================
 
 export interface TelegramChatBoost {
   boost_id: string;
-  add_date: number; // Unix timestamp
-  expiration_date: number; // Unix timestamp
+  add_date: number;
+  expiration_date: number;
   source: {
     source: 'premium' | 'gift' | 'giveaway';
     user: {
@@ -94,8 +102,10 @@ export interface TelegramBoostValidationResult {
   statusMessage: string;
 }
 
-// Seeded list of users who have verified active channel boosts
-const DEFAULT_ACTIVE_BOOSTERS: Record<string, { mainChannel?: boolean; paymentProof?: boolean }> = {
+const DEFAULT_ACTIVE_BOOSTERS: Record<
+  string,
+  { mainChannel?: boolean; paymentProof?: boolean }
+> = {
   '10293847': { mainChannel: true, paymentProof: true },
   '@ton_whale_vip': { mainChannel: true, paymentProof: true },
   'ton_whale_vip': { mainChannel: true, paymentProof: true },
@@ -107,14 +117,6 @@ const DEFAULT_ACTIVE_BOOSTERS: Record<string, { mainChannel?: boolean; paymentPr
   'streetlife737': { mainChannel: true, paymentProof: true },
 };
 
-/**
- * Validates whether a user has actually performed a 'boost' on the specified Telegram channel.
- * Simulates Telegram Bot API getUserChatBoosts endpoint (https://core.telegram.org/bots/api#getuserchatboosts)
- *
- * @param userIdOrUsername Telegram User ID or @username
- * @param channelIdentifier Channel URL, ID, or key ('Main Channel' | 'Payment Proof' | url)
- * @returns Promise<TelegramBoostValidationResult> with boolean `hasBoosted` status
- */
 export async function validateTelegramChannelBoost(
   userIdOrUsername: string | number,
   channelIdentifier: string
@@ -122,8 +124,8 @@ export async function validateTelegramChannelBoost(
   const cleanUser = String(userIdOrUsername).trim().toLowerCase();
   const cleanChannel = channelIdentifier.trim().toLowerCase();
 
-  // Determine target channel
   let targetChannel = TELEGRAM_OFFICIAL_CHANNELS.mainChannel;
+
   if (
     cleanChannel.includes('proof') ||
     cleanChannel.includes('payment') ||
@@ -132,26 +134,30 @@ export async function validateTelegramChannelBoost(
     targetChannel = TELEGRAM_OFFICIAL_CHANNELS.paymentProof;
   }
 
-  // Artificial network roundtrip delay (simulate Telegram Bot API)
   await new Promise((resolve) => setTimeout(resolve, 600));
 
-  // Check persistent localStorage for dynamic user boosts
-  let dynamicBoosters: Record<string, { mainChannel?: boolean; paymentProof?: boolean }> = {};
+  let dynamicBoosters: Record<
+    string,
+    { mainChannel?: boolean; paymentProof?: boolean }
+  > = {};
+
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem('streetLife_channel_boosters');
-      if (stored) {
-        dynamicBoosters = JSON.parse(stored);
-      }
+      if (stored) dynamicBoosters = JSON.parse(stored);
     } catch {}
   }
 
   const isMain = targetChannel === TELEGRAM_OFFICIAL_CHANNELS.mainChannel;
   const userKey = cleanUser.replace(/^@/, '');
 
-  // Check if user has active boost
-  const seeded = DEFAULT_ACTIVE_BOOSTERS[cleanUser] || DEFAULT_ACTIVE_BOOSTERS[userKey];
-  const dynamic = dynamicBoosters[cleanUser] || dynamicBoosters[userKey];
+  const seeded =
+    DEFAULT_ACTIVE_BOOSTERS[cleanUser] ||
+    DEFAULT_ACTIVE_BOOSTERS[userKey];
+
+  const dynamic =
+    dynamicBoosters[cleanUser] ||
+    dynamicBoosters[userKey];
 
   const hasBoosted = Boolean(
     (isMain && (seeded?.mainChannel || dynamic?.mainChannel)) ||
@@ -164,15 +170,23 @@ export async function validateTelegramChannelBoost(
   if (hasBoosted) {
     const boostData: TelegramChatBoost = {
       boost_id: `bst_${Math.random().toString(36).substring(2, 8)}`,
-      add_date: Math.floor((now - 1000 * 60 * 60 * 24 * 3) / 1000),
-      expiration_date: Math.floor((now + oneMonthMs) / 1000),
+      add_date: Math.floor(
+        (now - 1000 * 60 * 60 * 24 * 3) / 1000
+      ),
+      expiration_date: Math.floor(
+        (now + oneMonthMs) / 1000
+      ),
       source: {
         source: 'premium',
         user: {
           id: cleanUser,
           is_bot: false,
-          first_name: cleanUser.startsWith('@') ? cleanUser.slice(1) : cleanUser,
-          username: cleanUser.startsWith('@') ? cleanUser.slice(1) : undefined,
+          first_name: cleanUser.startsWith('@')
+            ? cleanUser.slice(1)
+            : cleanUser,
+          username: cleanUser.startsWith('@')
+            ? cleanUser.slice(1)
+            : undefined,
         },
       },
     };
@@ -180,7 +194,9 @@ export async function validateTelegramChannelBoost(
     return {
       hasBoosted: true,
       userId: String(userIdOrUsername),
-      username: cleanUser.startsWith('@') ? cleanUser : `@${cleanUser}`,
+      username: cleanUser.startsWith('@')
+        ? cleanUser
+        : `@${cleanUser}`,
       channelName: targetChannel.name,
       channelUrl: targetChannel.url,
       channelId: targetChannel.id,
@@ -193,11 +209,12 @@ export async function validateTelegramChannelBoost(
     };
   }
 
-  // Not boosted
   return {
     hasBoosted: false,
     userId: String(userIdOrUsername),
-    username: cleanUser.startsWith('@') ? cleanUser : `@${cleanUser}`,
+    username: cleanUser.startsWith('@')
+      ? cleanUser
+      : `@${cleanUser}`,
     channelName: targetChannel.name,
     channelUrl: targetChannel.url,
     channelId: targetChannel.id,
@@ -210,19 +227,27 @@ export async function validateTelegramChannelBoost(
   };
 }
 
-/**
- * Record a user boost in the local simulation database (e.g. when user clicks Boost in game)
- */
+// ============================================================================
+// RECORD A SIMULATED USER BOOST
+// ============================================================================
+
 export function recordSimulatedUserBoost(
   userIdOrUsername: string | number,
   channelType: 'main' | 'proof'
 ): void {
   if (typeof window === 'undefined') return;
 
-  const key = String(userIdOrUsername).trim().toLowerCase().replace(/^@/, '');
+  const key = String(userIdOrUsername)
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, '');
+
   try {
-    const raw = localStorage.getItem('streetLife_channel_boosters') || '{}';
+    const raw =
+      localStorage.getItem('streetLife_channel_boosters') || '{}';
+
     const data = JSON.parse(raw);
+
     if (!data[key]) data[key] = {};
 
     if (channelType === 'main') {
@@ -231,7 +256,10 @@ export function recordSimulatedUserBoost(
       data[key].paymentProof = true;
     }
 
-    localStorage.setItem('streetLife_channel_boosters', JSON.stringify(data));
+    localStorage.setItem(
+      'streetLife_channel_boosters',
+      JSON.stringify(data)
+    );
   } catch (err) {
     console.error('Error saving user boost:', err);
   }
@@ -267,11 +295,6 @@ export interface BotNotification {
 
 const STORAGE_NOTIFICATIONS_KEY = 'streetLife_bot_notifications';
 
-/**
- * Sends an automated notification from the official Street Life Telegram Bot.
- * Generates formatted Telegram markdown, stores the notification in localStorage,
- * and broadcasts an event so the in-game UI displays a live notification alert.
- */
 export async function sendAutomatedBotNotification(params: {
   recipientId: string;
   recipientUsername?: string;
@@ -300,7 +323,6 @@ export async function sendAutomatedBotNotification(params: {
 
   const isApproved = type !== 'task_rejected';
 
-  // Build authentic Telegram Markdown message
   const telegramMarkdown = [
     `🤖 *STREET LIFE NOTIFICATION BOT*`,
     `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
@@ -308,17 +330,23 @@ export async function sendAutomatedBotNotification(params: {
     `${isApproved ? '✅' : '❌'} *Status:* ${title}`,
     ``,
     `📝 *Details:* ${message}`,
-    reward ? `💰 *Reward Credited:* +${reward.toLocaleString()} StreetCoins (SC)` : '',
-    rejectReason ? `⚠️ *Rejection Reason:* ${rejectReason}` : '',
+    reward
+      ? `💰 *Reward Credited:* +${reward.toLocaleString()} StreetCoins (SC)`
+      : '',
+    rejectReason
+      ? `⚠️ *Rejection Reason:* ${rejectReason}`
+      : '',
     `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `🎮 *Launch Game:* https://t.me/Streethustlegame2`,
+    `🎮 *Launch Game:* ${STREET_LIFE_BOT_URL}`,
     `📢 *Official Channel:* @Streethustlegame2`,
   ]
     .filter(Boolean)
     .join('\n');
 
   const notification: BotNotification = {
-    id: `bot_msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    id: `bot_msg_${Date.now()}_${Math.random()
+      .toString(36)
+      .substring(2, 7)}`,
     recipientId,
     recipientUsername: userTag,
     type,
@@ -330,18 +358,26 @@ export async function sendAutomatedBotNotification(params: {
     delivered: true,
     read: false,
     botName: 'Street Life Hustle Bot',
-    botUsername: '@StreetLifeGameBot',
+    botUsername: '@Streetlifebot_bot',
   };
 
-  // Persist to localStorage
   if (typeof window !== 'undefined') {
     try {
-      const existingRaw = localStorage.getItem(STORAGE_NOTIFICATIONS_KEY);
-      const list: BotNotification[] = existingRaw ? JSON.parse(existingRaw) : [];
-      const updatedList = [notification, ...list].slice(0, 50); // Keep last 50 notifications
-      localStorage.setItem(STORAGE_NOTIFICATIONS_KEY, JSON.stringify(updatedList));
+      const existingRaw = localStorage.getItem(
+        STORAGE_NOTIFICATIONS_KEY
+      );
 
-      // Dispatch real-time custom event for in-game notification toasts
+      const list: BotNotification[] = existingRaw
+        ? JSON.parse(existingRaw)
+        : [];
+
+      const updatedList = [notification, ...list].slice(0, 50);
+
+      localStorage.setItem(
+        STORAGE_NOTIFICATIONS_KEY,
+        JSON.stringify(updatedList)
+      );
+
       window.dispatchEvent(
         new CustomEvent('streetlife_bot_notification', {
           detail: notification,
@@ -355,48 +391,71 @@ export async function sendAutomatedBotNotification(params: {
   return { success: true, notification };
 }
 
-/**
- * Retrieve all automated bot notifications from storage
- */
-export function getBotNotifications(recipientId?: string): BotNotification[] {
+// ============================================================================
+// RETRIEVE BOT NOTIFICATIONS
+// ============================================================================
+
+export function getBotNotifications(
+  recipientId?: string
+): BotNotification[] {
   if (typeof window === 'undefined') return [];
+
   try {
     const raw = localStorage.getItem(STORAGE_NOTIFICATIONS_KEY);
     if (!raw) return [];
+
     const list: BotNotification[] = JSON.parse(raw);
+
     if (recipientId) {
-      const clean = recipientId.trim().toLowerCase().replace(/^@/, '');
+      const clean = recipientId
+        .trim()
+        .toLowerCase()
+        .replace(/^@/, '');
+
       return list.filter(
         (n) =>
           n.recipientId.toLowerCase().includes(clean) ||
           n.recipientUsername?.toLowerCase().includes(clean)
       );
     }
+
     return list;
   } catch {
     return [];
   }
 }
 
-/**
- * Mark a bot notification as read
- */
+// ============================================================================
+// MARK A BOT NOTIFICATION AS READ
+// ============================================================================
+
 export function markBotNotificationAsRead(id: string): void {
   if (typeof window === 'undefined') return;
+
   try {
     const raw = localStorage.getItem(STORAGE_NOTIFICATIONS_KEY);
     if (!raw) return;
+
     const list: BotNotification[] = JSON.parse(raw);
-    const updated = list.map((n) => (n.id === id ? { ...n, read: true } : n));
-    localStorage.setItem(STORAGE_NOTIFICATIONS_KEY, JSON.stringify(updated));
+
+    const updated = list.map((n) =>
+      n.id === id ? { ...n, read: true } : n
+    );
+
+    localStorage.setItem(
+      STORAGE_NOTIFICATIONS_KEY,
+      JSON.stringify(updated)
+    );
   } catch {}
 }
 
-/**
- * Clear all stored bot notifications
- */
+// ============================================================================
+// CLEAR ALL STORED BOT NOTIFICATIONS
+// ============================================================================
+
 export function clearAllBotNotifications(): void {
   if (typeof window === 'undefined') return;
+
   try {
     localStorage.removeItem(STORAGE_NOTIFICATIONS_KEY);
   } catch {}
