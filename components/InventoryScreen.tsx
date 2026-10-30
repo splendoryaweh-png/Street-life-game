@@ -223,7 +223,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
   }, []);
 
   // ---------------------------------------------------------------------------
-  // WATCH AD TO GET 1,000 SC
+  // WATCH AD TO GET 10 SC
   // ---------------------------------------------------------------------------
   const handleWatchAdForCoins = () => {
     if (isWatchingAd) return;
