@@ -232,9 +232,9 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
 
     setTimeout(() => {
       setIsWatchingAd(false);
-      addGameCoins(10, '+10 SC - Watched Inventory Ad', 'ad_reward');
+      addGameCoins(1, '+10 SC - Watched Inventory Ad', 'ad_reward');
       playSuccessSound();
-      onToast('🎉 +10 Street Coins credited to your balance!');
+      onToast('🎉 +1 Street Coins credited to your balance!');
       try {
         confetti({
           particleCount: 50,
