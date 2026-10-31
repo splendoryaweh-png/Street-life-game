@@ -1,402 +1,946 @@
-"use client";
+/**
+ * Street Life Long Beat Engine - Web Audio API Procedural Synthesizer & Timeline Scheduler
+ *
+ * ABSOLUTELY NO FX (No car horns, gun sounds, dice shakes, bike revs).
+ * ONLY pure musical instruments:
+ * - Kick, Snare, Rimshot, Closed Hi-Hat, Open Hat, Shaker, Log Drum
+ * - 808 Sub-Bass (Sliding & Punchy)
+ * - Grand Piano & Rhodes Keys
+ * - Lush Ambient Pads & Cathedral Choir
+ * - Orchestral Violins & Cellos
+ * - Melodic Saxophone & Royal Brass
+ * - Synthesized Formant Vocal Chops
+ *
+ * Full song structure playback (2-4 minutes) with dynamic section arrangements:
+ * [Intro] -> [Verse] -> [Hook] -> [Outro]
+ * Supports real-time scrubbing (seek), speed control (0.5x, 1.0x, 1.5x), volume,
+ * looping, and AnalyserNode audio visualization.
+ */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { longBeatEngine } from '../audio/longBeatEngine';
+import {
+  LongBeat,
+  BeatSection,
+  LONG_BEATS_CATALOG,
+  getBeatById,
+  getSectionAtTime,
+} from '../data/longBeatsData';
 
-type RecordingMode = 'audio' | 'video';
-type BeatType = { id: string; name: string; bpm: number; key: string; url?: string };
+// Musical Note Frequency Map (Hz)
+const NOTE_FREQS: Record<string, number> = {
+  // Low Bass / 808 Notes (Octave 1-2)
+  'C1': 32.70, 'C#1': 34.65, 'D1': 36.71, 'D#1': 38.89, 'E1': 41.20, 'F1': 43.65,
+  'F#1': 46.25, 'G1': 49.00, 'G#1': 51.91, 'A1': 55.00, 'A#1': 58.27, 'B1': 61.74,
+  'C2': 65.41, 'C#2': 69.30, 'D2': 73.42, 'D#2': 77.78, 'E2': 82.41, 'F2': 87.31,
+  'F#2': 92.50, 'G2': 98.00, 'G#2': 103.83, 'A2': 110.00, 'A#2': 116.54, 'B2': 123.47,
 
-interface SavedRecording {
-  id: string;
-  blob: Blob;
-  url: string;
-  mimeType: string;
-  duration: number;
-  mode: RecordingMode;
-  beatId: string;
-  beatName: string;
-  timestamp: number;
-  title: string;
-}
+  // Mid Melodic Notes (Octave 3-4)
+  'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61,
+  'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
+  'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23,
+  'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
 
-const BEATS: BeatType[] = [
-  { id: 'street_1', name: 'Lagos Night', bpm: 92, key: 'Am' },
-  { id: 'street_2', name: 'Hustle Hard', bpm: 88, key: 'Gm' },
-  { id: 'street_3', name: 'Ghetto Dreams', bpm: 95, key: 'Fm' },
-  { id: 'street_4', name: 'Area Boyz', bpm: 100, key: 'Dm' },
-];
+  // High Lead Notes (Octave 5)
+  'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25, 'F5': 698.46,
+  'F#5': 739.99, 'G5': 783.99, 'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77,
+};
 
-export default function StudioBeats() {
-  // --- Existing Studio States ---
-  const [selectedBeat, setSelectedBeat] = useState<BeatType>(BEATS[0]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.8);
-  const [recordingMode, setRecordingMode] = useState<RecordingMode>('audio');
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [recordings, setRecordings] = useState<SavedRecording[]>([]);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewRec, setPreviewRec] = useState<SavedRecording | null>(null);
-  const [dailyCount, setDailyCount] = useState(0);
-  const [lyrics, setLyrics] = useState('');
-  const [songTitle, setSongTitle] = useState('');
+// Chord Note Dictionaries
+const CHORD_NOTES: Record<string, number[]> = {
+  'Am': [NOTE_FREQS['A3'], NOTE_FREQS['C4'], NOTE_FREQS['E4']],
+  'F': [NOTE_FREQS['F3'], NOTE_FREQS['A3'], NOTE_FREQS['C4']],
+  'C': [NOTE_FREQS['C3'], NOTE_FREQS['E3'], NOTE_FREQS['G3']],
+  'G': [NOTE_FREQS['G3'], NOTE_FREQS['B3'], NOTE_FREQS['D4']],
+  'G/B': [NOTE_FREQS['B2'], NOTE_FREQS['D3'], NOTE_FREQS['G3']],
+  'Fm': [NOTE_FREQS['F3'], NOTE_FREQS['G#3'], NOTE_FREQS['C4']],
+  'Db': [NOTE_FREQS['C#3'], NOTE_FREQS['F3'], NOTE_FREQS['G#3']],
+  'Ab': [NOTE_FREQS['G#3'], NOTE_FREQS['C4'], NOTE_FREQS['D#4']],
+  'Eb': [NOTE_FREQS['D#3'], NOTE_FREQS['G3'], NOTE_FREQS['A#3']],
+  'Eb/G': [NOTE_FREQS['G2'], NOTE_FREQS['A#2'], NOTE_FREQS['D#3']],
+  'Dm': [NOTE_FREQS['D3'], NOTE_FREQS['F3'], NOTE_FREQS['A3']],
+  'Dm7': [NOTE_FREQS['D3'], NOTE_FREQS['F3'], NOTE_FREQS['A3'], NOTE_FREQS['C4']],
+  'Gm': [NOTE_FREQS['G3'], NOTE_FREQS['A#3'], NOTE_FREQS['D4']],
+  'Gm7': [NOTE_FREQS['G3'], NOTE_FREQS['A#3'], NOTE_FREQS['D4'], NOTE_FREQS['F4']],
+  'Bbmaj7': [NOTE_FREQS['A#3'], NOTE_FREQS['D4'], NOTE_FREQS['F4'], NOTE_FREQS['A4']],
+  'A7': [NOTE_FREQS['A3'], NOTE_FREQS['C#4'], NOTE_FREQS['E4'], NOTE_FREQS['G4']],
+  'Cmaj7': [NOTE_FREQS['C3'], NOTE_FREQS['E3'], NOTE_FREQS['G3'], NOTE_FREQS['B3']],
+  'Am7': [NOTE_FREQS['A3'], NOTE_FREQS['C4'], NOTE_FREQS['E4'], NOTE_FREQS['G4']],
+  'G7': [NOTE_FREQS['G3'], NOTE_FREQS['B3'], NOTE_FREQS['D4'], NOTE_FREQS['F4']],
+  'Em': [NOTE_FREQS['E3'], NOTE_FREQS['G3'], NOTE_FREQS['B3']],
+  'B7': [NOTE_FREQS['B3'], NOTE_FREQS['D#4'], NOTE_FREQS['F#4'], NOTE_FREQS['A4']],
+  'Eb7': [NOTE_FREQS['D#3'], NOTE_FREQS['G3'], NOTE_FREQS['A#3'], NOTE_FREQS['C#4']],
+  'Cm': [NOTE_FREQS['C3'], NOTE_FREQS['D#3'], NOTE_FREQS['G3']],
+  'D7': [NOTE_FREQS['D3'], NOTE_FREQS['F#3'], NOTE_FREQS['A3'], NOTE_FREQS['C4']],
+  'Bm': [NOTE_FREQS['B3'], NOTE_FREQS['D4'], NOTE_FREQS['F#4']],
+  'F#': [NOTE_FREQS['F#3'], NOTE_FREQS['A#3'], NOTE_FREQS['C#4']],
+  'F#m': [NOTE_FREQS['F#3'], NOTE_FREQS['A3'], NOTE_FREQS['C#4']],
+  'D': [NOTE_FREQS['D3'], NOTE_FREQS['F#3'], NOTE_FREQS['A3']],
+  'A': [NOTE_FREQS['A3'], NOTE_FREQS['C#4'], NOTE_FREQS['E4']],
+  'E': [NOTE_FREQS['E3'], NOTE_FREQS['G#3'], NOTE_FREQS['B3']],
+  'E7': [NOTE_FREQS['E3'], NOTE_FREQS['G#3'], NOTE_FREQS['B3'], NOTE_FREQS['D4']],
+  'Bbm': [NOTE_FREQS['A#3'], NOTE_FREQS['C#4'], NOTE_FREQS['F4']],
+  'Gb': [NOTE_FREQS['F#3'], NOTE_FREQS['A#3'], NOTE_FREQS['C#4']],
+  'Bb': [NOTE_FREQS['A#3'], NOTE_FREQS['D4'], NOTE_FREQS['F4']],
+};
 
-  // --- Refs for Recording ---
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const micStreamRef = useRef<MediaStream | null>(null);
-  const finalStreamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const mixedDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
-  const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
+// Lead Melody Scale notes per scale key
+const SCALE_LEAD_NOTES: Record<string, number[]> = {
+  'A Minor': [NOTE_FREQS['A4'], NOTE_FREQS['C5'], NOTE_FREQS['D5'], NOTE_FREQS['E5'], NOTE_FREQS['G5']],
+  'F Minor': [NOTE_FREQS['F4'], NOTE_FREQS['G#4'], NOTE_FREQS['A#4'], NOTE_FREQS['C5'], NOTE_FREQS['D#5']],
+  'D Minor': [NOTE_FREQS['D4'], NOTE_FREQS['F4'], NOTE_FREQS['G4'], NOTE_FREQS['A4'], NOTE_FREQS['C5']],
+  'C Major': [NOTE_FREQS['C4'], NOTE_FREQS['E4'], NOTE_FREQS['G4'], NOTE_FREQS['A4'], NOTE_FREQS['C5']],
+  'E Minor': [NOTE_FREQS['E4'], NOTE_FREQS['G4'], NOTE_FREQS['A4'], NOTE_FREQS['B4'], NOTE_FREQS['D5']],
+  'G Minor': [NOTE_FREQS['G4'], NOTE_FREQS['A#4'], NOTE_FREQS['C5'], NOTE_FREQS['D5'], NOTE_FREQS['F5']],
+  'A Blues Funk': [NOTE_FREQS['A4'], NOTE_FREQS['C5'], NOTE_FREQS['D5'], NOTE_FREQS['D#5'], NOTE_FREQS['E5'], NOTE_FREQS['G5']],
+  'B Minor': [NOTE_FREQS['B4'], NOTE_FREQS['D5'], NOTE_FREQS['E5'], NOTE_FREQS['F#5'], NOTE_FREQS['A5']],
+  'F# Minor': [NOTE_FREQS['F#4'], NOTE_FREQS['A4'], NOTE_FREQS['B4'], NOTE_FREQS['C#5'], NOTE_FREQS['E5']],
+  'Bb Minor': [NOTE_FREQS['A#4'], NOTE_FREQS['C#5'], NOTE_FREQS['D#5'], NOTE_FREQS['F5'], NOTE_FREQS['G#5']],
+  'Ab Major': [NOTE_FREQS['G#4'], NOTE_FREQS['C5'], NOTE_FREQS['D#5'], NOTE_FREQS['F5'], NOTE_FREQS['G#5']],
+  'A Minor Multi-Phase': [NOTE_FREQS['A4'], NOTE_FREQS['C5'], NOTE_FREQS['D5'], NOTE_FREQS['E5'], NOTE_FREQS['G5']],
+};
 
-  const MAX_DURATION = 180;
-  const MIN_DURATION = 60;
-  const DAILY_LIMIT = 5;
+export class LongBeatAudioEngine {
+  private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private analyser: AnalyserNode | null = null;
 
-  // --- Beat Playback (existing) ---
-  const handlePlayBeat = useCallback(async () => {
-    await longBeatEngine.ensureRunning();
-    if (isPlaying) {
-      longBeatEngine.stop();
-      setIsPlaying(false);
-    } else {
-      longBeatEngine.setVolume(volume);
-      longBeatEngine.playBeat(selectedBeat.id);
-      setIsPlaying(true);
-    }
-  }, [isPlaying, selectedBeat, volume]);
+  // Active Playback State
+  private currentBeat: LongBeat | null = null;
+  private isRunning: boolean = false;
+  private isPaused: boolean = false;
+  private playbackRate: number = 1.0; // 0.5, 1.0, 1.5
+  private volume: number = 0.85;
+  private isLooping: boolean = true;
 
-  const handleVolumeChange = (v: number) => {
-    setVolume(v);
-    longBeatEngine.setVolume(v);
-  };
+  // Timeline tracking
+  private playStartTime: number = 0; // Context time when current playback started
+  private startOffsetSeconds: number = 0; // Seconds offset into the song
+  private pauseElapsedSeconds: number = 0;
+  private scheduledStep: number = 0;
+  private scheduleTimer: number | null = null;
+  private lastReportedSeconds: number = -1;
 
-  // --- Helper: MIME Type ---
-  const getSupportedMimeType = (isVideo: boolean) => {
-    const types = isVideo
-      ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']
-      : ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/webm'];
-    for (const t of types) {
-      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) return t;
-    }
-    return isVideo ? 'video/webm' : 'audio/webm';
-  };
+  // Active nodes cleanup tracker
+  private activeVoices: { stop: () => void }[] = [];
 
-  // --- Helper: Cleanup to prevent leak/feedback ---
-  const cleanupStreams = useCallback(() => {
-    if (micStreamRef.current) {
-      micStreamRef.current.getTracks().forEach(t => t.stop());
-      micStreamRef.current = null;
-    }
-    if (finalStreamRef.current) {
-      finalStreamRef.current.getTracks().forEach(t => t.stop());
-      finalStreamRef.current = null;
-    }
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close().catch(() => {});
-      audioContextRef.current = null;
-    }
-    mixedDestRef.current = null;
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    if (videoPreviewRef.current) {
-      videoPreviewRef.current.srcObject = null;
-    }
-  }, []);
+  // Callbacks
+  private onTimeUpdateCbs: Set<(currentTime: number, section: BeatSection) => void> = new Set();
+  private onSectionChangeCbs: Set<(section: BeatSection) => void> = new Set();
+  private onStateChangeCbs: Set<(isPlaying: boolean) => void> = new Set();
+  private onEndCbs: Set<() => void> = new Set();
 
-  // --- CORRECTED RECORDING LOGIC - THIS IS THE ONLY FIX ---
-  const handleStartRecording = async () => {
-    if (dailyCount >= DAILY_LIMIT) {
-      alert(`Daily limit ${DAILY_LIMIT} reached. Come back tomorrow!`);
-      return;
-    }
-    if (isRecording) return;
+  private currentSectionCache: BeatSection | null = null;
 
-    try {
-      // 1. Ensure beat engine running
-      await longBeatEngine.ensureRunning();
-      const beatDestNode = longBeatEngine.getMediaStreamDestination();
-      
-      // If beat not playing, start it so we have something to record
-      if (!isPlaying) {
-        longBeatEngine.playBeat(selectedBeat.id);
-        setIsPlaying(true);
-      }
+  constructor() {
+    // Lazy AudioContext initialization on user gesture
+  }
 
-      // 2. Get microphone (+ camera if video mode)
-      const isVideo = recordingMode === 'video';
-      const micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000,
-        },
-        video: isVideo ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false,
-      });
-      micStreamRef.current = micStream;
+  private initAudio() {
+    if (!this.ctx) {
+      const AudioCtxClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      this.ctx = new AudioCtxClass();
 
-      if (isVideo && videoPreviewRef.current) {
-        videoPreviewRef.current.srcObject = micStream;
-        videoPreviewRef.current.play().catch(()=>{});
-      }
+      // Analyser for UI visualizers
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 128;
+      this.analyser.smoothingTimeConstant = 0.82;
 
-      // 3. Create mixing AudioContext
-      const mixCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioContextRef.current = mixCtx;
-      const mixedDest = mixCtx.createMediaStreamDestination();
-      mixedDestRef.current = mixedDest;
+      // Master Gain
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
 
-      // 4. Connect MICROPHONE to mixer
-      // THIS WAS MISSING BEFORE - YOU ONLY RECORDED MIC
-      const micSource = mixCtx.createMediaStreamSource(micStream);
-      const micGain = mixCtx.createGain();
-      micGain.gain.value = 1.0;
-      micSource.connect(micGain).connect(mixedDest);
+      this.masterGain.connect(this.analyser);
+      this.analyser.connect(this.ctx.destination);
 
-      // 5. Connect BEAT to mixer
-      // THIS IS THE MAIN FIX - BEAT NOW INCLUDED
-      if (beatDestNode && beatDestNode.stream.getAudioTracks().length > 0) {
-        const beatSource = mixCtx.createMediaStreamSource(beatDestNode.stream);
-        const beatGain = mixCtx.createGain();
-        beatGain.gain.value = 0.85; // Beat slightly lower than voice
-        beatSource.connect(beatGain).connect(mixedDest);
-      } else {
-        console.warn('Beat destination empty, will record mic only but engine is running');
-      }
-
-      // 6. Build FINAL stream
-      let finalStream: MediaStream;
-      if (isVideo) {
-        // Video mode: camera video track + mixed audio (beat+mic)
-        const videoTrack = micStream.getVideoTracks()[0];
-        const mixedAudioTrack = mixedDest.stream.getAudioTracks()[0];
-        finalStream = new MediaStream();
-        if (videoTrack) finalStream.addTrack(videoTrack);
-        if (mixedAudioTrack) finalStream.addTrack(mixedAudioTrack);
-      } else {
-        // Audio mode: mixed beat + mic - THIS FIXES const activeStream = stream BUG
-        finalStream = mixedDest.stream;
-      }
-      finalStreamRef.current = finalStream;
-
-      // 7. Supported MIME type - NOT hardcoded
-      const mimeType = getSupportedMimeType(isVideo);
-      console.log('Using mimeType:', mimeType);
-
-      const recorder = new MediaRecorder(finalStream, { mimeType });
-      mediaRecorderRef.current = recorder;
-      chunksRef.current = [];
-
-      recorder.ondataavailable = (e: BlobEvent) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      recorder.onstop = () => {
-        // Use ACTUAL recorder mimeType, not assumed audio/webm
-        const actualType = recorder.mimeType || mimeType;
-        const blob = new Blob(chunksRef.current, { type: actualType });
-        const url = URL.createObjectURL(blob);
-
-        if (recordingTime < MIN_DURATION) {
-          alert(`Recording too short! Minimum ${MIN_DURATION}s required. You recorded ${recordingTime}s`);
-          URL.revokeObjectURL(url);
-          setRecordingTime(0);
-          cleanupStreams();
-          return;
+      // Auto-resume if browser suspends context when mic or camera is accessed
+      this.ctx.onstatechange = () => {
+        if (this.isRunning && !this.isPaused && this.ctx?.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
         }
-
-        const newRecording: SavedRecording = {
-          id: Date.now().toString(),
-          blob,
-          url,
-          mimeType: actualType, // Save actual type
-          duration: recordingTime,
-          mode: recordingMode,
-          beatId: selectedBeat.id,
-          beatName: selectedBeat.name,
-          timestamp: Date.now(),
-          title: songTitle || `${selectedBeat.name} - Take ${recordings.length + 1}`,
-        };
-
-        setRecordings(prev => [newRecording, ...prev]);
-        setPreviewUrl(url);
-        setPreviewRec(newRecording);
-        setDailyCount(c => c + 1);
-        setRecordingTime(0);
-        cleanupStreams();
-
-        // Save to localStorage metadata (preserve existing feature)
-        const meta = { id: newRecording.id, title: newRecording.title, duration: newRecording.duration, beat: newRecording.beatName, mode: newRecording.mode, mimeType: actualType, timestamp: newRecording.timestamp };
-        const existing = JSON.parse(localStorage.getItem('streetlife_recordings_meta') || '[]');
-        localStorage.setItem('streetlife_recordings_meta', JSON.stringify([meta, ...existing].slice(0, 20)));
       };
-
-      recorder.start(100);
-      setIsRecording(true);
-      setRecordingTime(0);
-
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => {
-          if (prev + 1 >= MAX_DURATION) {
-            handleStopRecording();
-            return MAX_DURATION;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-
-    } catch (err: any) {
-      console.error('Recording failed:', err);
-      alert(err?.message || 'Microphone/Camera permission denied');
-      cleanupStreams();
-      setIsRecording(false);
     }
-  };
 
-  const handleStopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
     }
-    setIsRecording(false);
-    if (timerRef.current) clearInterval(timerRef.current);
-  };
+  }
 
-  const handleCancelRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    chunksRef.current = [];
-    setIsRecording(false);
-    setRecordingTime(0);
-    cleanupStreams();
-  };
+  private streamDestination: MediaStreamAudioDestinationNode | null = null;
 
-  // --- Telegram: Does NOT claim upload ---
-  const handlePostToTelegram = (rec: SavedRecording) => {
-    // This function ONLY downloads and opens group - does NOT auto-upload
-    // Do NOT put bot token in frontend
-    const a = document.createElement('a');
-    a.href = rec.url;
-    a.download = `street-life-${rec.title.replace(/\s+/g, '-')}.${rec.mimeType.includes('video') ? 'webm' : 'webm'}`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    
-    window.open('https://t.me/streetlifegame', '_blank');
-    alert('File downloaded. Your browser opened Telegram group. You can now manually upload the recording there. Opening group does NOT mean it was uploaded automatically.');
-  };
-
-  const handleDeleteRecording = (id: string) => {
-    setRecordings(prev => {
-      const rec = prev.find(r => r.id === id);
-      if (rec) URL.revokeObjectURL(rec.url);
-      return prev.filter(r => r.id !== id);
-    });
-    if (previewRec?.id === id) {
-      setPreviewUrl(null);
-      setPreviewRec(null);
-    }
-  };
-
-  useEffect(() => {
-    const savedMeta = localStorage.getItem('streetlife_recordings_meta');
-    if (savedMeta) {
+  public getMediaStreamDestination(): MediaStreamAudioDestinationNode | null {
+    this.initAudio();
+    if (!this.ctx || !this.masterGain) return null;
+    if (!this.streamDestination && typeof this.ctx.createMediaStreamDestination === 'function') {
       try {
-        const parsed = JSON.parse(savedMeta);
-        setDailyCount(parsed.filter((m: any) => new Date(m.timestamp).toDateString() === new Date().toDateString()).length);
+        this.streamDestination = this.ctx.createMediaStreamDestination();
+        this.masterGain.connect(this.streamDestination);
+      } catch (e) {
+        console.warn('Stream destination fallback:', e);
+      }
+    }
+    return this.streamDestination;
+  }
+
+  public async ensureRunning(): Promise<void> {
+    this.initAudio();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      try {
+        await this.ctx.resume();
       } catch {}
     }
-    return () => cleanupStreams();
-  }, [cleanupStreams]);
+  }
 
-  // --- UI - PRESERVED, NO REDESIGN ---
-  return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8">
-      <h1 className="text-3xl font-bold mb-6">STREET LIFE STUDIO - StudioBeats</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Beat Selection */}
-        <div className="bg-zinc-900 rounded-xl p-4">
-          <h2 className="font-bold mb-3">Beats</h2>
-          {BEATS.map(beat => (
-            <div key={beat.id} onClick={() => setSelectedBeat(beat)} className={`p-3 mb-2 rounded cursor-pointer ${selectedBeat.id === beat.id ? 'bg-purple-600' : 'bg-zinc-800'}`}>
-              <div className="font-bold">{beat.name}</div>
-              <div className="text-xs opacity-70">{beat.bpm} BPM - {beat.key}</div>
-            </div>
-          ))}
-          <div className="mt-4">
-            <label>Volume: {Math.round(volume*100)}%</label>
-            <input type="range" min={0} max={1} step={0.01} value={volume} onChange={e => handleVolumeChange(parseFloat(e.target.value))} className="w-full" />
-          </div>
-          <button onClick={handlePlayBeat} className="w-full mt-3 bg-white text-black py-2 rounded font-bold">{isPlaying ? 'Stop Beat' : 'Play Beat'}</button>
-        </div>
+  // =========================================================================
+  // INSTRUMENT SYNTHESIS METHODS (CLEAN - ZERO FX)
+  // =========================================================================
 
-        {/* Center: Recording */}
-        <div className="bg-zinc-900 rounded-xl p-4">
-          <h2 className="font-bold mb-3">Record - {recordingMode.toUpperCase()} MODE</h2>
-          <div className="flex gap-2 mb-3">
-            <button onClick={() => setRecordingMode('audio')} className={`flex-1 py-2 rounded ${recordingMode==='audio'?'bg-green-600':'bg-zinc-800'}`}>Audio</button>
-            <button onClick={() => setRecordingMode('video')} className={`flex-1 py-2 rounded ${recordingMode==='video'?'bg-green-600':'bg-zinc-800'}`}>Video</button>
-          </div>
+  /**
+   * Clean Kick Drum
+   */
+  private playKick(time: number, isDouble: boolean = false, isLog: boolean = false) {
+    if (!this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
 
-          <div className="bg-black rounded p-3 mb-3 text-center">
-            <div className="text-4xl font-mono">{Math.floor(recordingTime/60)}:{String(recordingTime%60).padStart(2,'0')}</div>
-            <div className="text-xs opacity-60">Min {MIN_DURATION}s / Max {MAX_DURATION}s - Daily {dailyCount}/{DAILY_LIMIT}</div>
-            {isRecording && <div className="text-red-500 animate-pulse mt-1">● REC - Beat + Mic Mixing</div>}
-          </div>
+    osc.type = isLog ? 'triangle' : 'sine';
+    const startFreq = isLog ? 180 : 160;
+    const endFreq = isLog ? 60 : 42;
+    const decay = isDouble ? 0.12 : isLog ? 0.22 : 0.24;
 
-          <video ref={videoPreviewRef} autoPlay muted playsInline className={`w-full rounded mb-3 bg-black ${recordingMode==='video'?'block':'hidden'}`} style={{height: '200px'}} />
+    osc.frequency.setValueAtTime(startFreq, time);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, time + decay);
 
-          <input value={songTitle} onChange={e=>setSongTitle(e.target.value)} placeholder="Song Title" className="w-full bg-zinc-800 p-2 rounded mb-2" />
-          <textarea value={lyrics} onChange={e=>setLyrics(e.target.value)} placeholder="Lyrics..." className="w-full bg-zinc-800 p-2 rounded mb-3 h-20" />
+    gain.gain.setValueAtTime(isDouble ? 0.75 : 0.9, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
 
-          {!isRecording ? (
-            <button onClick={handleStartRecording} disabled={dailyCount>=DAILY_LIMIT} className="w-full bg-red-600 py-3 rounded font-bold disabled:opacity-30">● START RECORDING (Beat + Mic)</button>
-          ) : (
-            <div className="flex gap-2">
-              <button onClick={handleStopRecording} className="flex-1 bg-white text-black py-3 rounded font-bold">STOP</button>
-              <button onClick={handleCancelRecording} className="flex-1 bg-zinc-700 py-3 rounded">CANCEL</button>
-            </div>
-          )}
+    osc.connect(gain);
+    gain.connect(this.masterGain);
 
-          {previewUrl && previewRec && (
-            <div className="mt-4 p-3 bg-zinc-800 rounded">
-              <h3 className="font-bold text-sm mb-2">Preview: {previewRec.title}</h3>
-              {previewRec.mode==='video' ? <video src={previewUrl} controls className="w-full rounded" /> : <audio src={previewUrl} controls className="w-full" />}
-              <div className="text-xs mt-1 opacity-70">Type: {previewRec.mimeType} - Contains Beat + Voice</div>
-            </div>
-          )}
-        </div>
+    osc.start(time);
+    osc.stop(time + decay + 0.02);
+  }
 
-        {/* Right: Saved Recordings */}
-        <div className="bg-zinc-900 rounded-xl p-4">
-          <h2 className="font-bold mb-3">Saved ({recordings.length})</h2>
-          <div className="space-y-2 max-h-[600px] overflow-auto">
-            {recordings.map(rec => (
-              <div key={rec.id} className="bg-black p-3 rounded">
-                <div className="font-bold text-sm">{rec.title}</div>
-                <div className="text-xs opacity-60">{rec.beatName} • {rec.duration}s • {rec.mode} • {rec.mimeType}</div>
-                <div className="flex gap-1 mt-2">
-                  <button onClick={()=>{setPreviewUrl(rec.url); setPreviewRec(rec);}} className="text-xs bg-zinc-800 px-2 py-1 rounded">Play</button>
-                  <button onClick={()=>handlePostToTelegram(rec)} className="text-xs bg-blue-600 px-2 py-1 rounded">Telegram</button>
-                  <a href={rec.url} download={`${rec.title}.webm`} className="text-xs bg-zinc-800 px-2 py-1 rounded">DL</a>
-                  <button onClick={()=>handleDeleteRecording(rec.id)} className="text-xs bg-red-900 px-2 py-1 rounded">X</button>
-                </div>
-              </div>
-            ))}
-            {recordings.length===0 && <div className="opacity-50 text-sm">No recordings yet. Your first recording will contain beat + mic mixed.</div>}
-          </div>
-        </div>
-      </div>
-      
-      <div className="mt-6 text-xs opacity-50">
-        <p>Fix Applied: Recording now mixes longBeatEngine.getMediaStreamDestination() + microphone via AudioContext.createMediaStreamDestination(). Video mode combines video track + mixed audio track. MIME type detected via isTypeSupported(). No bot token in frontend.</p>
-      </div>
-    </div>
-  );
+  /**
+   * Deep 808 Sub-Bass with Slide capability
+   */
+  private play808(time: number, freq: number, duration: number, slideFreq?: number) {
+    if (!this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, time);
+
+    if (slideFreq && slideFreq !== freq) {
+      // Smooth pitch slide for drill & trap 808
+      osc.frequency.exponentialRampToValueAtTime(slideFreq, time + duration * 0.4);
+    }
+
+    // Warm sub envelope
+    gain.gain.setValueAtTime(0.7, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(time);
+    osc.stop(time + duration + 0.05);
+  }
+
+  /**
+   * Clean Snare / Rimshot / Clap
+   */
+  private playSnare(time: number, isRim: boolean = false, isRoll: boolean = false) {
+    if (!this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+
+    // Noise component
+    const bufferSize = Math.floor(ctx.sampleRate * 0.15);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = isRim ? 'highpass' : 'bandpass';
+    filter.frequency.setValueAtTime(isRim ? 2200 : 1200, time);
+    filter.Q.setValueAtTime(2.0, time);
+
+    const gain = ctx.createGain();
+    const vol = isRoll ? 0.3 : isRim ? 0.45 : 0.65;
+    const decay = isRim ? 0.08 : isRoll ? 0.07 : 0.16;
+
+    gain.gain.setValueAtTime(vol, time);
+    gain.gain.exponentialRampToValueAtTime(0.005, time + decay);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    noise.start(time);
+    noise.stop(time + decay + 0.02);
+
+    // Body tonal fundamental
+    if (!isRim) {
+      const bodyOsc = ctx.createOscillator();
+      const bodyGain = ctx.createGain();
+      bodyOsc.type = 'triangle';
+      bodyOsc.frequency.setValueAtTime(180, time);
+      bodyOsc.frequency.exponentialRampToValueAtTime(90, time + 0.08);
+
+      bodyGain.gain.setValueAtTime(0.35, time);
+      bodyGain.gain.exponentialRampToValueAtTime(0.005, time + 0.09);
+
+      bodyOsc.connect(bodyGain);
+      bodyGain.connect(this.masterGain);
+
+      bodyOsc.start(time);
+      bodyOsc.stop(time + 0.1);
+    }
+  }
+
+  /**
+   * Clean Hi-Hat (Closed / Open / Roll)
+   */
+  private playHiHat(time: number, isOpen: boolean = false, isRoll: boolean = false) {
+    if (!this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+
+    const bufferSize = Math.floor(ctx.sampleRate * (isOpen ? 0.28 : 0.05));
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(isOpen ? 5500 : 7500, time);
+
+    const gain = ctx.createGain();
+    const decay = isOpen ? 0.25 : isRoll ? 0.03 : 0.045;
+    const vol = isOpen ? 0.35 : isRoll ? 0.22 : 0.28;
+
+    gain.gain.setValueAtTime(vol, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    noise.start(time);
+    noise.stop(time + decay + 0.01);
+  }
+
+  /**
+   * Shaker / Percussion
+   */
+  private playShaker(time: number) {
+    if (!this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+
+    const bufferSize = Math.floor(ctx.sampleRate * 0.04);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(8000, time);
+    filter.Q.setValueAtTime(3.5, time);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.18, time);
+    gain.gain.exponentialRampToValueAtTime(0.005, time + 0.035);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    noise.start(time);
+    noise.stop(time + 0.04);
+  }
+
+  /**
+   * Grand Piano / Rhodes Keys Chords
+   */
+  private playPianoChord(time: number, chordName: string, duration: number, isRhodes: boolean = false) {
+    if (!this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+    const freqs = CHORD_NOTES[chordName] || [220, 261, 329];
+
+    freqs.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = isRhodes ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, time);
+
+      // Acoustic piano attack and soft decay
+      const attack = isRhodes ? 0.015 : 0.008;
+      const vel = (0.28 / freqs.length) * (idx === 0 ? 1.2 : 0.9);
+
+      gain.gain.setValueAtTime(0.001, time);
+      gain.gain.linearRampToValueAtTime(vel, time + attack);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+
+      osc.start(time);
+      osc.stop(time + duration + 0.05);
+    });
+  }
+
+  /**
+   * Warm Ambient Pad / Cathedral Choir Swell
+   */
+  private playPadSwell(time: number, chordName: string, duration: number, isChoir: boolean = false) {
+    if (!this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+    const freqs = CHORD_NOTES[chordName] || [220, 261, 329];
+
+    freqs.forEach((freq) => {
+      // Twin detuned oscillators for lush warmth
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+
+      osc1.type = isChoir ? 'triangle' : 'sawtooth';
+      osc2.type = 'sine';
+
+      osc1.frequency.setValueAtTime(freq, time);
+      osc2.frequency.setValueAtTime(freq * 1.004, time); // detune chorus
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(isChoir ? 950 : 750, time);
+      filter.frequency.linearRampToValueAtTime(isChoir ? 1500 : 1100, time + duration * 0.5);
+
+      // Gentle swell envelope
+      const attackTime = duration * 0.3;
+      gain.gain.setValueAtTime(0.001, time);
+      gain.gain.linearRampToValueAtTime(0.12, time + attackTime);
+      gain.gain.linearRampToValueAtTime(0.001, time + duration);
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain!);
+
+      osc1.start(time);
+      osc2.start(time);
+      osc1.stop(time + duration + 0.1);
+      osc2.stop(time + duration + 0.1);
+    });
+  }
+
+  /**
+   * Orchestral Strings Layer
+   */
+  private playStrings(time: number, chordName: string, duration: number) {
+    if (!this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+    const freqs = CHORD_NOTES[chordName] || [220, 261, 329];
+
+    freqs.forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq * 2, time); // Higher octave for violins
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2200, time);
+
+      gain.gain.setValueAtTime(0.001, time);
+      gain.gain.linearRampToValueAtTime(0.1, time + 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain!);
+
+      osc.start(time);
+      osc.stop(time + duration + 0.05);
+    });
+  }
+
+  /**
+   * Melodic Saxophone / Royal Brass Lead
+   */
+  private playBrassLead(time: number, freq: number, duration: number) {
+    if (!this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+
+    const osc = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, time);
+
+    // Brassy filter bite
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, time);
+    filter.frequency.linearRampToValueAtTime(2800, time + 0.08);
+    filter.frequency.exponentialRampToValueAtTime(1400, time + duration);
+
+    gain.gain.setValueAtTime(0.001, time);
+    gain.gain.linearRampToValueAtTime(0.24, time + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(time);
+    osc.stop(time + duration + 0.05);
+  }
+
+  /**
+   * Synthesized Formant Vocal Chop Melody ('Aah'/'Ooh')
+   */
+  private playVocalChop(time: number, freq: number, duration: number) {
+    if (!this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+
+    const osc = ctx.createOscillator();
+    const formantFilter1 = ctx.createBiquadFilter();
+    const formantFilter2 = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, time);
+
+    // Formant peaks for vocal vowel sensation (around 800Hz and 1300Hz)
+    formantFilter1.type = 'bandpass';
+    formantFilter1.frequency.setValueAtTime(800, time);
+    formantFilter1.Q.setValueAtTime(5.0, time);
+
+    formantFilter2.type = 'bandpass';
+    formantFilter2.frequency.setValueAtTime(1300, time);
+    formantFilter2.Q.setValueAtTime(4.0, time);
+
+    gain.gain.setValueAtTime(0.001, time);
+    gain.gain.linearRampToValueAtTime(0.25, time + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+    osc.connect(formantFilter1);
+    osc.connect(formantFilter2);
+    formantFilter1.connect(gain);
+    formantFilter2.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(time);
+    osc.stop(time + duration + 0.05);
+  }
+
+  // =========================================================================
+  // TIMELINE SCHEDULING & ARRANGER
+  // =========================================================================
+
+  /**
+   * Schedules one 16th-note subdivision step based on current song position and section
+   */
+  private scheduleStepAt(timeInSong: number, audioTime: number) {
+    if (!this.currentBeat) return;
+    const beat = this.currentBeat;
+    const section = getSectionAtTime(beat, timeInSong);
+
+    // Dynamic BPM handling for multiphase beats (like Beat 10: 105 -> 160 -> 145 -> 88)
+    let effectiveBpm = beat.bpm;
+    if (beat.id === 'long_beat_10') {
+      if (timeInSong < 60) effectiveBpm = 105;
+      else if (timeInSong < 120) effectiveBpm = 160;
+      else if (timeInSong < 180) effectiveBpm = 145;
+      else effectiveBpm = 88;
+    }
+
+    const beatDuration = (60 / effectiveBpm) * (1 / this.playbackRate);
+    const stepDuration = beatDuration / 4; // 16th note step
+    const measureDuration = beatDuration * 4;
+
+    const measureIndex = Math.floor(timeInSong / measureDuration);
+    const stepInMeasure = Math.floor((timeInSong % measureDuration) / stepDuration);
+
+    // Current chord progression cycle
+    const chordIndex = measureIndex % beat.chords.length;
+    const currentChord = beat.chords[chordIndex] || 'Am';
+    const isDownbeat = stepInMeasure === 0;
+
+    // SECTION INSTRUMENT ARRANGEMENT LOGIC
+    const isIntro = section.type === 'intro';
+    const isVerse = section.type === 'verse';
+    const isHook = section.type === 'hook';
+    const isBridge = section.type === 'bridge';
+    const isOutro = section.type === 'outro';
+
+    // 1. HARMONY (Pianokeys, Pad, Strings)
+    if (isDownbeat) {
+      if (isIntro || isVerse || isHook || isOutro || isBridge) {
+        const isRhodes = beat.genre.includes('Lo-fi') || beat.genre.includes('Amapiano');
+        this.playPianoChord(audioTime, currentChord, measureDuration * 0.95, isRhodes);
+      }
+
+      if (isIntro || isHook || isBridge) {
+        const isChoir = beat.genre.includes('Gospel') || beat.mood.includes('Victory');
+        this.playPadSwell(audioTime, currentChord, measureDuration * 0.98, isChoir);
+      }
+
+      if (isHook || beat.genre.includes('Orchestra') || beat.genre.includes('War')) {
+        this.playStrings(audioTime, currentChord, measureDuration * 0.95);
+      }
+    }
+
+    // 2. DRUMS & PERCUSSION (Different patterns per section!)
+    if (!isIntro || (isIntro && timeInSong >= 15)) {
+      if (!isOutro || timeInSong < beat.duration - 20) {
+        // Kick Pattern
+        if (beat.genre.includes('Drill') || beat.genre.includes('Fast')) {
+          // Drill kick on 0 and 10 (or 0 and 11)
+          if (stepInMeasure === 0 || stepInMeasure === 10) {
+            this.playKick(audioTime, false);
+          }
+          if (isHook && (stepInMeasure === 6 || stepInMeasure === 14)) {
+            // Double kick in hook
+            this.playKick(audioTime, true);
+          }
+        } else if (beat.genre.includes('Amapiano')) {
+          // Four on the floor kick
+          if (stepInMeasure % 4 === 0) {
+            this.playKick(audioTime, false);
+          }
+          // Log drum bounces on syncopated 16ths
+          if (stepInMeasure === 3 || stepInMeasure === 6 || stepInMeasure === 11) {
+            this.playKick(audioTime, false, true);
+          }
+        } else {
+          // Standard Afro / HipHop Kick
+          if (stepInMeasure === 0 || stepInMeasure === 6 || stepInMeasure === 10) {
+            this.playKick(audioTime, false);
+          }
+          if (isHook && stepInMeasure === 14) {
+            this.playKick(audioTime, true);
+          }
+        }
+
+        // Snare / Rim Pattern
+        if (beat.genre.includes('Drill')) {
+          // Drill snare on 8
+          if (stepInMeasure === 8) {
+            this.playSnare(audioTime, false);
+          }
+          if (isHook && (stepInMeasure === 15)) {
+            this.playSnare(audioTime, false, true); // roll
+          }
+        } else {
+          // Regular snare on 4 and 12
+          if (stepInMeasure === 4 || stepInMeasure === 12) {
+            this.playSnare(audioTime, isVerse);
+          }
+        }
+
+        // Hi-Hat Pattern
+        if (beat.genre.includes('Drill')) {
+          // Drill triplet & rolling hats
+          if (stepInMeasure % 2 === 0 || stepInMeasure === 7 || stepInMeasure === 11 || stepInMeasure === 15) {
+            const isRoll = stepInMeasure === 7 || stepInMeasure === 15;
+            this.playHiHat(audioTime, false, isRoll);
+          }
+          if (isHook && stepInMeasure === 2) {
+            this.playHiHat(audioTime, true); // Open hat
+          }
+        } else if (beat.genre.includes('Amapiano')) {
+          // Shaker continuous pulse
+          this.playShaker(audioTime);
+          if (stepInMeasure % 2 === 0) {
+            this.playHiHat(audioTime, false);
+          }
+        } else {
+          // Standard groove
+          if (stepInMeasure % 2 === 0) {
+            this.playHiHat(audioTime, false);
+          }
+          if (isHook && stepInMeasure === 2) {
+            this.playHiHat(audioTime, true);
+          }
+        }
+      }
+    }
+
+    // 3. 808 SUB-BASS (Enters in Verse & explodes in Hook)
+    if (isVerse || isHook || isBridge) {
+      if (stepInMeasure === 0 || (isHook && stepInMeasure === 8)) {
+        const rootFreq = NOTE_FREQS['A1'] || 55;
+        const slideTarget = isHook ? (NOTE_FREQS['D2'] || 73) : undefined;
+        this.play808(audioTime, rootFreq, beatDuration * 1.8, slideTarget);
+      }
+    }
+
+    // 4. MELODIC LEAD / SAX / VOCAL CHOP (Prominent in Hook)
+    if (isHook) {
+      const scaleNotes = SCALE_LEAD_NOTES[beat.keyScale] || [440, 523, 587, 659];
+      const leadNote = scaleNotes[stepInMeasure % scaleNotes.length];
+
+      if (stepInMeasure === 0 || stepInMeasure === 4 || stepInMeasure === 8 || stepInMeasure === 10) {
+        if (beat.genre.includes('Sax') || beat.tags.includes('Electric Sax') || beat.genre.includes('Afro Fusion')) {
+          this.playBrassLead(audioTime, leadNote, stepDuration * 2);
+        } else if (beat.genre.includes('Gospel') || beat.tags.includes('Vocal Chops')) {
+          this.playVocalChop(audioTime, leadNote, stepDuration * 2.5);
+        } else {
+          this.playBrassLead(audioTime, leadNote, stepDuration * 2);
+        }
+      }
+    }
+  }
+
+  // =========================================================================
+  // MAIN PLAYBACK CONTROLLER
+  // =========================================================================
+
+  public async play(beatId: string, startFromSeconds: number = 0) {
+    this.initAudio();
+    if (!this.ctx) return;
+
+    const beat = getBeatById(beatId) || LONG_BEATS_CATALOG[0];
+    this.currentBeat = beat;
+
+    // Stop any existing loop
+    this.stopPlaybackTimer();
+
+    this.isRunning = true;
+    this.isPaused = false;
+    this.startOffsetSeconds = Math.max(0, Math.min(startFromSeconds, beat.duration - 0.5));
+    this.playStartTime = this.ctx.currentTime;
+    this.lastReportedSeconds = -1;
+
+    // Notify state
+    this.notifyStateChange(true);
+
+    // Setup timeline tick loop (runs every 35ms, scheduling notes ahead of time)
+    const LOOKAHEAD_SEC = 0.12;
+    let nextScheduleTime = this.ctx.currentTime;
+    let internalSongSeconds = this.startOffsetSeconds;
+
+    const tick = () => {
+      if (!this.isRunning || !this.ctx || this.isPaused) return;
+
+      const now = this.ctx.currentTime;
+      const currentElapsed = (now - this.playStartTime) * this.playbackRate + this.startOffsetSeconds;
+
+      // Check for song end or loop
+      if (currentElapsed >= beat.duration) {
+        if (this.isLooping) {
+          // Loop song back to 0
+          this.startOffsetSeconds = 0;
+          this.playStartTime = this.ctx.currentTime;
+          internalSongSeconds = 0;
+        } else {
+          this.stop();
+          this.onEndCbs.forEach((cb) => cb());
+          return;
+        }
+      }
+
+      // Schedule notes that fall into lookahead window
+      while (nextScheduleTime < now + LOOKAHEAD_SEC) {
+        this.scheduleStepAt(internalSongSeconds, nextScheduleTime);
+
+        // Advance 16th note step based on current BPM
+        let bpm = beat.bpm;
+        if (beat.id === 'long_beat_10') {
+          if (internalSongSeconds < 60) bpm = 105;
+          else if (internalSongSeconds < 120) bpm = 160;
+          else if (internalSongSeconds < 180) bpm = 145;
+          else bpm = 88;
+        }
+
+        const stepSec = (60 / bpm / 4) * (1 / this.playbackRate);
+        nextScheduleTime += stepSec;
+        internalSongSeconds += stepSec * this.playbackRate;
+      }
+
+      // Report UI time updates
+      const roundedSeconds = Math.floor(currentElapsed);
+      if (roundedSeconds !== this.lastReportedSeconds) {
+        this.lastReportedSeconds = roundedSeconds;
+        const currentSec = getSectionAtTime(beat, currentElapsed);
+
+        if (!this.currentSectionCache || this.currentSectionCache.name !== currentSec.name) {
+          this.currentSectionCache = currentSec;
+          this.onSectionChangeCbs.forEach((cb) => cb(currentSec));
+        }
+
+        this.onTimeUpdateCbs.forEach((cb) => cb(currentElapsed, currentSec));
+      }
+
+      this.scheduleTimer = window.setTimeout(tick, 35);
+    };
+
+    tick();
+  }
+
+  public pause() {
+    if (!this.isRunning || this.isPaused || !this.ctx) return;
+    this.isPaused = true;
+    this.pauseElapsedSeconds = (this.ctx.currentTime - this.playStartTime) * this.playbackRate + this.startOffsetSeconds;
+    this.stopPlaybackTimer();
+    this.notifyStateChange(false);
+  }
+
+  public resume() {
+    if (!this.isRunning || !this.isPaused || !this.currentBeat) return;
+    this.play(this.currentBeat.id, this.pauseElapsedSeconds);
+  }
+
+  public stop() {
+    this.stopPlaybackTimer();
+    this.isRunning = false;
+    this.isPaused = false;
+    this.startOffsetSeconds = 0;
+    this.currentSectionCache = null;
+    this.notifyStateChange(false);
+  }
+
+  public seek(seconds: number) {
+    if (!this.currentBeat) return;
+    const clamped = Math.max(0, Math.min(seconds, this.currentBeat.duration - 0.5));
+    if (this.isRunning && !this.isPaused) {
+      this.play(this.currentBeat.id, clamped);
+    } else {
+      this.startOffsetSeconds = clamped;
+      this.pauseElapsedSeconds = clamped;
+      const sec = getSectionAtTime(this.currentBeat, clamped);
+      this.onTimeUpdateCbs.forEach((cb) => cb(clamped, sec));
+    }
+  }
+
+  public setPlaybackRate(rate: number) {
+    this.playbackRate = Math.max(0.5, Math.min(rate, 2.0));
+  }
+
+  public setVolume(vol: number) {
+    this.volume = Math.max(0, Math.min(vol, 1.0));
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+    }
+  }
+
+  public toggleLoop(forced?: boolean): boolean {
+    this.isLooping = forced !== undefined ? forced : !this.isLooping;
+    return this.isLooping;
+  }
+
+  public getCurrentTime(): number {
+    if (!this.isRunning || !this.ctx) return this.startOffsetSeconds;
+    if (this.isPaused) return this.pauseElapsedSeconds;
+    return (this.ctx.currentTime - this.playStartTime) * this.playbackRate + this.startOffsetSeconds;
+  }
+
+  public getDuration(): number {
+    return this.currentBeat ? this.currentBeat.duration : 180;
+  }
+
+  public isPlaying(): boolean {
+    return this.isRunning && !this.isPaused;
+  }
+
+  public getCurrentBeat(): LongBeat | null {
+    return this.currentBeat;
+  }
+
+  public getCurrentSection(): BeatSection | null {
+    return this.currentSectionCache;
+  }
+
+  public getPlaybackRate(): number {
+    return this.playbackRate;
+  }
+
+  public getVolume(): number {
+    return this.volume;
+  }
+
+  public getIsLooping(): boolean {
+    return this.isLooping;
+  }
+
+  // Visualizer Analyser Frequency / Waveform byte arrays
+  public getFrequencyData(): Uint8Array {
+    if (!this.analyser) return new Uint8Array(64);
+    const data = new Uint8Array(this.analyser.frequencyBinCount);
+    this.analyser.getByteFrequencyData(data);
+    return data;
+  }
+
+  public getWaveformData(): Uint8Array {
+    if (!this.analyser) return new Uint8Array(64);
+    const data = new Uint8Array(this.analyser.frequencyBinCount);
+    this.analyser.getByteTimeDomainData(data);
+    return data;
+  }
+
+  // Event Subscriptions
+  public onTimeUpdate(cb: (currentTime: number, section: BeatSection) => void): () => void {
+    this.onTimeUpdateCbs.add(cb);
+    return () => this.onTimeUpdateCbs.delete(cb);
+  }
+
+  public onSectionChange(cb: (section: BeatSection) => void): () => void {
+    this.onSectionChangeCbs.add(cb);
+    return () => this.onSectionChangeCbs.delete(cb);
+  }
+
+  public onStateChange(cb: (isPlaying: boolean) => void): () => void {
+    this.onStateChangeCbs.add(cb);
+    return () => this.onStateChangeCbs.delete(cb);
+  }
+
+  public onEnd(cb: () => void): () => void {
+    this.onEndCbs.add(cb);
+    return () => this.onEndCbs.delete(cb);
+  }
+
+  private notifyStateChange(isPlaying: boolean) {
+    this.onStateChangeCbs.forEach((cb) => cb(isPlaying));
+  }
+
+  private stopPlaybackTimer() {
+    if (this.scheduleTimer !== null) {
+      clearTimeout(this.scheduleTimer);
+      this.scheduleTimer = null;
+    }
+  }
+
+  public destroy() {
+    this.stop();
+    this.onTimeUpdateCbs.clear();
+    this.onSectionChangeCbs.clear();
+    this.onStateChangeCbs.clear();
+    this.onEndCbs.clear();
+    if (this.ctx) {
+      this.ctx.close().catch(() => {});
+      this.ctx = null;
+    }
+  }
 }
+
+// Global Singleton Instance for seamless studio playback
+export const longBeatEngine = new LongBeatAudioEngine();
