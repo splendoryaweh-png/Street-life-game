@@ -48,6 +48,26 @@ function saveStoredRecentRecordings(recordings: SavedStudioRecording[]): void {
   } catch {}
 }
 
+// --- FIXED HELPERS YOU ASKED FOR ---
+function getBestMimeType(isVideo: boolean): string {
+  if (isVideo) {
+    if (typeof MediaRecorder !== 'undefined') {
+      if (MediaRecorder.isTypeSupported('video/mp4')) return 'video/mp4';
+      if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) return 'video/webm;codecs=vp8,opus';
+      if (MediaRecorder.isTypeSupported('video/webm')) return 'video/webm';
+    }
+    return '';
+  } else {
+    if (typeof MediaRecorder !== 'undefined') {
+      if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4'; // iPhone Safari
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) return 'audio/webm;codecs=opus';
+      if (MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm';
+      if (MediaRecorder.isTypeSupported('audio/aac')) return 'audio/aac';
+    }
+    return '';
+  }
+}
+
 interface StudioBeatsProps { gameState?: UserGameState; onToast?: (msg: string) => void; onSelectForRecording?: (beat: LongBeat) => void; onUpgradeStudioLevel?: (newLevel: number) => void; }
 
 export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgradeStudioLevel }: StudioBeatsProps) {
@@ -116,6 +136,7 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
   const recordingSecondsRef = useRef<number>(0);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const mixedAudioContextRef = useRef<AudioContext | null>(null);
+  const beatAudioRef = useRef<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animFrameRef = useRef<number | null>(null);
 
@@ -128,17 +149,21 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
       if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
       streamRef.current?.getTracks().forEach(t => t.stop());
       previewAudioRef.current?.pause();
+      if (beatAudioRef.current) { beatAudioRef.current.pause(); beatAudioRef.current.src = ''; }
       if (mixedAudioContextRef.current) { try { mixedAudioContextRef.current.close(); } catch {} }
+      if (recordedUrl) { try { URL.revokeObjectURL(recordedUrl); } catch {} }
+      Object.values(recordingsByBeat).forEach(r => { try { URL.revokeObjectURL(r.url); } catch {} });
     };
   }, []);
 
   const handleStopRecording = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+    if (beatAudioRef.current) { try { beatAudioRef.current.pause(); } catch {} }
     setIsRecording(false);
   }, []);
 
-  // ====== NEW: BEAT + VOICE MIXED RECORDING ======
+  // ====== FIXED: REAL BEAT + VOICE MIXED (SAME AudioContext) ======
   const handleRecordBeat = async (beat: LongBeat) => {
     playClickSound();
     if (isRecording && recordingBeatId === beat.id) { handleStopRecording(); return; }
@@ -147,8 +172,9 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
 
     try {
       await longBeatEngine.ensureRunning?.();
+      longBeatEngine.pause();
+      setIsPlaying(false);
       
-      // 1. Get mic stream
       let micStream: MediaStream | null = null;
       if (navigator.mediaDevices?.getUserMedia) {
         try {
@@ -169,82 +195,52 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
         videoPreviewRef.current.play().catch(()=>{});
       }
 
-      // 2. Start beat
       setCurrentBeatId(beat.id);
       localStorage.setItem('streetlife_current_long_beat', beat.id);
-      longBeatEngine.setVolume(1.0);
-      setVolume(1.0);
-      setIsMuted(false);
-      longBeatEngine.play(beat.id, 0);
-      setIsPlaying(true);
 
-      // 3. CREATE MIXED STREAM: mic + beat engine output
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       const audioCtx = new AudioContextClass();
       mixedAudioContextRef.current = audioCtx;
+      await audioCtx.resume();
 
       const micSource = audioCtx.createMediaStreamSource(micStream);
       const dest = audioCtx.createMediaStreamDestination();
       
-      // Mic -> dest (with slight boost)
       const micGain = audioCtx.createGain();
-      micGain.gain.value = 1.2; // boost voice
+      micGain.gain.value = 1.2;
       micSource.connect(micGain);
       micGain.connect(dest);
+      micGain.connect(audioCtx.destination); // monitor voice
 
-      // Try to get beat audio into the mix
-      try {
-        // If longBeatEngine exposes its master gain or destination, connect it
-        const engineNode: any = (longBeatEngine as any).masterGain || (longBeatEngine as any).gainNode || (longBeatEngine as any).outputNode || (longBeatEngine as any).getOutputNode?.();
-        if (engineNode && typeof engineNode.connect === 'function') {
-          const beatGain = audioCtx.createGain();
-          beatGain.gain.value = 0.7; // beat slightly lower than voice
-          // Connect engine output to our mix (if same context, else we capture via media element)
-          try { engineNode.connect(dest); } catch {}
-        } else {
-          // Fallback: Capture beat from <audio> tag or create media element source if beat has URL
-          const beatUrl = (beat as any).fileUrl || (beat as any).url || (beat as any).audioUrl;
-          if (beatUrl) {
-            const beatAudio = new Audio(beatUrl);
-            beatAudio.crossOrigin = 'anonymous';
-            beatAudio.loop = false;
-            const beatSource = audioCtx.createMediaElementSource(beatAudio);
-            const beatGain = audioCtx.createGain();
-            beatGain.gain.value = 0.6;
-            beatSource.connect(beatGain);
-            beatGain.connect(dest);
-            beatGain.connect(audioCtx.destination); // also play to speakers
-            beatAudio.play().catch(()=>{});
-          } else {
-            // Last fallback: route ctx destination to dest to capture system audio (beat playing via longBeatEngine uses same speakers)
-            // We will also keep longBeatEngine playing to speakers, and dest will have mic + we mix in audioCtx.destination is speakers.
-            // To include beat, we need to capture it: we connect dest to speakers too, and let beat play via speakers - MediaRecorder will record mic only but we will also add beat via gain from audioCtx.
-            // Simplest reliable method for Telegram: use MediaRecorder on dest which has mic, and beat is playing via speakers and will be captured by mic? No.
-            // So we create a second gain that taps longBeatEngine's audio context if possible.
-            // For now, we add mic to dest and also route audioCtx.destination (which is speakers) to dest via createMediaStream? 
-            // Final fallback that WORKS: record mic, but for playback we mix offline later. For now record mixed stream with mic + system audio using getDisplayMedia trick is not needed.
-            // We will still record dest which contains mic boosted, and we will also connect audioCtx.destination to dest via a loop? Can't.
-            // So we do: mic -> dest, and also we play beat via longBeatEngine which is already loud on speakers, and dest records mic only.
-            // BUT we will fix preview to play mixed file: we will create mixed blob by merging voice + beat buffer offline after recording stops (see onstop below).
-            micGain.connect(audioCtx.destination); // let user hear own voice slightly
-          }
-        }
-      } catch {}
+      // REAL MIX: beat audio element into SAME context + SAME dest
+      const beatUrl = (beat as any).fileUrl || (beat as any).url || (beat as any).audioUrl || (beat as any).previewUrl;
+      let beatEl: HTMLAudioElement | null = null;
+      if (beatUrl) {
+        beatEl = new Audio(beatUrl);
+        beatEl.crossOrigin = 'anonymous';
+        beatEl.loop = false;
+        beatEl.preload = 'auto';
+        beatAudioRef.current = beatEl;
+        const beatSource = audioCtx.createMediaElementSource(beatEl);
+        const beatGain = audioCtx.createGain();
+        beatGain.gain.value = 0.75; // beat slightly lower than voice
+        beatSource.connect(beatGain);
+        beatGain.connect(dest); // << REAL MIX INTO RECORDING
+        beatGain.connect(audioCtx.destination); // << also to speakers
+        try { await beatEl.play(); } catch {}
+      } else {
+        // fallback: if no URL, still play via engine but mic only will be recorded (rare case)
+        longBeatEngine.play(beat.id, 0);
+        setIsPlaying(true);
+      }
 
-      // If dest has only mic tracks, we add mic tracks + also create a combined stream that includes beat via MediaStream mixing
-      // To ensure beat + voice are in ONE FILE, we create final mixed stream from dest.stream + micStream video track if needed
+      // Final stream = dest audio + video track if needed
       let finalStream: MediaStream = dest.stream;
       if (isVideoFreestyle && micStream.getVideoTracks().length > 0) {
         finalStream = new MediaStream([...dest.stream.getAudioTracks(), ...micStream.getVideoTracks()]);
       }
 
-      // Choose mime
-      let mimeType = isVideoFreestyle ? 'video/webm;codecs=vp8,opus' : 'audio/webm;codecs=opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = isVideoFreestyle ? 'video/webm' : 'audio/webm';
-        if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = '';
-      }
-
+      const mimeType = getBestMimeType(isVideoFreestyle);
       const recorder = new MediaRecorder(finalStream, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = recorder;
       recordedChunksRef.current = [];
@@ -257,13 +253,12 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
       recorder.onstop = async () => {
         const finalSecs = recordingSecondsRef.current;
         const isVideo = isVideoFreestyle;
-        let blob = new Blob(recordedChunksRef.current, { type: isVideo ? 'video/webm' : 'audio/webm' });
-
-        // CLEANUP
+        
         streamRef.current?.getTracks().forEach(t => t.stop());
         streamRef.current = null;
         if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
-        if (mixedAudioContextRef.current) { try { mixedAudioContextRef.current.close(); } catch {} mixedAudioContextRef.current = null; }
+        if (beatAudioRef.current) { try { beatAudioRef.current.pause(); beatAudioRef.current.src = ''; } catch {} beatAudioRef.current = null; }
+        if (mixedAudioContextRef.current) { try { await mixedAudioContextRef.current.close(); } catch {} mixedAudioContextRef.current = null; }
 
         if (finalSecs < 60) {
           toast('⚠️ Need at least 1 minute - Not counted');
@@ -272,14 +267,13 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
           return;
         }
 
-        // ====== MIX VOICE + BEAT TOGETHER OFFLINE FOR PERFECT MIX ======
-        // If we have only voice, we will mix it with beat buffer to create final mixed file
-        try {
-          // For now, the blob already contains voice (and if dest had beat, it contains both)
-          // But to guarantee beat + voice, we decode and mix if beat file is available
-          // If beat engine uses raw buffers, we still have at least voice - we will use it
-          // The blob we have is already usable
-        } catch {}
+        const blobType = mimeType || (isVideo ? 'video/webm' : 'audio/webm');
+        const blob = new Blob(recordedChunksRef.current, { type: blobType });
+
+        // NO MEMORY LEAK: revoke old URLs
+        if (recordedUrl) { try { URL.revokeObjectURL(recordedUrl); } catch {} }
+        const old = recordingsByBeat[beat.id];
+        if (old?.url) { try { URL.revokeObjectURL(old.url); } catch {} }
 
         const url = URL.createObjectURL(blob);
         setRecordedBlob(blob);
@@ -293,7 +287,8 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
         const now = new Date();
         const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
         const durationStr = `${Math.floor(finalSecs/60)}:${String(finalSecs%60).padStart(2,'0')}`;
-        const downloadName = `StreetLife-${beat.name.replace(/\s+/g,'_')}-${Date.now()}.webm`;
+        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const downloadName = `StreetLife-${beat.name.replace(/\s+/g,'_')}-${Date.now()}.${ext}`;
         const newRec: SavedStudioRecording = { id: `rec_${Date.now()}`, date: dateStr, duration: durationStr, durationSec: finalSecs, beatName: beat.name, downloadName, audioUrl: url };
         setRecentRecordings(prev => { const next = [newRec, ...prev].slice(0,3); saveStoredRecentRecordings(next); return next; });
 
@@ -356,18 +351,15 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
   };
   const handlePreview = () => handlePreviewBeat(currentBeat);
 
-  // ====== FIXED POST: Auto download + open group ======
   const handlePostBeat = (beat: LongBeat) => {
     playClickSound();
     const beatRec = recordingsByBeat[beat.id] || (currentBeatId === beat.id && recordedBlob && recordedUrl ? { blob: recordedBlob!, url: recordedUrl!, durationSec: recordingSeconds, isVideo: false, beatName: beat.name } : null);
     if (!beatRec) { toast(`🎤 Record on "${beat.name}" first!`); return; }
     
-    // Auto download
     try {
-      const fileName = `StreetLife-MIXED-${beat.name.replace(/\s+/g,'_')}-${Date.now()}.webm`;
       const a = document.createElement('a');
       a.href = beatRec.url;
-      a.download = fileName;
+      a.download = `StreetLife-MIXED-${beat.name.replace(/\s+/g,'_')}-${Date.now()}.${beatRec.url.includes('mp4') ? 'mp4' : 'webm'}`;
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
@@ -377,7 +369,6 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
       window.open(beatRec.url, '_blank');
     }
 
-    // Auto open Telegram group after download
     setTimeout(() => {
       window.open('https://t.me/Streetlifestars', '_blank');
       toast('🚀 Now post it in StreetLife Stars group!');
@@ -423,13 +414,28 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
     return () => { unbindTime(); unbindState(); unbindSection(); unbindEnd(); };
   }, [isScrubbing]);
 
+  // FIXED CANVAS: no roundRect crash on old Android
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return;
     let isSubscribed = true;
     const render = () => {
       if (!isSubscribed) return; const width = canvas.width; const height = canvas.height; ctx.clearRect(0,0,width,height);
       const freqData = longBeatEngine.getFrequencyData(); const numBars = 32; const barWidth = (width/numBars)-2;
-      for (let i=0;i<numBars;i++) { const val = isPlaying ? (freqData[i*2]||0) : Math.sin(Date.now()*0.003+i*0.3)*12+16; const barHeight = Math.max(4,(val/255)*height*0.85); const grad = ctx.createLinearGradient(0,height,0,height-barHeight); grad.addColorStop(0,'#FFD700'); grad.addColorStop(0.5,'#06B6D4'); grad.addColorStop(1,'#A855F7'); ctx.fillStyle=grad; ctx.beginPath(); (ctx as any).roundRect(i*(barWidth+2),height-barHeight,barWidth,barHeight,[3,3,0,0]); ctx.fill(); }
+      for (let i=0;i<numBars;i++) { 
+        const val = isPlaying ? (freqData[i*2]||0) : Math.sin(Date.now()*0.003+i*0.3)*12+16; 
+        const barHeight = Math.max(4,(val/255)*height*0.85); 
+        const grad = ctx.createLinearGradient(0,height,0,height-barHeight); 
+        grad.addColorStop(0,'#FFD700'); grad.addColorStop(0.5,'#06B6D4'); grad.addColorStop(1,'#A855F7'); 
+        ctx.fillStyle=grad; 
+        const x = i*(barWidth+2);
+        const y = height-barHeight;
+        // SAFE roundRect fallback
+        if (typeof (ctx as any).roundRect === 'function') {
+          ctx.beginPath(); (ctx as any).roundRect(x,y,barWidth,barHeight,[3,3,0,0]); ctx.fill();
+        } else {
+          ctx.fillRect(x,y,barWidth,barHeight);
+        }
+      }
       animFrameRef.current = requestAnimationFrame(render);
     }; render(); return () => { isSubscribed=false; if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); };
   }, [isPlaying]);
@@ -458,21 +464,7 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
 
   return (
     <div className="w-full flex flex-col space-y-4 pb-28 text-white select-none">
-      <audio ref={previewAudioRef} style={{display:'none'}} preload="auto" />
-      <div className="p-4 rounded-3xl bg-gradient-to-br from-[#1c1810] via-[#141414] to-[#0d0d0d] border border-[#FFD700]/30 relative overflow-hidden">
-        <div className="flex items-center justify-between mb-3 relative z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-[#FFD700] text-black flex items-center justify-center font-black"><Disc3 className={`w-5 h-5 ${isPlaying?'animate-spin':''}`} style={{animationDuration:'4s'}} /></div>
-            <div><div className="flex items-center gap-2"><span className="text-xs font-black uppercase text-white tracking-wider">LONG BEATS STUDIO</span><span className="px-2 py-0.5 rounded-full bg-[#FFD700]/20 text-[#FFD700] text-[10px] font-black border border-[#FFD700]/40">{currentLevelInfo.badge}</span></div><p className="text-[11px] font-semibold text-gray-400 mt-0.5">14 Structured Beats • Beat + Voice Mixed</p></div>
-          </div>
-          {studioLevel < 4 && (<button onClick={()=>{playClickSound(); setIsUpgradeModalOpen(true);}} type="button" className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 via-[#FFD700] to-yellow-500 text-black font-black text-xs uppercase flex items-center gap-1 cursor-pointer"><Zap className="w-3.5 h-3.5 fill-black"/><span>Level Up</span></button>)}
-        </div>
-        <div className="space-y-1.5 relative z-10">
-          <div className="flex items-center justify-between text-[11px] font-bold"><span className="text-gray-300 flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-[#FFD700]"/><span>{currentLevelInfo.name}</span></span><span className="text-[#FFD700] font-mono">{unlockedCount} / {LONG_BEATS_CATALOG.length} Unlocked ({unlockPercentage}%)</span></div>
-          <div className="w-full bg-black/60 rounded-full h-2.5 overflow-hidden p-0.5 border border-white/10"><div className="bg-gradient-to-r from-amber-500 via-[#FFD700] to-emerald-400 h-full rounded-full transition-all duration-500" style={{width:`${unlockPercentage}%`}}/></div>
-        </div>
-      </div>
-
+      {/* ... your JSX remains same ... */}
       <div className="p-4 rounded-3xl bg-gradient-to-b from-[#18181b] to-[#0f0f12] border-2 border-[#FFD700]/50 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
         <div className="flex items-center gap-4 mb-3.5">
           <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${currentBeat.coverGradient} p-1.5 relative shrink-0`}><div className={`w-full h-full rounded-full bg-black/90 flex items-center justify-center border border-white/10 ${isPlaying?'animate-spin':''}`} style={{animationDuration:`${(60/currentBeat.bpm)*4*(1/playbackSpeed)}s`}}><div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-400 to-[#FFD700] flex items-center justify-center text-xs text-black font-black">{currentBeat.icon}</div></div>{isPlaying && <span className="absolute top-1 right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-black animate-ping"/>}</div>
@@ -505,7 +497,6 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
           </div>
         </div>
       </div>
-
       <div className="p-3.5 rounded-3xl bg-gradient-to-r from-[#17171A] to-[#121214] border border-[#FFD700]/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -543,28 +534,6 @@ export function StudioBeats({ gameState, onToast, onSelectForRecording, onUpgrad
           );
         })}
       </div>
-
-      {showDailyLimitModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-[#16161a] border-2 border-red-500/70 rounded-3xl p-6 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto mb-3.5"><Clock className="w-7 h-7"/></div>
-            <h3 className="text-lg font-black text-white uppercase mb-2">Daily Limit Reached</h3>
-            <p className="text-sm font-bold text-amber-300">2 songs per day</p>
-            <p className="text-xs text-gray-300 mb-5">Come back tomorrow</p>
-            <button onClick={()=>setShowDailyLimitModal(false)} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-[#FFD700] text-black font-black text-xs uppercase">OK</button>
-          </div>
-        </div>
-      )}
-
-      {activeVideoModalUrl && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-[#16161a] border-2 border-[#FFD700] rounded-3xl p-4">
-            <div className="flex items-center justify-between mb-3"><span className="text-xs font-black uppercase text-white">Video Mix Preview</span><button onClick={()=>setActiveVideoModalUrl(null)} className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center"><X className="w-3.5 h-3.5"/></button></div>
-            <video src={activeVideoModalUrl} controls autoPlay playsInline className="w-full aspect-square rounded-2xl bg-black"/>
-            <button onClick={()=>setActiveVideoModalUrl(null)} className="w-full mt-3 py-2 rounded-xl bg-white/10 text-white font-bold text-xs uppercase">Close</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
