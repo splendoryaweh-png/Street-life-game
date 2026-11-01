@@ -448,8 +448,10 @@ export function StudioBeats({
         const finalSecs = recordingSecondsRef.current;
         const isVideo = isVideoFreestyle;
         const actualMimeType = recorder.mimeType || mimeType;
+const actualMimeType = recorder.mimeType || mimeType;
 const blob = new Blob(recordedChunksRef.current, {
   type: actualMimeType,
+});
 });
           
 
@@ -543,10 +545,7 @@ const blob = new Blob(recordedChunksRef.current, {
   };
 
   // Legacy single top bar record click (for current selected beat)
-  const handleRecordClick = async () => {
-    await handleRecordBeat(currentBeat);
-  
-const handlePreviewBeat = async (beat: LongBeat) => {
+  const handlePreviewBeat = async (beat: LongBeat) => {
   playClickSound();
 
   const beatRec = recordingsByBeat[beat.id];
@@ -611,6 +610,29 @@ const handlePreviewBeat = async (beat: LongBeat) => {
       toast('Preview failed. Please record again and try.');
     }
 
+    return;
+  }
+
+  if (currentBeatId === beat.id && isPlaying) {
+    longBeatEngine.pause();
+    setIsPlaying(false);
+    setPreviewingBeatId(null);
+    toast(`⏸️ Paused "${beat.name}"`);
+  } else {
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+
+    setCurrentBeatId(beat.id);
+    localStorage.setItem('streetlife_current_long_beat', beat.id);
+    longBeatEngine.play(beat.id, 0);
+    setIsPlaying(true);
+    setPreviewingBeatId(beat.id);
+    setIsPreviewingRecordedSong(false);
+    toast(`▶️ Previewing beat: "${beat.name}"`);
+  }
+};
     return;
   }
 
