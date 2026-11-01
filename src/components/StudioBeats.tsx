@@ -447,9 +447,10 @@ export function StudioBeats({
       recorder.onstop = () => {
         const finalSecs = recordingSecondsRef.current;
         const isVideo = isVideoFreestyle;
-        const blob = new Blob(recordedChunksRef.current, {
-          type: isVideo ? 'video/webm' : 'audio/webm',
-        });
+        const actualMimeType = recorder.mimeType || mimeType;
+const blob = new Blob(recordedChunksRef.current, {
+  type: actualMimeType,
+});
 
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop());
@@ -545,73 +546,94 @@ export function StudioBeats({
   };
 
   // PER-BEAT PREVIEW HANDLER (Plays player's recorded track or previews beat cleanly)
-  const handlePreviewBeat = (beat: LongBeat) => {
-    playClickSound();
+  const handlePreviewBeat = async (beat: LongBeat) => {
+  playClickSound();
 
-    const beatRec = recordingsByBeat[beat.id];
+  const beatRec = recordingsByBeat[beat.id];
 
-    // If user has recorded on this beat
-    if (beatRec) {
-      if (beatRec.isVideo) {
-        setActiveVideoModalUrl(beatRec.url);
-        return;
-      }
-
-      if (previewAudioRef.current && previewingBeatId === beat.id && isPreviewingRecordedSong) {
-        previewAudioRef.current.pause();
-        setPreviewingBeatId(null);
-        setIsPreviewingRecordedSong(false);
-        setIsPreviewPlaying(false);
-        return;
-      }
-
-      if (previewAudioRef.current) {
-        previewAudioRef.current.pause();
-      }
-      longBeatEngine.pause();
-      setIsPlaying(false);
-
-      const audio = new Audio(beatRec.url);
-      previewAudioRef.current = audio;
-      setPreviewingBeatId(beat.id);
-      setIsPreviewingRecordedSong(true);
-      setIsPreviewPlaying(true);
-      audio.play().catch(console.error);
-
-      audio.onended = () => {
-        setPreviewingBeatId(null);
-        setIsPreviewingRecordedSong(false);
-        setIsPreviewPlaying(false);
-      };
-      audio.onpause = () => {
-        setPreviewingBeatId(null);
-        setIsPreviewingRecordedSong(false);
-        setIsPreviewPlaying(false);
-      };
-      toast(`▶️ Previewing your recorded track on "${beat.name}"`);
+  if (beatRec) {
+    if (beatRec.isVideo) {
+      setActiveVideoModalUrl(beatRec.url);
       return;
     }
 
-    // No recording yet on this beat: Preview the beat instrumental cleanly
-    if (currentBeatId === beat.id && isPlaying) {
-      longBeatEngine.pause();
-      setIsPlaying(false);
+    if (
+      previewAudioRef.current &&
+      previewingBeatId === beat.id &&
+      isPreviewingRecordedSong
+    ) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
       setPreviewingBeatId(null);
-      toast(`⏸️ Paused "${beat.name}"`);
-    } else {
-      if (previewAudioRef.current) {
-        previewAudioRef.current.pause();
-      }
-      setCurrentBeatId(beat.id);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('streetlife_current_long_beat', beat.id);
-      }
-      longBeatEngine.play(beat.id, 0);
-      setIsPlaying(true);
-      setPreviewingBeatId(beat.id);
       setIsPreviewingRecordedSong(false);
-      toast(`▶️ Previewing beat: "${beat.name}" (${beat.genre} • ${beat.bpm} BPM)`);
+      setIsPreviewPlaying(false);
+      return;
     }
+
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+
+    longBeatEngine.pause();
+    setIsPlaying(false);
+
+    const audio = new Audio();
+    audio.src = beatRec.url;
+    audio.preload = 'auto';
+    audio.volume = 1;
+    audio.playsInline = true;
+    previewAudioRef.current = audio;
+
+    audio.onended = () => {
+      setPreviewingBeatId(null);
+      setIsPreviewingRecordedSong(false);
+      setIsPreviewPlaying(false);
+    };
+
+    audio.onpause = () => {
+      setPreviewingBeatId(null);
+      setIsPreviewingRecordedSong(false);
+      setIsPreviewPlaying(false);
+    };
+
+    try {
+      await audio.play();
+      setPreviewingBeatId(beat.id);
+      setIsPreviewingRecordedSong(true);
+      setIsPreviewPlaying(true);
+      toast(`▶️ Playing your recording on "${beat.name}"`);
+    } catch (error) {
+      console.error('Studio preview error:', error);
+      setPreviewingBeatId(null);
+      setIsPreviewingRecordedSong(false);
+      setIsPreviewPlaying(false);
+      toast('Preview failed. Please record again and try.');
+    }
+
+    return;
+  }
+
+  if (currentBeatId === beat.id && isPlaying) {
+    longBeatEngine.pause();
+    setIsPlaying(false);
+    setPreviewingBeatId(null);
+    toast(`⏸️ Paused "${beat.name}"`);
+  } else {
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+
+    setCurrentBeatId(beat.id);
+    localStorage.setItem('streetlife_current_long_beat', beat.id);
+    longBeatEngine.play(beat.id, 0);
+    setIsPlaying(true);
+    setPreviewingBeatId(beat.id);
+    setIsPreviewingRecordedSong(false);
+    toast(`▶️ Previewing beat: "${beat.name}"`);
+  }
+};
   };
 
   // Legacy preview handler
