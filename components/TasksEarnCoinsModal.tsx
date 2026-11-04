@@ -1,1145 +1,637 @@
+
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  X,
-  ExternalLink,
-  CheckCircle2,
-  Clock,
-  Tv,
-  Upload,
-  Video,
-  Send,
-  Zap,
-  Check,
-  AlertCircle,
-  Sparkles,
-  Youtube,
-  Twitter,
-  Coins,
-  ShieldCheck,
-  Play,
-  RotateCcw,
+  X, ExternalLink, Clock, Upload, Video, Coins, Loader2,
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
-import { playClickSound, playSuccessSound, playCoinSound } from '@/lib/sound';
-import {
-  getCompletedTasks,
-  markTaskCompleted,
-  getAdsWatchedCount,
-  incrementAdsWatched,
-  isAdsTaskClaimed,
-  claimAdsTaskReward,
-  getPendingTasks,
-  savePendingTasks,
-  isLinkAlreadyUsed,
-  recordUsedLink,
-  simulateAutoCheckVideo,
-  getDailyTaskSubmissionCount,
-  PendingTaskItem,
-} from '@/lib/tasksSystem';
+import { playClickSound, playSuccessSound } from '@/lib/sound';
 
-interface TasksEarnCoinsModalProps {
+type TaskStatus = 'pending' | 'approved' | 'rejected';
+
+type TaskRow = {
+  id: string;
+  task_key: string;
+  task_type: string;
+  platform: string | null;
+  proof_url: string | null;
+  screenshot_urls: string[];
+  reward: number;
+  status: TaskStatus;
+  denial_reason: string | null;
+  submitted_at: string;
+};
+
+type Props = {
   isOpen: boolean;
   onClose: () => void;
   onToast: (msg: string) => void;
   currentCoins?: number;
+};
+
+type TaskDefinition = {
+  key: string;
+  title: string;
+  url: string;
+  reward: number;
+  platform: string;
+};
+
+const SOCIAL_TASKS: TaskDefinition[] = [
+  { key: 'task_follow_x', title: 'Follow X Account', url: 'https://x.com/streethustle0?s=11', reward: 50, platform: 'X' },
+  { key: 'task_join_channel', title: 'Join Telegram Channel', url: 'https://t.me/Streethustlegame2', reward: 50, platform: 'Telegram' },
+  { key: 'task_join_group', title: 'Join Group Chat', url: 'https://t.me/Streethustlechatroom', reward: 50, platform: 'Telegram' },
+  { key: 'task_payment_proof', title: 'Join Payment Proof Channel', url: 'https://t.me/Streethustlepaymentproof', reward: 50, platform: 'Telegram' },
+  { key: 'task_stars_group', title: 'Join Stars Group', url: 'https://t.me/Streetlifestars', reward: 50, platform: 'Telegram' },
+  { key: 'task_sub_youtube', title: 'Subscribe YouTube Channel', url: 'https://youtube.com/@StreetLifeGame', reward: 50, platform: 'YouTube' },
+];
+
+const MAX_IMAGE_BYTES = 900 * 1024;
+
+function getTelegramInitData(): string {
+  if (typeof window === 'undefined') return '';
+  return (window as any).Telegram?.WebApp?.initData || '';
 }
 
-export function TasksEarnCoinsModal({
-  isOpen,
-  onClose,
-  onToast,
-}: TasksEarnCoinsModalProps) {
-  // Section A State (One-time tasks)
-  const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>(() =>
-    getCompletedTasks()
-  );
-  const [clickedLinks, setClickedLinks] = useState<Record<string, boolean>>({});
+function readImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
+      reject(new Error('Choose a PNG, JPG or WEBP image.'));
+      return;
+    }
 
-  // Section B State (Watch 30 Ads)
-  const [adsWatched, setAdsWatched] = useState<number>(() => getAdsWatchedCount());
-  const [adsClaimed, setAdsClaimed] = useState<boolean>(() => isAdsTaskClaimed());
-  const [isWatchingAdModalOpen, setIsWatchingAdModalOpen] = useState(false);
-  const [adTimerSeconds, setAdTimerSeconds] = useState(15);
+    if (file.size > MAX_IMAGE_BYTES) {
+      reject(new Error('Each screenshot must be 900 KB or smaller.'));
+      return;
+    }
 
-  // Section C State (Status Post & Boost)
-  const [statusPlatform, setStatusPlatform] = useState<'whatsapp' | 'telegram'>('whatsapp');
-  const [statusLinkInput, setStatusLinkInput] = useState('');
-  const [statusScreenshot1, setStatusScreenshot1] = useState<string>('');
-  const [statusScreenshot2, setStatusScreenshot2] = useState<string>('');
-  const [boostScreenshot, setBoostScreenshot] = useState<string>('');
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Could not read that image.'));
+    reader.readAsDataURL(file);
+  });
+}
 
-  // Section D State (Video Task)
-  const [videoLinkInput, setVideoLinkInput] = useState('');
-  const [videoChecking, setVideoChecking] = useState(false);
-  const [videoFeedback, setVideoFeedback] = useState<{
-    tested: boolean;
-    qualified: boolean;
-    likes: number;
-    views: number;
-    hasHashtag: boolean;
-    message: string;
-  } | null>(null);
+export function TasksEarnCoinsModal({ isOpen, onClose, onToast }: Props) {
+  const [rows, setRows] = useState<TaskRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [proofs, setProofs] = useState<Record<string, string[]>>({});
+  const [statusPlatform, setStatusPlatform] = useState<'WhatsApp' | 'Telegram'>('WhatsApp');
+  const [statusLink, setStatusLink] = useState('');
+  const [videoLink, setVideoLink] = useState('');
+  const [boostProof, setBoostProof] = useState<string[]>([]);
+  const [videoProof, setVideoProof] = useState<string[]>([]);
+  const [statusProof, setStatusProof] = useState<string[]>([]);
+  const [statusProof2, setStatusProof2] = useState<string[]>([]);
 
-  // General state
-  const [pendingTasks, setPendingTasks] = useState<PendingTaskItem[]>(() => getPendingTasks());
+  const loadMyTasks = useCallback(async () => {
+    const telegramData = getTelegramInitData();
 
-  // Toast Notification System for Tasks Earn Coins
-  const [inModalToast, setInModalToast] = useState<{
-    id: string;
-    type: 'pending' | 'success' | 'error' | 'info';
-    title: string;
-    message: string;
-    reward?: number;
-  } | null>(null);
+    if (!telegramData) {
+      onToast('Open STREET LIFE from the Telegram bot to view and submit tasks.');
+      return;
+    }
 
-  const triggerToast = useCallback(
-    (toast: {
-      type: 'pending' | 'success' | 'error' | 'info';
-      title: string;
-      message: string;
-      reward?: number;
-    }) => {
-      const id = `toast_${Date.now()}`;
-      setInModalToast({ ...toast, id });
-      if (onToast) onToast(`${toast.title}: ${toast.message}`);
-    },
-    [onToast]
-  );
+    setLoading(true);
 
-  useEffect(() => {
-    if (!inModalToast) return;
-    const timer = setTimeout(() => {
-      setInModalToast(null);
-    }, 5500);
-    return () => clearTimeout(timer);
-  }, [inModalToast]);
-
-  // Listen to tasks events
-  useEffect(() => {
-    const handleCompletedChange = () => setCompletedTasks(getCompletedTasks());
-    const handleAdsChange = () => {
-      setAdsWatched(getAdsWatchedCount());
-      setAdsClaimed(isAdsTaskClaimed());
-    };
-    const handlePendingChange = () => setPendingTasks(getPendingTasks());
-
-    window.addEventListener('streetlife_tasks_completed_changed', handleCompletedChange);
-    window.addEventListener('streetlife_ads_watched_changed', handleAdsChange);
-    window.addEventListener('streetlife_pending_tasks_changed', handlePendingChange);
-
-    return () => {
-      window.removeEventListener('streetlife_tasks_completed_changed', handleCompletedChange);
-      window.removeEventListener('streetlife_ads_watched_changed', handleAdsChange);
-      window.removeEventListener('streetlife_pending_tasks_changed', handlePendingChange);
-    };
-  }, []);
-
-  // Ad timer effect
-  useEffect(() => {
-    if (!isWatchingAdModalOpen) return;
-    const interval = setInterval(() => {
-      setAdTimerSeconds((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setIsWatchingAdModalOpen(false);
-          const nextCount = incrementAdsWatched();
-          playSuccessSound();
-          playCoinSound();
-          onToast(`🎬 Ad finished! (${nextCount}/30 ads watched)`);
-          return 15;
-        }
-        return prev - 1;
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'GET',
+        headers: { 'x-telegram-init-data': telegramData },
+        cache: 'no-store',
       });
-    }, 1000);
 
-    return () => clearInterval(interval);
-  }, [isWatchingAdModalOpen, onToast]);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not load task history.');
+      }
+
+      setRows(Array.isArray(data.submissions) ? data.submissions : []);
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Could not load task history.');
+    } finally {
+      setLoading(false);
+    }
+  }, [onToast]);
+
+  useEffect(() => {
+    if (isOpen) void loadMyTasks();
+  }, [isOpen, loadMyTasks]);
 
   if (!isOpen) return null;
 
-  // 1-6 Social Tasks List
-  const ONE_TIME_TASKS = [
-    {
-      id: 'task_follow_x',
-      title: 'Follow X Account',
-      icon: <Twitter className="w-4 h-4 text-[#FFD700]" />,
-      url: 'https://x.com/streethustle0?s=11',
-      actionLabel: 'Follow',
-    },
-    {
-      id: 'task_join_channel',
-      title: 'Join Telegram Channel',
-      icon: <Send className="w-4 h-4 text-cyan-400" />,
-      url: 'https://t.me/Streethustlegame2',
-      actionLabel: 'Join',
-    },
-    {
-      id: 'task_join_group',
-      title: 'Join Group Chat',
-      icon: <Send className="w-4 h-4 text-sky-400" />,
-      url: 'https://t.me/Streethustlechatroom',
-      actionLabel: 'Join',
-    },
-    {
-      id: 'task_payment_proof',
-      title: 'Join Payment Proof Channel',
-      icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />,
-      url: 'https://t.me/Streethustlepaymentproof',
-      actionLabel: 'Join',
-    },
-    {
-      id: 'task_stars_group',
-      title: 'Join Stars Group',
-      icon: <Sparkles className="w-4 h-4 text-amber-400" />,
-      url: 'https://t.me/Streetlifestars',
-      actionLabel: 'Join',
-    },
-    {
-      id: 'task_sub_youtube',
-      title: 'Subscribe YouTube Channel',
-      icon: <Youtube className="w-4 h-4 text-red-500" />,
-      url: 'https://youtube.com/@StreetLifeGame',
-      actionLabel: 'Subscribe',
-    },
-  ];
+  const addImage = async (
+    key: string,
+    file: File | undefined,
+    setter: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
+    if (!file) return;
 
-  // Handle open external task link
-  const handleOpenTaskLink = (taskId: string, url: string) => {
-    playClickSound();
-    if (typeof window !== 'undefined') {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-    setClickedLinks((prev) => ({ ...prev, [taskId]: true }));
-    onToast('Link opened in new tab! Tap Claim once completed.');
-  };
-
-  // Handle Claim One-Time 50 coins
-  const handleClaimOneTime = (taskId: string, taskTitle: string) => {
-    playClickSound();
-    const success = markTaskCompleted(taskId, 50, taskTitle);
-    if (success) {
-      playSuccessSound();
-      playCoinSound();
-      confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
-      triggerToast({
-        type: 'success',
-        title: 'Task Completed & Claimed',
-        message: `+50 Street Coins have been added to your Net Worth for ${taskTitle}!`,
-        reward: 50,
-      });
-      setCompletedTasks(getCompletedTasks());
-    } else {
-      triggerToast({
-        type: 'error',
-        title: 'Already Claimed',
-        message: 'This one-time task has already been completed.',
-      });
-    }
-  };
-
-  // Handle Watch Ad
-  const handleStartWatchAd = () => {
-    playClickSound();
-    if (adsWatched >= 30) {
-      triggerToast({
-        type: 'info',
-        title: 'Ads Completed',
-        message: 'You have already watched all 30 ads! Click Claim 3000 Coins.',
-      });
-      return;
-    }
-    setAdTimerSeconds(15);
-    setIsWatchingAdModalOpen(true);
-  };
-
-  // Handle Claim 3000 Coins for Ads
-  const handleClaimAdsReward = () => {
-    playClickSound();
-    if (adsWatched < 30) {
-      triggerToast({
-        type: 'info',
-        title: 'Ads in Progress',
-        message: `Watch all 30 ads first! Current progress: ${adsWatched}/30.`,
-      });
-      return;
-    }
-    const success = claimAdsTaskReward();
-    if (success) {
-      playSuccessSound();
-      playCoinSound();
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
-      triggerToast({
-        type: 'success',
-        title: 'Jackbox Claimed! +3,000 SC',
-        message: 'All 30 ads verified! 3,000 Street Coins credited to your Total Net Worth.',
-        reward: 3000,
-      });
-      setAdsClaimed(true);
-    }
-  };
-
-  // Handle Status Post Verification Submit
-  const handleVerifyStatusPost = (e: React.FormEvent) => {
-    e.preventDefault();
-    playClickSound();
-
-    const todayCount = getDailyTaskSubmissionCount('status_post');
-    if (todayCount >= 2) {
-      triggerToast({
-        type: 'error',
-        title: 'Daily Limit Reached',
-        message: 'Maximum 2 Status Posts allowed per 24 hours. Resets tomorrow.',
-      });
-      return;
-    }
-
-    if (statusPlatform === 'whatsapp') {
-      if (!statusScreenshot1 || !statusScreenshot2) {
-        triggerToast({
-          type: 'error',
-          title: 'Missing Screenshots',
-          message: 'Please upload both required screenshots (Status with link + handwritten date, and View count).',
-        });
-        return;
-      }
-    } else {
-      if (!statusLinkInput.trim()) {
-        triggerToast({
-          type: 'error',
-          title: 'Missing Status Link',
-          message: 'Please paste your Telegram Status Link.',
-        });
-        return;
-      }
-      if (isLinkAlreadyUsed(statusLinkInput.trim())) {
-        triggerToast({
-          type: 'error',
-          title: 'Link Already Used',
-          message: 'This link has already been submitted by another player. Submit your own original proof.',
-        });
-        return;
-      }
-      if (!statusScreenshot1) {
-        triggerToast({
-          type: 'error',
-          title: 'Missing Proof Screenshot',
-          message: 'Please upload a screenshot showing today’s handwritten date.',
-        });
-        return;
-      }
-    }
-
-    // Save duplicate check
-    if (statusLinkInput.trim()) {
-      recordUsedLink(statusLinkInput.trim());
-    }
-
-    const newPending: PendingTaskItem = {
-      id: `pt_status_${Date.now()}`,
-      playerId: 'usr_me',
-      playerUsername: '@CurrentPlayer',
-      type: 'status_post',
-      subType: statusPlatform,
-      status: 'pending',
-      reward: 50,
-      proofUrl: statusLinkInput.trim() || undefined,
-      screenshot1: statusScreenshot1 || 'https://picsum.photos/seed/stat1/600/900',
-      screenshot2: statusScreenshot2 || undefined,
-      submittedAt: Date.now(),
-      date: new Date().toISOString().split('T')[0],
-    };
-
-    const currentList = getPendingTasks();
-    const updated = [newPending, ...currentList];
-    savePendingTasks(updated);
-    setPendingTasks(updated);
-
-    playSuccessSound();
-    triggerToast({
-      type: 'pending',
-      title: 'Status Post Submitted — PENDING',
-      message: 'Your Status Post submission is now PENDING and will be reviewed by admin. Once approved, 50 SC will be credited directly to your balance!',
-      reward: 50,
-    });
-
-    // Reset inputs
-    setStatusLinkInput('');
-    setStatusScreenshot1('');
-    setStatusScreenshot2('');
-  };
-
-  // Handle Boost Channel Verification Submit
-  const handleVerifyBoost = (e: React.FormEvent) => {
-    e.preventDefault();
-    playClickSound();
-
-    const todayCount = getDailyTaskSubmissionCount('boost');
-    if (todayCount >= 3) {
-      triggerToast({
-        type: 'error',
-        title: 'Daily Limit Reached',
-        message: 'Maximum 3 channel boosts allowed per 24 hours (3,000 SC/day).',
-      });
-      return;
-    }
-
-    if (!boostScreenshot) {
-      triggerToast({
-        type: 'error',
-        title: 'Missing Boost Screenshot',
-        message: 'Please upload a screenshot of your boost confirmation with today’s date written on paper.',
-      });
-      return;
-    }
-
-    const newPending: PendingTaskItem = {
-      id: `pt_boost_${Date.now()}`,
-      playerId: 'usr_me',
-      playerUsername: '@CurrentPlayer',
-      type: 'boost',
-      subType: 'telegram',
-      status: 'pending',
-      reward: 1000,
-      proofUrl: 'https://t.me/Streethustlegame2',
-      screenshot1: boostScreenshot,
-      submittedAt: Date.now(),
-      date: new Date().toISOString().split('T')[0],
-    };
-
-    const currentList = getPendingTasks();
-    const updated = [newPending, ...currentList];
-    savePendingTasks(updated);
-    setPendingTasks(updated);
-
-    playSuccessSound();
-    triggerToast({
-      type: 'pending',
-      title: 'Channel Boost Submitted — PENDING',
-      message: 'Your Channel Boost submission is now PENDING. Admin will verify against the Telegram Boosters list. Once approved, 1,000 SC will be credited directly!',
-      reward: 1000,
-    });
-    setBoostScreenshot('');
-  };
-
-  // Handle Video Auto-Check & Submit
-  const handleVerifyVideo = (e: React.FormEvent) => {
-    e.preventDefault();
-    playClickSound();
-
-    const url = videoLinkInput.trim();
-    if (!url) {
-      triggerToast({
-        type: 'error',
-        title: 'Missing Video Link',
-        message: 'Please paste your TikTok or YouTube video link.',
-      });
-      return;
-    }
-
-    if (isLinkAlreadyUsed(url)) {
-      triggerToast({
-        type: 'error',
-        title: 'Link Already Registered',
-        message: 'This video link has already been verified globally by another player.',
-      });
-      return;
-    }
-
-    setVideoChecking(true);
-
-    setTimeout(() => {
-      setVideoChecking(false);
-      const res = simulateAutoCheckVideo(url);
-      setVideoFeedback({
-        tested: true,
-        qualified: res.qualified,
-        likes: res.likes,
-        views: res.views,
-        hasHashtag: res.hasHashtag,
-        message: res.message,
-      });
-
-      if (!res.validUrl) {
-        triggerToast({
-          type: 'error',
-          title: 'Invalid Video Link',
-          message: res.message,
-        });
-        return;
-      }
-
-      if (!res.qualified) {
-        triggerToast({
-          type: 'error',
-          title: 'Video Not Qualified Yet',
-          message: res.message,
-        });
-        return;
-      }
-
-      // Qualified! Record link and save to pending_tasks
-      recordUsedLink(url);
-      const isYoutube = url.toLowerCase().includes('youtube');
-
-      const newPending: PendingTaskItem = {
-        id: `pt_vid_${Date.now()}`,
-        playerId: 'usr_me',
-        playerUsername: '@CurrentPlayer',
-        type: 'video',
-        subType: isYoutube ? 'youtube' : 'tiktok',
-        status: 'pending',
-        reward: 2000,
-        proofUrl: url,
-        screenshot1: 'https://picsum.photos/seed/videothumb/800/600',
-        stats: {
-          likes: res.likes,
-          views: res.views,
-          hasHashtag: res.hasHashtag,
-        },
-        submittedAt: Date.now(),
-        date: new Date().toISOString().split('T')[0],
-      };
-
-      const currentList = getPendingTasks();
-      const updated = [newPending, ...currentList];
-      savePendingTasks(updated);
-      setPendingTasks(updated);
+    try {
+      const image = await readImage(file);
+      setter((current) => [
+        ...current,
+        image,
+      ].slice(0, key === 'status_post' && statusPlatform === 'WhatsApp' ? 2 : 1));
 
       playSuccessSound();
-      confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
-      triggerToast({
-        type: 'pending',
-        title: 'Video Auto-Check Passed — PENDING',
-        message: 'Your video passed auto-check (Likes & Views verified) and is now PENDING final review by admin. Once approved, 2,000 SC will be credited!',
-        reward: 2000,
-      });
-      setVideoLinkInput('');
-    }, 1200);
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Image upload failed.');
+    }
   };
 
-  // Simulated screenshot selector helper
-  const handleMockUpload = (setter: (val: string) => void, label: string) => {
+  const alreadyApproved = (key: string) =>
+    rows.some((row) => row.task_key === key && row.status === 'approved');
+
+  const alreadyPending = (key: string) =>
+    rows.some((row) => row.task_key === key && row.status === 'pending');
+
+  const submit = async (input: {
+    key: string;
+    type: 'social' | 'status_post' | 'boost' | 'video';
+    reward: number;
+    platform?: string;
+    proofUrl?: string;
+    screenshots: string[];
+  }) => {
     playClickSound();
-    const mockImages = [
-      'https://picsum.photos/seed/proofpaper1/600/900',
-      'https://picsum.photos/seed/proofpaper2/600/900',
-      'https://picsum.photos/seed/proofview3/600/900',
-    ];
-    const picked = mockImages[Math.floor(Math.random() * mockImages.length)];
-    setter(picked);
-    onToast(`📸 ${label} screenshot attached!`);
+
+    const telegramData = getTelegramInitData();
+
+    if (!telegramData) {
+      onToast('Telegram verification is missing. Open the game through @streetlifebot.');
+      return;
+    }
+
+    if (alreadyApproved(input.key)) {
+      onToast('This task has already been approved and rewarded.');
+      return;
+    }
+
+    if (alreadyPending(input.key)) {
+      onToast('This task is already waiting for admin review.');
+      return;
+    }
+
+    setSubmitting(input.key);
+
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initData: telegramData,
+          ...input,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Task verification or submission failed.');
+      }
+
+      playSuccessSound();
+
+      if (data.autoVerified === true || data.status === 'approved') {
+        onToast(`Telegram task verified! +${input.reward} SC credited.`);
+      } else {
+        onToast('Proof submitted. Your reward will be credited after admin approval.');
+      }
+
+      await loadMyTasks();
+
+      setProofs((current) => ({ ...current, [input.key]: [] }));
+
+      if (input.type === 'status_post') {
+        setStatusProof([]);
+        setStatusProof2([]);
+        setStatusLink('');
+      }
+
+      if (input.type === 'boost') setBoostProof([]);
+
+      if (input.type === 'video') {
+        setVideoProof([]);
+        setVideoLink('');
+      }
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Task submission failed.');
+    } finally {
+      setSubmitting(null);
+    }
   };
+
+  const imagePicker = (
+    label: string,
+    values: string[],
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
+    max = 1
+  ) => (
+    <div className="space-y-1">
+      <label className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-black/40 p-3 text-[11px] font-bold text-gray-300 cursor-pointer">
+        <Upload className="h-4 w-4" /> {label}
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          multiple={max > 1}
+          className="hidden"
+          onChange={async (event) => {
+            const selected = Array.from(event.target.files || []).slice(0, max - values.length);
+
+            for (const file of selected) {
+              await addImage('proof', file, setter);
+            }
+
+            event.target.value = '';
+          }}
+          disabled={values.length >= max}
+        />
+      </label>
+
+      <div className="flex flex-wrap gap-2">
+        {values.map((src, index) => (
+          <div key={index} className="relative">
+            <img
+              src={src}
+              alt="Uploaded proof"
+              className="h-16 w-16 rounded-lg border border-white/20 object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => setter((old) => old.filter((_, i) => i !== index))}
+              className="absolute -right-1 -top-1 rounded-full bg-red-600 p-1 text-white"
+              aria-label="Remove screenshot"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const taskButton = (
+    key: string,
+    title: string,
+    reward: number,
+    platform: string,
+    url: string
+  ) => {
+    const done = alreadyApproved(key);
+    const pending = alreadyPending(key);
+    const isTelegramTask = platform === 'Telegram';
+
+    return (
+      <div key={key} className="rounded-xl border border-white/10 bg-[#181818] p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-white">{title}</div>
+            <div className="text-[10px] text-gray-400">
+              Reward: +{reward} SC • {isTelegramTask ? 'Telegram API verification' : 'Admin verification'}
+            </div>
+          </div>
+
+          <span
+            className={`shrink-0 rounded-lg px-2 py-1 text-[9px] font-black ${
+              done
+                ? 'bg-emerald-500/20 text-emerald-300'
+                : pending
+                  ? 'bg-amber-500/20 text-amber-300'
+                  : 'bg-white/10 text-gray-300'
+            }`}
+          >
+            {done ? 'APPROVED' : pending ? 'PENDING' : 'NOT SUBMITTED'}
+          </span>
+        </div>
+
+        {!done && !pending && (
+          <>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-300"
+            >
+              Open task <ExternalLink className="h-3 w-3" />
+            </a>
+
+            {!isTelegramTask && (
+              <>
+                {imagePicker(
+                  'Upload screenshot proof',
+                  proofs[key] || [],
+                  (value) => setProofs((old) => ({ ...old, [key]: value }))
+                )}
+              </>
+            )}
+
+            <button
+              type="button"
+              disabled={submitting === key || (!isTelegramTask && !(proofs[key]?.length))}
+              onClick={() =>
+                void submit({
+                  key,
+                  type: 'social',
+                  reward,
+                  platform,
+                  proofUrl: url,
+                  screenshots: isTelegramTask ? [] : (proofs[key] || []),
+                })
+              }
+              className="w-full rounded-lg bg-[#FFD700] py-2 text-[10px] font-black uppercase text-black disabled:opacity-40"
+            >
+              {submitting === key
+                ? 'Verifying…'
+                : isTelegramTask
+                  ? 'Verify membership & claim'
+                  : 'Submit for admin review'}
+            </button>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const statusCount = rows.filter(
+    (row) =>
+      row.task_type === 'status_post' &&
+      Date.now() - new Date(row.submitted_at).getTime() < 86400000 &&
+      row.status !== 'rejected'
+  ).length;
+
+  const boostCount = rows.filter(
+    (row) =>
+      row.task_type === 'boost' &&
+      Date.now() - new Date(row.submitted_at).getTime() < 86400000 &&
+      row.status !== 'rejected'
+  ).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div
-        className="relative w-full max-w-lg rounded-3xl bg-[#121212] border-2 border-[#FFD700] p-4 sm:p-5 shadow-[0_0_35px_rgba(255,215,0,0.3)] flex flex-col max-h-[92vh] overflow-hidden text-white"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-[#FFD700]/20 border border-[#FFD700] flex items-center justify-center text-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.3)]">
-              <Coins className="w-5 h-5 fill-[#FFD700]" />
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 backdrop-blur-md">
+      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border-2 border-[#FFD700] bg-[#121212] p-4 text-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2">
+            <Coins className="h-6 w-6 text-[#FFD700]" />
             <div>
-              <h2 className="text-sm sm:text-base font-black uppercase text-white tracking-wider flex items-center gap-1.5">
-                <span>TASKS - Earn Coins</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FFD700] text-black font-extrabold">
-                  10 TASKS ACTIVE
-                </span>
-              </h2>
+              <h2 className="text-sm font-black uppercase tracking-wider">Tasks — Earn Coins</h2>
               <p className="text-[10px] text-gray-400">
-                Complete social steps, watch ads, and post content for huge SC rewards
+                Telegram tasks are checked automatically. Other tasks require admin approval.
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={() => {
               playClickSound();
               onClose();
             }}
-            type="button"
-            className="w-8 h-8 rounded-full bg-white/10 text-gray-400 hover:text-white flex items-center justify-center cursor-pointer active:scale-90 transition-all"
+            className="rounded-full bg-white/10 p-2 text-gray-300"
           >
-            <X className="w-4 h-4" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* IN-MODAL TOAST NOTIFICATION FEEDBACK BANNER */}
-        {inModalToast && (
-          <div
-            className={`my-2 p-3.5 rounded-2xl border-2 transition-all shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 relative overflow-hidden shrink-0 ${
-              inModalToast.type === 'pending'
-                ? 'bg-[#181408] border-[#FFD700] shadow-[0_0_25px_rgba(255,215,0,0.35)]'
-                : inModalToast.type === 'success'
-                ? 'bg-[#091a11] border-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.35)]'
-                : inModalToast.type === 'error'
-                ? 'bg-[#1f0b0d] border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.35)]'
-                : 'bg-[#0f172a] border-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.35)]'
-            }`}
-          >
-            <div className="flex items-start gap-3 relative z-10">
-              <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-md ${
-                  inModalToast.type === 'pending'
-                    ? 'bg-[#FFD700] text-black'
-                    : inModalToast.type === 'success'
-                    ? 'bg-emerald-500 text-black'
-                    : inModalToast.type === 'error'
-                    ? 'bg-red-500 text-white'
-                    : 'bg-cyan-500 text-black'
-                }`}
+        <div className="my-3 flex-1 space-y-4 overflow-y-auto pr-1">
+          <section className="space-y-2">
+            <h3 className="text-xs font-black uppercase text-[#FFD700]">Social tasks • 50 SC each</h3>
+            {SOCIAL_TASKS.map((task) =>
+              taskButton(task.key, task.title, task.reward, task.platform, task.url)
+            )}
+          </section>
+
+          <section className="space-y-3 rounded-2xl border border-[#FFD700]/40 bg-black/50 p-3">
+            <h3 className="text-xs font-black uppercase text-[#FFD700]">
+              Daily status post • 50 SC each • maximum 2 per 24 hours
+            </h3>
+
+            <p className="text-[10px] text-gray-400">
+              Submitted proof is reviewed by an admin. Daily limits are checked on the server.
+            </p>
+
+            <div className="flex gap-2">
+              {(['WhatsApp', 'Telegram'] as const).map((platform) => (
+                <button
+                  key={platform}
+                  type="button"
+                  onClick={() => setStatusPlatform(platform)}
+                  className={`flex-1 rounded-lg py-2 text-xs font-bold ${
+                    statusPlatform === platform
+                      ? 'bg-emerald-500 text-black'
+                      : 'bg-white/10 text-white'
+                  }`}
+                >
+                  {platform} Status
+                </button>
+              ))}
+            </div>
+
+            {statusPlatform === 'Telegram' && (
+              <input
+                value={statusLink}
+                onChange={(event) => setStatusLink(event.target.value)}
+                placeholder="Paste your Telegram Status link"
+                className="w-full rounded-lg border border-white/15 bg-black/60 px-3 py-2 text-xs text-white"
+              />
+            )}
+
+            {imagePicker(
+              statusPlatform === 'WhatsApp'
+                ? 'Upload status + handwritten date screenshot'
+                : 'Upload Telegram status + date screenshot',
+              statusProof,
+              setStatusProof
+            )}
+
+            {statusPlatform === 'WhatsApp' &&
+              imagePicker('Upload second screenshot showing views', statusProof2, setStatusProof2)}
+
+            <div className="text-[10px] text-gray-400">{statusCount}/2 submissions in the last 24 hours</div>
+
+            <button
+              type="button"
+              disabled={
+                submitting === 'status_post' ||
+                statusCount >= 2 ||
+                !statusProof.length ||
+                (statusPlatform === 'WhatsApp' && !statusProof2.length) ||
+                (statusPlatform === 'Telegram' && !statusLink.trim())
+              }
+              onClick={() =>
+                void submit({
+                  key: `status_post_${Date.now()}`,
+                  type: 'status_post',
+                  reward: 50,
+                  platform: statusPlatform,
+                  proofUrl: statusLink.trim() || undefined,
+                  screenshots: [...statusProof, ...statusProof2],
+                })
+              }
+              className="w-full rounded-lg bg-[#FFD700] py-2 text-xs font-black uppercase text-black disabled:opacity-40"
+            >
+              {submitting === 'status_post' ? 'Submitting…' : 'Submit status post'}
+            </button>
+          </section>
+
+          <section className="space-y-3 rounded-2xl border border-[#FFD700]/40 bg-black/50 p-3">
+            <h3 className="text-xs font-black uppercase text-[#FFD700]">
+              Telegram channel boost • 1,000 SC • maximum 3 per 24 hours
+            </h3>
+
+            <a
+              href="https://t.me/Streethustlegame2"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] text-cyan-300"
+            >
+              Open channel <ExternalLink className="h-3 w-3" />
+            </a>
+
+            {imagePicker('Upload genuine boost confirmation screenshot', boostProof, setBoostProof)}
+
+            <div className="text-[10px] text-gray-400">{boostCount}/3 submissions in the last 24 hours</div>
+
+            <button
+              type="button"
+              disabled={submitting === 'boost' || boostCount >= 3 || !boostProof.length}
+              onClick={() =>
+                void submit({
+                  key: `boost_${Date.now()}`,
+                  type: 'boost',
+                  reward: 1000,
+                  platform: 'Telegram',
+                  proofUrl: 'https://t.me/Streethustlegame2',
+                  screenshots: boostProof,
+                })
+              }
+              className="w-full rounded-lg bg-[#FFD700] py-2 text-xs font-black uppercase text-black disabled:opacity-40"
+            >
+              {submitting === 'boost' ? 'Submitting…' : 'Submit boost proof'}
+            </button>
+          </section>
+
+          <section className="space-y-3 rounded-2xl border border-[#FFD700]/40 bg-black/50 p-3">
+            <h3 className="flex items-center gap-2 text-xs font-black uppercase text-[#FFD700]">
+              <Video className="h-4 w-4" /> Video promo • 2,000 SC
+            </h3>
+
+            <p className="text-[10px] text-gray-300">
+              Post a Street Hustle video on TikTok or YouTube. Minimum 100 likes and 1,000 views.
+              The link and proof are reviewed by an admin.
+            </p>
+
+            <input
+              value={videoLink}
+              onChange={(event) => setVideoLink(event.target.value)}
+              placeholder="Paste TikTok or YouTube video URL"
+              className="w-full rounded-lg border border-white/15 bg-black/60 px-3 py-2 text-xs text-white"
+            />
+
+            {imagePicker('Upload screenshot showing video views and likes', videoProof, setVideoProof)}
+
+            <button
+              type="button"
+              disabled={submitting === 'video' || !videoLink.trim() || !videoProof.length}
+              onClick={() =>
+                void submit({
+                  key: 'video_promo',
+                  type: 'video',
+                  reward: 2000,
+                  platform:
+                    videoLink.toLowerCase().includes('youtube') ||
+                    videoLink.toLowerCase().includes('youtu.be')
+                      ? 'YouTube'
+                      : 'TikTok',
+                  proofUrl: videoLink.trim(),
+                  screenshots: videoProof,
+                })
+              }
+              className="w-full rounded-lg bg-[#FFD700] py-2 text-xs font-black uppercase text-black disabled:opacity-40"
+            >
+              {submitting === 'video' ? 'Submitting…' : 'Submit video for review'}
+            </button>
+          </section>
+
+          <section className="rounded-2xl border border-amber-500/30 bg-amber-950/20 p-3">
+            <h3 className="flex items-center gap-2 text-xs font-black uppercase text-amber-300">
+              <Clock className="h-4 w-4" /> Watch 30 ads • 3,000 SC
+            </h3>
+            <p className="mt-1 text-[10px] text-gray-300">
+              Ad rewards are disabled until genuine ad-network verification is connected.
+            </p>
+          </section>
+
+          <section className="space-y-2 border-t border-white/10 pt-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase text-gray-300">Your submissions</h3>
+              <button
+                type="button"
+                onClick={() => void loadMyTasks()}
+                className="text-[10px] font-bold text-cyan-300"
               >
-                {inModalToast.type === 'pending' ? (
-                  <Clock className="w-5 h-5 animate-pulse" />
-                ) : inModalToast.type === 'success' ? (
-                  <CheckCircle2 className="w-5 h-5" />
-                ) : inModalToast.type === 'error' ? (
-                  <AlertCircle className="w-5 h-5" />
-                ) : (
-                  <Sparkles className="w-5 h-5" />
-                )}
+                Refresh
+              </button>
+            </div>
+
+            {loading && (
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
               </div>
+            )}
 
-              <div className="flex-1 min-w-0 pr-6">
-                <div className="flex items-center gap-2 mb-1">
-                  {inModalToast.type === 'pending' ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 text-[10px] font-black uppercase font-mono tracking-wider">
-                      <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
-                      <span>PENDING REVIEW</span>
-                    </span>
-                  ) : inModalToast.type === 'success' ? (
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase font-mono tracking-wider">
-                      COMPLETED
-                    </span>
-                  ) : inModalToast.type === 'error' ? (
-                    <span className="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 text-[10px] font-black uppercase font-mono tracking-wider">
-                      ATTENTION
-                    </span>
-                  ) : null}
+            {!loading && rows.length === 0 && (
+              <p className="text-[10px] text-gray-500">No task submissions yet.</p>
+            )}
 
-                  {inModalToast.reward && (
-                    <span className="text-[11px] font-mono font-bold text-[#FFD700]">
-                      +{inModalToast.reward.toLocaleString()} SC
-                    </span>
+            {rows.map((row) => (
+              <div
+                key={row.id}
+                className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/40 p-2 text-[10px]"
+              >
+                <div className="min-w-0">
+                  <div className="truncate font-bold text-white">
+                    {row.task_key.replaceAll('_', ' ')} • +{row.reward} SC
+                  </div>
+                  <div className="text-gray-500">
+                    {new Date(row.submitted_at).toLocaleString()}
+                  </div>
+                  {row.denial_reason && (
+                    <div className="text-red-300">{row.denial_reason}</div>
                   )}
                 </div>
 
-                <h4 className="text-xs font-black text-white leading-tight">
-                  {inModalToast.title}
-                </h4>
-                <p className="text-[11px] text-gray-300 mt-1 leading-relaxed">
-                  {inModalToast.message}
-                </p>
-              </div>
-
-              {/* Dismiss Button */}
-              <button
-                type="button"
-                onClick={() => setInModalToast(null)}
-                className="absolute top-0 right-0 p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                title="Dismiss Feedback"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Scrollable Tasks Body */}
-        <div className="flex-1 overflow-y-auto space-y-4 my-3 pr-1">
-          {/* ================================================================= */}
-          {/* SECTION A: ONE-TIME 50 COINS (Tasks 1-6) */}
-          {/* ================================================================= */}
-          <div className="p-3.5 rounded-2xl bg-black/60 border border-[#FFD700]/40 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-[#FFD700]">
-                  SECTION A: ONE-TIME 50 COINS
-                </span>
-                <span className="text-[9px] font-mono px-2 py-0.2 rounded bg-white/10 text-gray-300">
-                  Instant Claim
-                </span>
-              </div>
-              <span className="text-[10px] font-mono text-[#FFD700] font-bold">
-                +50 SC Each
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2">
-              {ONE_TIME_TASKS.map((t, idx) => {
-                const isClaimed = !!completedTasks[t.id];
-                const isClicked = !!clickedLinks[t.id];
-
-                return (
-                  <div
-                    key={t.id}
-                    className="p-2.5 rounded-xl bg-[#181818] border border-white/10 flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-2.5 truncate mr-2">
-                      <div className="w-7 h-7 rounded-lg bg-black/60 border border-white/10 flex items-center justify-center shrink-0">
-                        {t.icon}
-                      </div>
-                      <div className="truncate">
-                        <span className="font-bold text-white block truncate">
-                          {idx + 1}. {t.title}
-                        </span>
-                        <span className="text-[10px] text-gray-400 font-mono">
-                          Reward: +50 SC
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0">
-                      {isClaimed ? (
-                        <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase font-mono flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          COMPLETED
-                        </span>
-                      ) : isClicked ? (
-                        <button
-                          type="button"
-                          onClick={() => handleClaimOneTime(t.id, t.title)}
-                          className="px-3 py-1 rounded-lg bg-[#FFD700] hover:bg-[#FFD700]/90 text-black text-[10px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-md"
-                        >
-                          Claim 50
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenTaskLink(t.id, t.url)}
-                          className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 active:scale-95 transition-all"
-                        >
-                          <span>{t.actionLabel}</span>
-                          <ExternalLink className="w-3 h-3 text-gray-400" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ================================================================= */}
-          {/* SECTION B: WATCH ADS 3000 COINS (Task 7) */}
-          {/* ================================================================= */}
-          <div className="p-3.5 rounded-2xl bg-black/60 border border-[#FFD700]/40 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-[#FFD700]">
-                  SECTION B: WATCH ADS 3000 COINS
-                </span>
-                <span className="text-[9px] font-mono px-2 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  Task 7
-                </span>
-              </div>
-              <span className="text-xs font-mono font-black text-[#FFD700]">
-                {adsWatched}/30 Ads
-              </span>
-            </div>
-
-            <p className="text-[11px] text-gray-300 leading-snug">
-              Watch 30 sponsor advertisements to unlock the grand 3,000 SC treasure stash.
-            </p>
-
-            {/* Progress Bar: width = (count/30)*100 */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[10px] font-mono text-gray-400">
-                <span>Progress</span>
-                <span className="text-white font-bold">{Math.round((adsWatched / 30) * 100)}%</span>
-              </div>
-              <div className="w-full h-3 rounded-full bg-black/80 border border-white/10 overflow-hidden p-0.5">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-yellow-500 via-[#FFD700] to-amber-400 transition-all duration-300 shadow-[0_0_10px_rgba(255,215,0,0.5)]"
-                  style={{ width: `${(adsWatched / 30) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {adsClaimed ? (
-                <div className="w-full py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-center font-black text-xs uppercase font-mono flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>COMPLETED FOREVER (+3,000 SC CREDITED)</span>
-                </div>
-              ) : adsWatched >= 30 ? (
-                <button
-                  type="button"
-                  onClick={handleClaimAdsReward}
-                  className="w-full py-2.5 rounded-xl bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                >
-                  <Coins className="w-4 h-4 fill-black" />
-                  <span>Claim 3000 Coins Now</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleStartWatchAd}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-[#FFD700] text-black font-black text-xs uppercase tracking-wider shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                >
-                  <Tv className="w-4 h-4" />
-                  <span>Watch Ad ({adsWatched}/30)</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* ================================================================= */}
-          {/* SECTION C: DAILY TASKS (Tasks 8 & 9) */}
-          {/* ================================================================= */}
-          <div className="p-3.5 rounded-2xl bg-black/60 border border-[#FFD700]/40 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider text-[#FFD700]">
-                SECTION C: DAILY TASKS (PROOF &amp; ADMIN VERIFIED)
-              </span>
-              <span className="text-[10px] font-mono text-amber-300">Resets 24hrs</span>
-            </div>
-
-            {/* TASK 8: STATUS POST (50 per post, 2 times daily) */}
-            <div className="p-3 rounded-xl bg-[#181818] border border-white/10 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-black text-white uppercase">
-                    8. Status Post (50 SC per post • Max 2/day)
-                  </h4>
-                  <p className="text-[10px] text-gray-400">
-                    Post our link on WhatsApp or Telegram Status with today’s date
-                  </p>
-                </div>
-                <span className="text-[10px] font-mono text-[#FFD700] font-bold">
-                  {getDailyTaskSubmissionCount('status_post')}/2 Today
-                </span>
-              </div>
-
-              {/* Platform Switch */}
-              <div className="flex rounded-xl bg-black/60 p-1 border border-white/10 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setStatusPlatform('whatsapp')}
-                  className={`flex-1 py-1 rounded-lg font-bold transition-all ${
-                    statusPlatform === 'whatsapp'
-                      ? 'bg-emerald-500 text-black shadow-md'
-                      : 'text-gray-400 hover:text-white'
+                <span
+                  className={`shrink-0 rounded-md px-2 py-1 font-black uppercase ${
+                    row.status === 'approved'
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : row.status === 'pending'
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'bg-red-500/20 text-red-300'
                   }`}
                 >
-                  WhatsApp Status
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusPlatform('telegram')}
-                  className={`flex-1 py-1 rounded-lg font-bold transition-all ${
-                    statusPlatform === 'telegram'
-                      ? 'bg-[#0088cc] text-white shadow-md'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Telegram Status
-                </button>
-              </div>
-
-              <form onSubmit={handleVerifyStatusPost} className="space-y-2">
-                {statusPlatform === 'whatsapp' ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleMockUpload(setStatusScreenshot1, 'Screenshot 1 (Status + Date)')
-                      }
-                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                        statusScreenshot1
-                          ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
-                          : 'bg-black/40 border-white/10 text-gray-400 hover:border-white/20'
-                      }`}
-                    >
-                      <Upload className="w-3.5 h-3.5 mx-auto mb-1" />
-                      <span className="text-[9px] font-bold block leading-tight">
-                        {statusScreenshot1 ? 'Screenshot 1 Attached ✓' : 'Upload Status + Paper Date'}
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleMockUpload(setStatusScreenshot2, 'Screenshot 2 (View Count)')
-                      }
-                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                        statusScreenshot2
-                          ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
-                          : 'bg-black/40 border-white/10 text-gray-400 hover:border-white/20'
-                      }`}
-                    >
-                      <Upload className="w-3.5 h-3.5 mx-auto mb-1" />
-                      <span className="text-[9px] font-bold block leading-tight">
-                        {statusScreenshot2 ? 'Screenshot 2 Attached ✓' : 'Upload View Count'}
-                      </span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      placeholder="Paste Telegram Status Link"
-                      value={statusLinkInput}
-                      onChange={(e) => setStatusLinkInput(e.target.value)}
-                      className="w-full bg-black/60 border border-white/15 focus:border-[#FFD700] rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-gray-600 focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleMockUpload(setStatusScreenshot1, 'Telegram Screenshot + Date')
-                      }
-                      className={`w-full p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                        statusScreenshot1
-                          ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
-                          : 'bg-black/40 border-white/10 text-gray-400 hover:border-white/20'
-                      }`}
-                    >
-                      <span className="text-[10px] font-bold">
-                        {statusScreenshot1
-                          ? 'Screenshot with Date Attached ✓'
-                          : 'Upload Screenshot with Today’s Date'}
-                      </span>
-                    </button>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  className="w-full py-2 rounded-xl bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-black text-xs uppercase tracking-wider active:scale-95 transition-all shadow-md"
-                >
-                  Verify Status Post
-                </button>
-              </form>
-            </div>
-
-            {/* TASK 9: BOOST CHANNEL (1000 per boost, 3 times daily) */}
-            <div className="p-3 rounded-xl bg-[#181818] border border-white/10 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-black text-white uppercase">
-                    9. Boost Channel (1,000 SC per boost • Max 3/day)
-                  </h4>
-                  <p className="text-[10px] text-gray-400">
-                    Boost Telegram Channel &amp; upload proof with today’s written date
-                  </p>
-                </div>
-                <span className="text-[10px] font-mono text-[#FFD700] font-bold">
-                  {getDailyTaskSubmissionCount('boost')}/3 Today
+                  {row.status}
                 </span>
               </div>
-
-              <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 border border-white/10 text-xs">
-                <span className="text-gray-300">https://t.me/Streethustlegame2</span>
-                <a
-                  href="https://t.me/Streethustlegame2"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold flex items-center gap-1 hover:brightness-110"
-                >
-                  <span>Boost</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-
-              <form onSubmit={handleVerifyBoost} className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleMockUpload(setBoostScreenshot, 'Boost Confirmation with Date')
-                  }
-                  className={`w-full p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                    boostScreenshot
-                      ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
-                      : 'bg-black/40 border-white/10 text-gray-400 hover:border-white/20'
-                  }`}
-                >
-                  <Upload className="w-3.5 h-3.5 mx-auto mb-1" />
-                  <span className="text-[10px] font-bold block">
-                    {boostScreenshot
-                      ? 'Boost Confirmation with Date Attached ✓'
-                      : 'Upload Screenshot of Boost Confirmation (with today’s paper date)'}
-                  </span>
-                </button>
-
-                <button
-                  type="submit"
-                  className="w-full py-2 rounded-xl bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-black text-xs uppercase tracking-wider active:scale-95 transition-all shadow-md"
-                >
-                  Verify Channel Boost
-                </button>
-              </form>
-            </div>
-          </div>
-
-          {/* ================================================================= */}
-          {/* SECTION D: VIDEO TASK - ACTIVE NOW (Task 10) */}
-          {/* ================================================================= */}
-          <div className="p-3.5 rounded-2xl bg-black/60 border-2 border-[#FFD700] space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Video className="w-4 h-4 text-[#FFD700]" />
-                <span className="text-xs font-black uppercase tracking-wider text-[#FFD700]">
-                  SECTION D: VIDEO TASK (ACTIVE NOW • 2,000 SC)
-                </span>
-              </div>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase font-mono">
-                LIVE
-              </span>
-            </div>
-
-            <p className="text-[11px] text-gray-300 leading-snug">
-              Make video about Street Hustle Game (must say &quot;Street Hustle&quot; or show gameplay 5 secs, min 100 likes &amp; 1,000 views).
-            </p>
-
-            <form onSubmit={handleVerifyVideo} className="space-y-2">
-              <input
-                type="text"
-                placeholder="Paste TikTok or YouTube video link"
-                value={videoLinkInput}
-                onChange={(e) => setVideoLinkInput(e.target.value)}
-                className="w-full bg-black/70 border border-white/15 focus:border-[#FFD700] rounded-xl px-3 py-2 text-xs text-white placeholder:text-gray-600 focus:outline-none"
-              />
-
-              <button
-                type="submit"
-                disabled={videoChecking}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#FFD700] to-amber-500 text-black font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                {videoChecking ? (
-                  <span>Checking Video Stats...</span>
-                ) : (
-                  <>
-                    <Zap className="w-3.5 h-3.5 fill-black" />
-                    <span>Auto-Check &amp; Verify Video</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* Video Auto-Check Live Stats Feedback */}
-            {videoFeedback && (
-              <div
-                className={`p-3 rounded-xl border text-xs font-mono space-y-1.5 ${
-                  videoFeedback.qualified
-                    ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
-                    : 'bg-red-950/40 border-red-500/50 text-red-300'
-                }`}
-              >
-                <div className="flex items-center justify-between font-bold">
-                  <span>Likes: {videoFeedback.likes}/100</span>
-                  <span>{videoFeedback.likes >= 100 ? '✅' : '❌'}</span>
-                </div>
-                <div className="flex items-center justify-between font-bold">
-                  <span>Views: {videoFeedback.views}/1000</span>
-                  <span>{videoFeedback.views >= 1000 ? '✅' : '❌'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Has #StreetHustle:</span>
-                  <span>{videoFeedback.hasHashtag ? 'Yes ✅' : 'No ❌'}</span>
-                </div>
-                <p className="pt-1 border-t border-white/10 text-[10px] leading-tight font-sans">
-                  {videoFeedback.message}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Pending Submissions Feed */}
-          {pendingTasks.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-white/10">
-              <span className="text-[10px] font-black uppercase text-gray-400 block tracking-wider">
-                Your Submitted Tasks Status:
-              </span>
-              <div className="space-y-1.5">
-                {pendingTasks.slice(0, 4).map((pt) => (
-                  <div
-                    key={pt.id}
-                    className="p-2.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between text-xs"
-                  >
-                    <div>
-                      <span className="font-bold text-white block capitalize">
-                        {pt.type.replace('_', ' ')} (+{pt.reward} SC)
-                      </span>
-                      <span className="text-[10px] text-gray-400 font-mono">
-                        Date: {pt.date}
-                      </span>
-                    </div>
-
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase font-mono ${
-                        pt.status === 'pending'
-                          ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40'
-                          : pt.status === 'approved'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-red-500/20 text-red-300 border border-red-500/40'
-                      }`}
-                    >
-                      {pt.status.toUpperCase()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+            ))}
+          </section>
         </div>
 
-        {/* Modal Footer Close */}
-        <div className="pt-3 border-t border-white/10 shrink-0">
+        <div className="border-t border-white/10 pt-3">
           <button
             type="button"
             onClick={() => {
               playClickSound();
               onClose();
             }}
-            className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider active:scale-95 transition-all cursor-pointer"
+            className="w-full rounded-xl bg-white/10 py-2.5 text-xs font-bold uppercase text-white"
           >
             Close Tasks
           </button>
         </div>
       </div>
-
-      {/* AD TIMER SIMULATION MODAL */}
-      {isWatchingAdModalOpen && (
-        <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-xs rounded-2xl bg-[#151515] border-2 border-[#FFD700] p-6 text-center space-y-4 shadow-2xl">
-            <div className="w-14 h-14 rounded-2xl bg-[#FFD700]/20 border border-[#FFD700] flex items-center justify-center text-[#FFD700] mx-auto">
-              <Tv className="w-7 h-7" />
-            </div>
-
-            <div>
-              <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                Watching Sponsor Ad...
-              </h3>
-              <p className="text-2xl font-black font-mono text-[#FFD700] mt-1">
-                {adTimerSeconds}s
-              </p>
-            </div>
-
-            <p className="text-[11px] text-gray-400">
-              Please watch the full ad to increment your 30 Ads reward counter.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => {
-                // Quick complete button for convenience
-                setIsWatchingAdModalOpen(false);
-                const nextCount = incrementAdsWatched();
-                playSuccessSound();
-                onToast(`🎬 Ad completed! (${nextCount}/30 ads)`);
-              }}
-              className="w-full py-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 text-xs font-bold"
-            >
-              Skip / Complete Now
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
