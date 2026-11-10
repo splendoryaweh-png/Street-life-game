@@ -1,12 +1,11 @@
-'use client';
 
-import { addGameCoins } from './storage';
+'use client';
 
 export interface PendingTaskItem {
   id: string;
   playerId: string;
   playerUsername: string;
-  type: 'status_post' | 'boost' | 'video';
+  type: 'status_post' | 'boost' | 'video' | 'social';
   subType?: 'whatsapp' | 'telegram' | 'tiktok' | 'youtube';
   status: 'pending' | 'approved' | 'denied';
   reward: number;
@@ -22,218 +21,267 @@ export interface PendingTaskItem {
   date: string;
   denialReason?: string;
   approvedAt?: number;
+  taskKey?: string;
+  platform?: string;
 }
 
-const STORAGE_PENDING_TASKS = 'street_pending_tasks_v2';
 const STORAGE_COMPLETED_TASKS = 'street_tasks_completed';
 const STORAGE_ADS_WATCHED = 'ads_watched_count';
 const STORAGE_ADS_CLAIMED = 'ads_task_claimed_v2';
 const STORAGE_GLOBAL_USED_LINKS = 'street_tasks_used_links';
 
-// Initial mock pending items so admin panel is populated out of the box
-const INITIAL_PENDING_TASKS: PendingTaskItem[] = [
-  {
-    id: 'pt_init_1',
-    playerId: 'usr_hustler_88',
-    playerUsername: '@KingHustle_88',
-    type: 'status_post',
-    subType: 'whatsapp',
-    status: 'pending',
-    reward: 50,
-    proofUrl: 'https://chat.whatsapp.com/status-proof-88',
-    screenshot1: 'https://picsum.photos/seed/whatsapp1/600/900',
-    screenshot2: 'https://picsum.photos/seed/whatsappviews1/600/900',
-    submittedAt: Date.now() - 1000 * 60 * 35,
-    date: new Date().toISOString().split('T')[0],
-  },
-  {
-    id: 'pt_init_2',
-    playerId: 'usr_boost_77',
-    playerUsername: '@TonMaster77',
-    type: 'boost',
-    subType: 'telegram',
-    status: 'pending',
-    reward: 1000,
-    proofUrl: 'https://t.me/Streethustlegame2',
-    screenshot1: 'https://picsum.photos/seed/boostproof77/600/900',
-    submittedAt: Date.now() - 1000 * 60 * 75,
-    date: new Date().toISOString().split('T')[0],
-  },
-  {
-    id: 'pt_init_3',
-    playerId: 'usr_creator_99',
-    playerUsername: '@VibeStreetSL',
-    type: 'video',
-    subType: 'tiktok',
-    status: 'pending',
-    reward: 2000,
-    proofUrl: 'https://www.tiktok.com/@vibestreetsl/video/73918291029102',
-    screenshot1: 'https://picsum.photos/seed/tiktokvid99/800/600',
-    stats: {
-      likes: 340,
-      views: 3200,
-      hasHashtag: true,
-    },
-    submittedAt: Date.now() - 1000 * 60 * 120,
-    date: new Date().toISOString().split('T')[0],
-  },
-];
+function getTelegramInitData(): string {
+  if (typeof window === 'undefined') return '';
 
-// Helper to get pending tasks
+  return (
+    (window as any).Telegram?.WebApp?.initData ||
+    ''
+  );
+}
+
+function normalizeSubmission(row: any): PendingTaskItem {
+  const submittedAt = row.submitted_at
+    ? new Date(row.submitted_at).getTime()
+    : Date.now();
+
+  const status =
+    row.status === 'approved'
+      ? 'approved'
+      : row.status === 'rejected' || row.status === 'denied'
+        ? 'denied'
+        : 'pending';
+
+  const screenshots = Array.isArray(row.screenshot_urls)
+    ? row.screenshot_urls
+    : [];
+
+  return {
+    id: String(row.id),
+    playerId: String(row.player_telegram_id || ''),
+    playerUsername: String(row.player_username || 'Player'),
+    type: row.task_type === 'status_post' ||
+      row.task_type === 'boost' ||
+      row.task_type === 'video'
+        ? row.task_type
+        : 'social',
+    status,
+    reward: Number(row.reward || 0),
+    proofUrl: row.proof_url || undefined,
+    screenshot1: screenshots[0] || undefined,
+    screenshot2: screenshots[1] || undefined,
+    submittedAt,
+    date: new Date(submittedAt).toISOString().slice(0, 10),
+    denialReason: row.denial_reason || undefined,
+    taskKey: row.task_key || undefined,
+    platform: row.platform || undefined,
+    subType: String(row.platform || '').toLowerCase().includes('youtube')
+      ? 'youtube'
+      : String(row.platform || '').toLowerCase().includes('tiktok')
+        ? 'tiktok'
+        : String(row.platform || '').toLowerCase().includes('whatsapp')
+          ? 'whatsapp'
+          : String(row.platform || '').toLowerCase().includes('telegram')
+            ? 'telegram'
+            : undefined,
+  };
+}
+
+/**
+ * Pending task records are now loaded from the server.
+ * This function intentionally returns an empty array so old
+ * localStorage sample submissions cannot appear as real submissions.
+ */
 export function getPendingTasks(): PendingTaskItem[] {
-  if (typeof window === 'undefined') return INITIAL_PENDING_TASKS;
-  try {
-    const raw = localStorage.getItem(STORAGE_PENDING_TASKS);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch (e) {
-    console.error('Error reading pending tasks:', e);
-  }
-  // Initialize with sample items
-  try {
-    localStorage.setItem(STORAGE_PENDING_TASKS, JSON.stringify(INITIAL_PENDING_TASKS));
-  } catch {}
-  return INITIAL_PENDING_TASKS;
+  return [];
 }
 
-export function savePendingTasks(tasks: PendingTaskItem[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(STORAGE_PENDING_TASKS, JSON.stringify(tasks));
-    window.dispatchEvent(new CustomEvent('streetlife_pending_tasks_changed', { detail: tasks }));
-  } catch (e) {
-    console.error('Error saving pending tasks:', e);
-  }
+/**
+ * Local task lists are no longer accepted as an approval source.
+ * Keep this export temporarily for compatibility with older imports.
+ */
+export function savePendingTasks(_tasks: PendingTaskItem[]): void {
+  // Intentionally disabled. Server records are authoritative.
 }
 
-// Global link tracking to prevent duplicate reuse across any user
+/**
+ * Load real task submissions from the secured server.
+ * The server verifies Telegram initData before returning records.
+ */
+export async function loadPendingTasksFromServer(
+  admin = false
+): Promise<PendingTaskItem[]> {
+  const initData = getTelegramInitData();
+
+  if (!initData) {
+    throw new Error('Open STREET LIFE inside Telegram before loading tasks.');
+  }
+
+  const endpoint = admin ? '/api/admin/tasks' : '/api/tasks';
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      'x-telegram-init-data': initData,
+    },
+    cache: 'no-store',
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(result.error || 'Could not load task submissions.');
+  }
+
+  const submissions = Array.isArray(result.submissions)
+    ? result.submissions
+    : [];
+
+  return submissions.map(normalizeSubmission);
+}
+
+/**
+ * Link tracking is retained only as a convenience for the interface.
+ * It is NOT security verification and must never be used to award coins.
+ */
 export function getUsedLinks(): string[] {
   if (typeof window === 'undefined') return [];
+
   try {
     const raw = localStorage.getItem(STORAGE_GLOBAL_USED_LINKS);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch {}
-  return [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 export function recordUsedLink(link: string): void {
   if (typeof window === 'undefined' || !link) return;
+
   try {
-    const norm = link.trim().toLowerCase();
-    const current = getUsedLinks();
-    if (!current.includes(norm)) {
-      current.push(norm);
-      localStorage.setItem(STORAGE_GLOBAL_USED_LINKS, JSON.stringify(current));
+    const normalized = link.trim().toLowerCase();
+    const links = getUsedLinks();
+
+    if (!links.includes(normalized)) {
+      links.push(normalized);
+      localStorage.setItem(
+        STORAGE_GLOBAL_USED_LINKS,
+        JSON.stringify(links)
+      );
     }
-  } catch {}
+  } catch (error) {
+    console.error('Could not record task link:', error);
+  }
 }
 
 export function isLinkAlreadyUsed(link: string): boolean {
   if (!link || typeof window === 'undefined') return false;
-  const norm = link.trim().toLowerCase();
-  const used = getUsedLinks();
-  if (used.includes(norm)) return true;
 
-  // Also check existing submitted pending/approved tasks
-  const pending = getPendingTasks();
-  return pending.some(
-    (t) => t.proofUrl && t.proofUrl.trim().toLowerCase() === norm && t.status !== 'denied'
-  );
+  return getUsedLinks().includes(link.trim().toLowerCase());
 }
 
-// Section A: Completed One-Time Tasks
+/**
+ * Local completion flags are display-only.
+ * They do not prove that a task was completed.
+ */
 export function getCompletedTasks(): Record<string, boolean> {
   if (typeof window === 'undefined') return {};
+
   try {
     const raw = localStorage.getItem(STORAGE_COMPLETED_TASKS);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (typeof parsed === 'object' && parsed !== null) return parsed;
-    }
-  } catch {}
-  return {};
-}
+    const parsed = raw ? JSON.parse(raw) : {};
 
-export function markTaskCompleted(taskId: string, reward = 50, taskName = 'Social Task'): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    const completed = getCompletedTasks();
-    if (completed[taskId]) return false; // Already completed
-
-    completed[taskId] = true;
-    localStorage.setItem(STORAGE_COMPLETED_TASKS, JSON.stringify(completed));
-
-    // Credit coins & transaction history
-    addGameCoins(reward, `+${reward} SC - Completed ${taskName}`, 'task_reward');
-    window.dispatchEvent(new CustomEvent('streetlife_tasks_completed_changed', { detail: completed }));
-    return true;
-  } catch (e) {
-    console.error('Error marking task completed:', e);
-    return false;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
   }
 }
 
-// Section B: Watch Ads
+/**
+ * IMPORTANT:
+ * This function no longer credits coins.
+ * Social task completion must be confirmed by the server.
+ */
+export function markTaskCompleted(
+  _taskId: string,
+  _reward = 50,
+  _taskName = 'Social Task'
+): boolean {
+  console.warn(
+    'Local task rewards are disabled. Use the server task verification endpoint.'
+  );
+
+  return false;
+}
+
+/**
+ * Ad counters are display-only.
+ * A browser counter cannot prove that an advert was watched.
+ */
 export function getAdsWatchedCount(): number {
   if (typeof window === 'undefined') return 0;
+
   try {
-    const val = localStorage.getItem(STORAGE_ADS_WATCHED);
-    if (val !== null) {
-      const parsed = parseInt(val, 10);
-      return isNaN(parsed) ? 0 : Math.min(30, Math.max(0, parsed));
-    }
-  } catch {}
-  return 0;
+    const value = Number(localStorage.getItem(STORAGE_ADS_WATCHED) || 0);
+    return Number.isFinite(value)
+      ? Math.min(30, Math.max(0, value))
+      : 0;
+  } catch {
+    return 0;
+  }
 }
 
 export function incrementAdsWatched(): number {
   if (typeof window === 'undefined') return 0;
-  const current = getAdsWatchedCount();
-  const next = Math.min(30, current + 1);
+
+  const next = Math.min(30, getAdsWatchedCount() + 1);
+
   try {
-    localStorage.setItem(STORAGE_ADS_WATCHED, next.toString());
-    window.dispatchEvent(new CustomEvent('streetlife_ads_watched_changed', { detail: next }));
-  } catch {}
+    localStorage.setItem(STORAGE_ADS_WATCHED, String(next));
+    window.dispatchEvent(
+      new CustomEvent('streetlife_ads_watched_changed', {
+        detail: next,
+      })
+    );
+  } catch (error) {
+    console.error('Could not update ad counter:', error);
+  }
+
   return next;
 }
 
 export function isAdsTaskClaimed(): boolean {
   if (typeof window === 'undefined') return false;
+
   return localStorage.getItem(STORAGE_ADS_CLAIMED) === 'true';
 }
 
+/**
+ * A local ad counter must never trigger a coin reward.
+ */
 export function claimAdsTaskReward(): boolean {
-  if (typeof window === 'undefined') return false;
-  if (isAdsTaskClaimed()) return false;
-  const count = getAdsWatchedCount();
-  if (count < 30) return false;
+  console.warn(
+    'Ad rewards cannot be claimed from a local browser counter.'
+  );
 
-  try {
-    localStorage.setItem(STORAGE_ADS_CLAIMED, 'true');
-    addGameCoins(3000, '+3,000 SC - Watched 30/30 Ads Reward!', 'task_reward');
-    window.dispatchEvent(new CustomEvent('streetlife_ads_watched_changed', { detail: 30 }));
-    return true;
-  } catch {}
   return false;
 }
 
-// Section C: Daily limits (Status Post 2/day, Boost 3/day)
+/**
+ * This local count is informational only.
+ * The server enforces actual daily submission limits.
+ */
 export function getDailyTaskSubmissionCount(
-  type: 'status_post' | 'boost',
-  dateStr = new Date().toISOString().split('T')[0]
+  _type: 'status_post' | 'boost',
+  _dateStr = new Date().toISOString().slice(0, 10)
 ): number {
-  const pending = getPendingTasks();
-  return pending.filter(
-    (item) => item.type === type && item.date === dateStr && item.status !== 'denied'
-  ).length;
+  return 0;
 }
 
-// Video Auto-Check Simulation
+/**
+ * Validate video URL format only.
+ * Do not fabricate likes, views, hashtags or verification results.
+ */
 export function simulateAutoCheckVideo(url: string): {
   validUrl: boolean;
   qualified: boolean;
@@ -242,82 +290,150 @@ export function simulateAutoCheckVideo(url: string): {
   hasHashtag: boolean;
   message: string;
 } {
-  const trimmed = url.trim().toLowerCase();
-  const isYoutube = trimmed.includes('youtube.com') || trimmed.includes('youtu.be');
-  const isTiktok = trimmed.includes('tiktok.com');
+  let validUrl = false;
 
-  if (!isYoutube && !isTiktok) {
+  try {
+    const parsed = new URL(url.trim());
+    const host = parsed.hostname.toLowerCase();
+
+    validUrl =
+      parsed.protocol === 'https:' &&
+      (
+        host === 'youtube.com' ||
+        host.endsWith('.youtube.com') ||
+        host === 'youtu.be' ||
+        host === 'tiktok.com' ||
+        host.endsWith('.tiktok.com')
+      );
+  } catch {
+    validUrl = false;
+  }
+
+  return {
+    validUrl,
+    qualified: false,
+    likes: 0,
+    views: 0,
+    hasHashtag: false,
+    message: validUrl
+      ? 'Link format accepted. Actual performance and eligibility require verification.'
+      : 'Enter a valid HTTPS TikTok or YouTube video link.',
+  };
+}
+
+/**
+ * Admin approval is performed on the server.
+ * The server checks Telegram identity and admin permissions,
+ * then credits the actual player's account through the database.
+ */
+export async function approveTask(
+  taskId: string
+): Promise<{
+  success: boolean;
+  reward: number;
+  message: string;
+}> {
+  const initData = getTelegramInitData();
+
+  if (!initData) {
     return {
-      validUrl: false,
-      qualified: false,
-      likes: 0,
-      views: 0,
-      hasHashtag: false,
-      message: 'URL must be a valid TikTok or YouTube video link.',
+      success: false,
+      reward: 0,
+      message: 'Open STREET LIFE inside Telegram first.',
     };
   }
 
-  // Generate realistic stats based on URL hash for consistency
-  let hash = 0;
-  for (let i = 0; i < url.length; i++) {
-    hash = (hash << 5) - hash + url.charCodeAt(i);
-    hash |= 0;
+  try {
+    const response = await fetch('/api/admin/tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        initData,
+        submissionId: taskId,
+        action: 'approve',
+      }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return {
+        success: false,
+        reward: 0,
+        message: result.error || 'Task approval failed.',
+      };
+    }
+
+    return {
+      success: true,
+      reward: Number(result.credited || 0),
+      message: result.message || 'Task approved successfully.',
+    };
+  } catch (error) {
+    console.error('Task approval error:', error);
+
+    return {
+      success: false,
+      reward: 0,
+      message: 'Network error. The task was not approved.',
+    };
   }
-  const absHash = Math.abs(hash);
-
-  // Default qualifies for authentic links, but allows testing edge-cases
-  const likes = 100 + (absHash % 850);
-  const views = 1000 + (absHash % 9000);
-  const hasHashtag = true;
-
-  const qualified = likes >= 100 && views >= 1000 && hasHashtag;
-
-  return {
-    validUrl: true,
-    qualified,
-    likes,
-    views,
-    hasHashtag,
-    message: qualified
-      ? 'Video Qualified! Passed verification requirements.'
-      : `Not Qualified Yet - Keep Pushing! Likes ${likes}/100 ❌ Views ${views}/1000 ❌`,
-  };
 }
 
-// Admin Action: Approve
-export function approveTask(taskId: string): { success: boolean; reward: number; message: string } {
-  const tasks = getPendingTasks();
-  const idx = tasks.findIndex((t) => t.id === taskId);
-  if (idx === -1) return { success: false, reward: 0, message: 'Task not found' };
+/**
+ * Rejection is also performed on the secured server.
+ */
+export async function denyTask(
+  taskId: string,
+  reason = 'Proof does not meet verification requirements.'
+): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const initData = getTelegramInitData();
 
-  const task = tasks[idx];
-  if (task.status === 'approved') {
-    return { success: false, reward: 0, message: 'Task already approved' };
+  if (!initData) {
+    return {
+      success: false,
+      message: 'Open STREET LIFE inside Telegram first.',
+    };
   }
 
-  task.status = 'approved';
-  task.approvedAt = Date.now();
-  savePendingTasks(tasks);
+  try {
+    const response = await fetch('/api/admin/tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        initData,
+        submissionId: taskId,
+        action: 'reject',
+        reason,
+      }),
+    });
 
-  // Credit player balance
-  addGameCoins(task.reward, `+${task.reward} SC - Admin Approved ${task.type.toUpperCase()}`, 'task_reward');
+    const result = await response.json().catch(() => ({}));
 
-  return {
-    success: true,
-    reward: task.reward,
-    message: `Task approved! +${task.reward} SC credited to player.`,
-  };
-}
+    if (!response.ok) {
+      return {
+        success: false,
+        message: result.error || 'Task rejection failed.',
+      };
+    }
 
-// Admin Action: Deny
-export function denyTask(taskId: string, reason = 'Proof does not meet verification requirements.'): { success: boolean; message: string } {
-  const tasks = getPendingTasks();
-  const idx = tasks.findIndex((t) => t.id === taskId);
-  if (idx === -1) return { success: false, message: 'Task not found' };
+    return {
+      success: true,
+      message: result.message || 'Task rejected.',
+    };
+  } catch (error) {
+    console.error('Task rejection error:', error);
 
-  tasks[idx].status = 'denied';
-  tasks[idx].denialReason = reason;
-  savePendingTasks(tasks);
-
-  return { success: true, message: 'Task rejected.' };
+    return {
+      success: false,
+      message: 'Network error. The task was not rejected.',
+    };
+  }
 }
