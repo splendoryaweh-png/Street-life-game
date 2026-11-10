@@ -1,421 +1,547 @@
+
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  ShieldCheck,
   CheckCircle2,
   XCircle,
-  AlertTriangle,
   ExternalLink,
   Eye,
   Bell,
-  Coins,
-  Video,
-  Send,
-  Zap,
-  Check,
-  X,
-  Clock,
   User,
-  Calendar,
-  Sparkles,
-  ArrowRight,
-  Filter,
+  RefreshCw,
+  Loader2,
+  X,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
-  getPendingTasks,
-  savePendingTasks,
+  loadPendingTasksFromServer,
   approveTask,
   denyTask,
-  PendingTaskItem,
+  type PendingTaskItem,
 } from '@/lib/tasksSystem';
-import { playClickSound, playSuccessSound, playCoinSound } from '@/lib/sound';
+import {
+  playClickSound,
+  playSuccessSound,
+  playCoinSound,
+} from '@/lib/sound';
 
 export function AdminTasksVerificationPanel() {
-  const [tasks, setTasks] = useState<PendingTaskItem[]>(() => getPendingTasks());
-  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'denied'>('pending');
+  const [tasks, setTasks] = useState<PendingTaskItem[]>([]);
+  const [activeTab, setActiveTab] =
+    useState<'pending' | 'approved' | 'denied'>('pending');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [denyingTaskId, setDenyingTaskId] = useState<string | null>(null);
-  const [denyReason, setDenyReason] = useState('Invalid or duplicate proof');
+  const [denyReason, setDenyReason] =
+    useState('Invalid or duplicate proof');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
-  useEffect(() => {
-    const handleTasksChange = () => setTasks(getPendingTasks());
-    window.addEventListener('streetlife_pending_tasks_changed', handleTasksChange);
-    return () => {
-      window.removeEventListener('streetlife_pending_tasks_changed', handleTasksChange);
-    };
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    window.setTimeout(() => setToastMessage(null), 3500);
   }, []);
 
-  const pendingCount = useMemo(() => {
-    return tasks.filter((t) => t.status === 'pending').length;
-  }, [tasks]);
+  const refreshTasks = useCallback(async (initial = false) => {
+    if (initial) setLoading(true);
+    else setRefreshing(true);
 
-  const approvedCount = useMemo(() => {
-    return tasks.filter((t) => t.status === 'approved').length;
-  }, [tasks]);
+    setLoadError(null);
 
-  const deniedCount = useMemo(() => {
-    return tasks.filter((t) => t.status === 'denied').length;
-  }, [tasks]);
+    try {
+      const records = await loadPendingTasksFromServer(true);
+      setTasks(records);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Could not load task submissions.';
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((t) => t.status === activeTab);
-  }, [tasks, activeTab]);
+      setLoadError(message);
+      if (initial) setTasks([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-  const handleApproveOne = (taskId: string) => {
+  useEffect(() => {
+    void refreshTasks(true);
+  }, [refreshTasks]);
+
+  const pendingCount = useMemo(
+    () => tasks.filter((task) => task.status === 'pending').length,
+    [tasks]
+  );
+
+  const approvedCount = useMemo(
+    () => tasks.filter((task) => task.status === 'approved').length,
+    [tasks]
+  );
+
+  const deniedCount = useMemo(
+    () => tasks.filter((task) => task.status === 'denied').length,
+    [tasks]
+  );
+
+  const filteredTasks = useMemo(
+    () => tasks.filter((task) => task.status === activeTab),
+    [tasks, activeTab]
+  );
+
+  const handleApproveOne = async (taskId: string) => {
+    if (busyTaskId || bulkBusy) return;
+
     playClickSound();
-    const res = approveTask(taskId);
-    if (res.success) {
+    setBusyTaskId(taskId);
+
+    try {
+      const result = await approveTask(taskId);
+
+      if (!result.success) {
+        showToast(result.message);
+        return;
+      }
+
       playSuccessSound();
       playCoinSound();
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
-      showToast(res.message);
-      setTasks(getPendingTasks());
-    } else {
-      showToast(res.message);
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 },
+      });
+
+      showToast(
+        result.message ||
+        `${result.reward.toLocaleString()} SC credited to player.`
+      );
+
+      await refreshTasks();
+    } finally {
+      setBusyTaskId(null);
     }
   };
 
-  const handleDenyOne = () => {
-    if (!denyingTaskId) return;
+  const handleDenyOne = async () => {
+    if (!denyingTaskId || busyTaskId || bulkBusy) return;
+
     playClickSound();
-    const res = denyTask(denyingTaskId, denyReason);
-    showToast(res.message);
-    setDenyingTaskId(null);
-    setDenyReason('Invalid or duplicate proof');
-    setTasks(getPendingTasks());
+    const taskId = denyingTaskId;
+    setBusyTaskId(taskId);
+
+    try {
+      const result = await denyTask(taskId, denyReason);
+
+      if (!result.success) {
+        showToast(result.message);
+        return;
+      }
+
+      showToast(result.message);
+      setDenyingTaskId(null);
+      setDenyReason('Invalid or duplicate proof');
+      await refreshTasks();
+    } finally {
+      setBusyTaskId(null);
+    }
   };
 
-  const handleBulkApprove = () => {
-    playClickSound();
-    const pendingList = tasks.filter((t) => t.status === 'pending');
+  const handleBulkApprove = async () => {
+    if (bulkBusy || busyTaskId) return;
+
+    const pendingList = tasks.filter(
+      (task) => task.status === 'pending'
+    );
+
     if (pendingList.length === 0) {
       showToast('No pending tasks to approve.');
       return;
     }
 
-    pendingList.forEach((t) => {
-      approveTask(t.id);
-    });
+    const confirmed = window.confirm(
+      `Approve ${pendingList.length} pending task(s)? Each submission will be sent to the server for verification.`
+    );
 
-    playSuccessSound();
-    playCoinSound();
-    confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
-    showToast(`Bulk Approved ${pendingList.length} pending task(s)! Coins credited.`);
-    setTasks(getPendingTasks());
+    if (!confirmed) return;
+
+    playClickSound();
+    setBulkBusy(true);
+
+    let successful = 0;
+    let failed = 0;
+    let totalCredited = 0;
+
+    try {
+      for (const task of pendingList) {
+        const result = await approveTask(task.id);
+
+        if (result.success) {
+          successful += 1;
+          totalCredited += result.reward;
+        } else {
+          failed += 1;
+        }
+      }
+
+      if (successful > 0) {
+        playSuccessSound();
+        playCoinSound();
+        confetti({
+          particleCount: 100,
+          spread: 80,
+          origin: { y: 0.5 },
+        });
+      }
+
+      showToast(
+        `Approved: ${successful}. Failed: ${failed}. Credited: ${totalCredited.toLocaleString()} SC.`
+      );
+
+      await refreshTasks();
+    } finally {
+      setBulkBusy(false);
+    }
   };
 
   return (
     <div className="w-full space-y-4 text-white select-none">
-      {/* Toast */}
+
       {toastMessage && (
-        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-[#FFD700] text-black font-black text-xs shadow-xl animate-in fade-in duration-200">
+        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-full bg-[#FFD700] text-black font-black text-xs shadow-xl">
           {toastMessage}
         </div>
       )}
 
-      {/* Header with Notification Bell */}
-      <div className="p-4 rounded-3xl bg-[#121212] border-2 border-[#FFD700] flex items-center justify-between shadow-xl">
+      {/* Header */}
+      <div className="p-4 rounded-3xl bg-[#121212] border-2 border-[#FFD700] flex flex-wrap items-center justify-between gap-3 shadow-xl">
         <div className="flex items-center gap-3">
           <div className="relative w-12 h-12 rounded-2xl bg-[#FFD700]/20 border border-[#FFD700] flex items-center justify-center text-[#FFD700]">
-            <Bell className="w-6 h-6 animate-bounce" />
+            <Bell className="w-6 h-6" />
+
             {pendingCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center shadow-md animate-pulse">
+              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">
                 {pendingCount}
               </span>
             )}
           </div>
+
           <div>
-            <h3 className="text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
-              <span>Admin Tasks Verification</span>
-              {pendingCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 text-[10px] font-bold">
-                  {pendingCount} New Pending
-                </span>
-              )}
+            <h3 className="text-sm font-black uppercase text-white tracking-wider">
+              Admin Tasks Verification
             </h3>
             <p className="text-xs text-gray-400">
-              Review proof, inspect video stats &amp; auto-credit rewards
+              Review player proof and approve verified rewards
             </p>
           </div>
         </div>
 
-        {pendingCount > 0 && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={handleBulkApprove}
             type="button"
-            className="px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-all cursor-pointer hover:brightness-110 flex items-center gap-1.5"
+            disabled={refreshing || loading}
+            onClick={() => {
+              playClickSound();
+              void refreshTasks();
+            }}
+            className="px-3 py-2 rounded-xl bg-white/10 text-white text-xs font-bold flex items-center gap-2 disabled:opacity-50"
           >
-            <CheckCircle2 className="w-4 h-4 fill-black" />
-            <span>Bulk Approve All ({pendingCount})</span>
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
           </button>
-        )}
-      </div>
 
-      {/* 3 Tabs: Pending, Approved, Denied */}
-      <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-black/60 border border-white/10">
-        <button
-          type="button"
-          onClick={() => {
-            playClickSound();
-            setActiveTab('pending');
-          }}
-          className={`py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-            activeTab === 'pending'
-              ? 'bg-[#FFD700] text-black shadow-md'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <span>Pending</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-black/30 text-[10px] font-mono">
-            {pendingCount}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            playClickSound();
-            setActiveTab('approved');
-          }}
-          className={`py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-            activeTab === 'approved'
-              ? 'bg-emerald-500 text-black shadow-md'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <span>Approved</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-black/30 text-[10px] font-mono">
-            {approvedCount}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            playClickSound();
-            setActiveTab('denied');
-          }}
-          className={`py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-            activeTab === 'denied'
-              ? 'bg-red-500 text-white shadow-md'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <span>Denied</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-black/30 text-[10px] font-mono">
-            {deniedCount}
-          </span>
-        </button>
-      </div>
-
-      {/* Tasks Cards Feed */}
-      <div className="space-y-3">
-        {filteredTasks.length === 0 ? (
-          <div className="p-8 rounded-3xl bg-[#121212] border border-white/10 text-center space-y-2">
-            <CheckCircle2 className="w-8 h-8 text-gray-500 mx-auto" />
-            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
-              No {activeTab} tasks found
-            </p>
-            <p className="text-[11px] text-gray-500">
-              {activeTab === 'pending'
-                ? 'All player task submissions have been verified and processed!'
-                : `Tasks marked as ${activeTab} will be listed here.`}
-            </p>
-          </div>
-        ) : (
-          filteredTasks.map((t) => (
-            <div
-              key={t.id}
-              className="p-4 rounded-3xl bg-[#121212] border-2 border-white/10 hover:border-[#FFD700]/50 transition-all space-y-3 shadow-lg"
+          {pendingCount > 0 && (
+            <button
+              type="button"
+              disabled={bulkBusy || loading}
+              onClick={handleBulkApprove}
+              className="px-3 py-2 rounded-xl bg-emerald-500 text-black font-black text-xs uppercase flex items-center gap-1.5 disabled:opacity-50"
             >
-              {/* Top Row: User & Badge */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-[#FFD700]">
-                    <User className="w-4 h-4" />
+              {bulkBusy ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
+              )}
+              Approve All ({pendingCount})
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Loading and errors */}
+      {loading && (
+        <div className="p-8 rounded-3xl bg-[#121212] border border-white/10 text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#FFD700] mx-auto mb-2" />
+          <p className="text-xs text-gray-400">
+            Loading submissions from server...
+          </p>
+        </div>
+      )}
+
+      {!loading && loadError && (
+        <div className="p-4 rounded-2xl bg-red-950/40 border border-red-500/40">
+          <p className="text-sm font-bold text-red-300">
+            Could not load submissions
+          </p>
+          <p className="text-xs text-red-200 mt-1">{loadError}</p>
+          <p className="text-xs text-gray-400 mt-2">
+            The server must recognize your Telegram account as an admin.
+          </p>
+          <button
+            type="button"
+            onClick={() => void refreshTasks()}
+            className="mt-3 px-4 py-2 rounded-xl bg-red-500 text-white text-xs font-bold"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {/* Tabs */}
+      {!loading && (
+        <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-black/60 border border-white/10">
+          {(
+            [
+              ['pending', 'Pending', pendingCount],
+              ['approved', 'Approved', approvedCount],
+              ['denied', 'Denied', deniedCount],
+            ] as const
+          ).map(([tab, label, count]) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setActiveTab(tab);
+              }}
+              className={`py-2 rounded-xl text-xs font-black uppercase tracking-wider ${
+                activeTab === tab
+                  ? tab === 'pending'
+                    ? 'bg-[#FFD700] text-black'
+                    : tab === 'approved'
+                      ? 'bg-emerald-500 text-black'
+                      : 'bg-red-500 text-white'
+                  : 'text-gray-400'
+              }`}
+            >
+              {label} ({count})
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Submission cards */}
+      {!loading && !loadError && (
+        <div className="space-y-3">
+          {filteredTasks.length === 0 ? (
+            <div className="p-8 rounded-3xl bg-[#121212] border border-white/10 text-center">
+              <CheckCircle2 className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+              <p className="text-xs text-gray-400 font-bold uppercase">
+                No {activeTab} submissions found
+              </p>
+            </div>
+          ) : (
+            filteredTasks.map((task) => (
+              <div
+                key={task.id}
+                className="p-4 rounded-3xl bg-[#121212] border-2 border-white/10 space-y-3 shadow-lg"
+              >
+                {/* Player information */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-[#FFD700]">
+                      <User className="w-4 h-4" />
+                    </div>
+
+                    <div>
+                      <span className="text-xs font-black block">
+                        {task.playerUsername}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-mono">
+                        Player ID: {task.playerId} • {task.date}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-xs font-black text-white block">
-                      {t.playerUsername}
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-[#FFD700]">
+                      +{task.reward.toLocaleString()} SC
                     </span>
-                    <span className="text-[10px] text-gray-400 font-mono">
-                      Player ID: {t.playerId} • {t.date}
+
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                        task.status === 'pending'
+                          ? 'bg-yellow-500/20 text-yellow-300'
+                          : task.status === 'approved'
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : 'bg-red-500/20 text-red-300'
+                      }`}
+                    >
+                      {task.status}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-[#FFD700] font-mono">
-                    +{t.reward.toLocaleString()} SC
-                  </span>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase font-mono ${
-                      t.status === 'pending'
-                        ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40'
-                        : t.status === 'approved'
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                        : 'bg-red-500/20 text-red-300 border border-red-500/40'
-                    }`}
-                  >
-                    {t.status.toUpperCase()}
-                  </span>
-                </div>
-              </div>
+                {/* Task information */}
+                <div className="p-3 rounded-xl bg-black/60 border border-white/10 space-y-2">
+                  <p className="text-xs font-bold text-gray-300 uppercase">
+                    Task: {task.taskKey || task.type}
+                    {task.subType ? ` (${task.subType})` : ''}
+                  </p>
 
-              {/* Task Type Banner */}
-              <div className="p-2.5 rounded-xl bg-black/60 border border-white/10 flex items-center justify-between text-xs">
-                <span className="font-bold text-gray-300 uppercase tracking-wide">
-                  Type: {t.type.replace('_', ' ')} {t.subType ? `(${t.subType})` : ''}
-                </span>
-                {t.proofUrl && (
-                  <a
-                    href={t.proofUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 truncate max-w-[200px]"
-                  >
-                    <span className="truncate">{t.proofUrl}</span>
-                    <ExternalLink className="w-3 h-3 shrink-0" />
-                  </a>
+                  {task.platform && (
+                    <p className="text-[11px] text-gray-400">
+                      Platform: {task.platform}
+                    </p>
+                  )}
+
+                  {task.proofUrl && (
+                    <a
+                      href={task.proofUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-cyan-400 text-xs font-bold flex items-center gap-1 break-all"
+                    >
+                      View submitted proof
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                    </a>
+                  )}
+                </div>
+
+                {/* Screenshots */}
+                {(task.screenshot1 || task.screenshot2) && (
+                  <div className="flex items-center gap-2">
+                    {task.screenshot1 && (
+                      <button
+                        type="button"
+                        onClick={() => setPreviewImage(task.screenshot1!)}
+                        className="w-20 h-20 rounded-xl overflow-hidden border border-white/20"
+                      >
+                        <img
+                          src={task.screenshot1}
+                          alt="First proof screenshot"
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    )}
+
+                    {task.screenshot2 && (
+                      <button
+                        type="button"
+                        onClick={() => setPreviewImage(task.screenshot2!)}
+                        className="w-20 h-20 rounded-xl overflow-hidden border border-white/20"
+                      >
+                        <img
+                          src={task.screenshot2}
+                          alt="Second proof screenshot"
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    )}
+
+                    <span className="text-[10px] text-gray-500">
+                      Tap image to inspect proof
+                    </span>
+                  </div>
+                )}
+
+                {/* Rejection reason */}
+                {task.status === 'denied' && task.denialReason && (
+                  <p className="text-xs text-red-400">
+                    Rejection reason: {task.denialReason}
+                  </p>
+                )}
+
+                {/* Actions */}
+                {task.status === 'pending' && (
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
+                    <button
+                      type="button"
+                      disabled={!!busyTaskId || bulkBusy}
+                      onClick={() => void handleApproveOne(task.id)}
+                      className="py-2.5 rounded-xl bg-emerald-500 text-black font-black text-xs uppercase flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      {busyTaskId === task.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                      Approve (+{task.reward} SC)
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!!busyTaskId || bulkBusy}
+                      onClick={() => setDenyingTaskId(task.id)}
+                      className="py-2.5 rounded-xl bg-red-500/20 text-red-300 border border-red-500/40 font-bold text-xs uppercase flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Reject
+                    </button>
+                  </div>
                 )}
               </div>
+            ))
+          )}
+        </div>
+      )}
 
-              {/* Video Auto-Check Stats (if Video Task) */}
-              {t.type === 'video' && t.stats && (
-                <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 text-xs font-mono space-y-1">
-                  <div className="flex items-center justify-between font-bold text-emerald-300">
-                    <span>Auto-Check Stats:</span>
-                    <span>QUALIFIED ✅</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-[10px] text-gray-300 pt-1">
-                    <div>Likes: {t.stats.likes}/100</div>
-                    <div>Views: {t.stats.views}/1000</div>
-                    <div>#StreetHustle: {t.stats.hasHashtag ? 'Yes' : 'No'}</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Screenshots Proof Gallery */}
-              {(t.screenshot1 || t.screenshot2) && (
-                <div className="flex items-center gap-2 pt-1">
-                  {t.screenshot1 && (
-                    <button
-                      type="button"
-                      onClick={() => setPreviewImage(t.screenshot1!)}
-                      className="group relative w-20 h-20 rounded-xl overflow-hidden border border-white/20 bg-black/50 hover:border-[#FFD700] transition-all cursor-pointer shrink-0"
-                    >
-                      <img
-                        src={t.screenshot1}
-                        alt="Proof 1"
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <Eye className="w-4 h-4 text-white" />
-                      </div>
-                    </button>
-                  )}
-
-                  {t.screenshot2 && (
-                    <button
-                      type="button"
-                      onClick={() => setPreviewImage(t.screenshot2!)}
-                      className="group relative w-20 h-20 rounded-xl overflow-hidden border border-white/20 bg-black/50 hover:border-[#FFD700] transition-all cursor-pointer shrink-0"
-                    >
-                      <img
-                        src={t.screenshot2}
-                        alt="Proof 2"
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <Eye className="w-4 h-4 text-white" />
-                      </div>
-                    </button>
-                  )}
-                  <span className="text-[10px] text-gray-500 font-mono">
-                    (Tap screenshot to view full resolution proof)
-                  </span>
-                </div>
-              )}
-
-              {/* Denial reason */}
-              {t.status === 'denied' && t.denialReason && (
-                <p className="text-xs text-red-400 font-mono">
-                  Denial Reason: {t.denialReason}
-                </p>
-              )}
-
-              {/* Action Buttons for Pending */}
-              {t.status === 'pending' && (
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => handleApproveOne(t.id)}
-                    className="py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-black text-xs uppercase tracking-wider shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <CheckCircle2 className="w-4 h-4 fill-black" />
-                    <span>Approve (+{t.reward} SC)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setDenyingTaskId(t.id)}
-                    className="py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 font-bold text-xs uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    <span>Deny</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Deny Modal */}
+      {/* Reject modal */}
       {denyingTaskId && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
           <div className="w-full max-w-sm rounded-3xl bg-[#151515] border-2 border-red-500/60 p-6 space-y-4">
-            <h3 className="text-base font-black text-white uppercase tracking-wider">
+            <h3 className="text-base font-black uppercase">
               Reject Task Submission
             </h3>
+
             <p className="text-xs text-gray-400">
-              Select or type reason for rejecting this player&apos;s proof.
+              Select the reason for rejecting this player's proof.
             </p>
 
             <select
               value={denyReason}
-              onChange={(e) => setDenyReason(e.target.value)}
-              className="w-full bg-black/70 border border-white/20 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+              onChange={(event) => setDenyReason(event.target.value)}
+              className="w-full bg-black/70 border border-white/20 rounded-xl px-3 py-3 text-xs text-white"
             >
-              <option value="Invalid or duplicate proof">Invalid or duplicate proof</option>
-              <option value="Screenshot date does not match today">Screenshot date does not match today</option>
-              <option value="View count / likes under minimum requirement">View count / likes under minimum requirement</option>
-              <option value="Channel boost not found in telegram boosters list">Channel boost not found in telegram boosters list</option>
-              <option value="Status post deleted early">Status post deleted early</option>
+              <option value="Invalid or duplicate proof">
+                Invalid or duplicate proof
+              </option>
+              <option value="Screenshot date does not match today">
+                Screenshot date does not match today
+              </option>
+              <option value="View count / likes under minimum requirement">
+                View count / likes under minimum requirement
+              </option>
+              <option value="Channel boost not found in Telegram boosters list">
+                Channel boost not found in Telegram boosters list
+              </option>
+              <option value="Status post deleted early">
+                Status post deleted early
+              </option>
             </select>
 
             <div className="flex gap-2">
               <button
                 type="button"
+                disabled={!!busyTaskId}
                 onClick={() => setDenyingTaskId(null)}
-                className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs uppercase"
+                className="flex-1 py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs uppercase"
               >
                 Cancel
               </button>
+
               <button
                 type="button"
-                onClick={handleDenyOne}
-                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase shadow-lg"
+                disabled={!!busyTaskId}
+                onClick={() => void handleDenyOne()}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-black text-xs uppercase flex items-center justify-center gap-2 disabled:opacity-50"
               >
+                {busyTaskId ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : null}
                 Confirm Reject
               </button>
             </div>
@@ -423,10 +549,10 @@ export function AdminTasksVerificationPanel() {
         </div>
       )}
 
-      {/* Screenshot Preview Modal */}
+      {/* Image preview */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
           onClick={() => setPreviewImage(null)}
         >
           <div className="relative max-w-md w-full max-h-[85vh] rounded-3xl overflow-hidden border-2 border-[#FFD700] p-2 bg-black">
@@ -437,9 +563,10 @@ export function AdminTasksVerificationPanel() {
             >
               <X className="w-4 h-4" />
             </button>
+
             <img
               src={previewImage}
-              alt="Full Resolution Proof"
+              alt="Full resolution proof"
               className="w-full h-auto max-h-[80vh] object-contain rounded-2xl mx-auto"
             />
           </div>
