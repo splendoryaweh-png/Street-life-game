@@ -1,4 +1,3 @@
-
 'use client';
 
 export const dynamic = 'force-dynamic';
@@ -86,6 +85,9 @@ export default function StreetLifeApp() {
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const activeGameState = isMounted ? gameState : SERVER_GAME_STATE_SNAPSHOT;
   const activeTelegramUser = isMounted ? telegramUser : null;
+
+  // Admin access is tied to the verified Telegram numeric ID, never a username or email.
+  const isStreetLifeAdmin = String(activeTelegramUser?.id ?? '') === '7184752443';
 
   // Modals
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -355,6 +357,10 @@ export default function StreetLifeApp() {
             gameState={activeGameState}
             telegramUser={activeTelegramUser}
             onOpenAdmin={() => {
+              if (!isStreetLifeAdmin) {
+                showToast('Admin access is restricted.');
+                return;
+              }
               closeAllModals();
               setActiveTab('ADMIN');
             }}
@@ -365,7 +371,7 @@ export default function StreetLifeApp() {
               setActiveTab(tab);
             }}
           />
-        ) : activeTab === 'ADMIN' ? (
+        ) : activeTab === 'ADMIN' && isStreetLifeAdmin ? (
           <AdminPanelScreen
             gameState={activeGameState}
             onToast={showToast}
@@ -374,6 +380,10 @@ export default function StreetLifeApp() {
               setActiveTab('PROFILE');
             }}
           />
+        ) : activeTab === 'ADMIN' ? (
+          <div className="w-full min-h-[60vh] flex items-center justify-center px-6 text-center">
+            <p className="text-sm font-bold text-red-400">Admin access is restricted.</p>
+          </div>
         ) : activeTab === 'BANK' ? (
           <BankScreen
             gameState={activeGameState}
@@ -546,22 +556,24 @@ export default function StreetLifeApp() {
                   </span>
                 </button>
 
-                <button
-                  onClick={() => {
-                    playClickSound();
-                    closeAllModals();
-                    setActiveTab('ADMIN');
-                  }}
-                  type="button"
-                  className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 hover:border-amber-400/40 flex flex-col items-center gap-1 active:scale-95 transition-all cursor-pointer group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 text-[#FFD700] flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Shield className="w-4 h-4" />
-                  </div>
-                  <span className="text-[9.5px] font-black text-white group-hover:text-[#FFD700] truncate w-full">
-                    Admin
-                  </span>
-                </button>
+                {isStreetLifeAdmin && (
+                  <button
+                    onClick={() => {
+                      playClickSound();
+                      closeAllModals();
+                      setActiveTab('ADMIN');
+                    }}
+                    type="button"
+                    className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 hover:border-amber-400/40 flex flex-col items-center gap-1 active:scale-95 transition-all cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 text-[#FFD700] flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <span className="text-[9.5px] font-black text-white group-hover:text-[#FFD700] truncate w-full">
+                      Admin
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 
