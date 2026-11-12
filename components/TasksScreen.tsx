@@ -7,14 +7,10 @@ import {
   NavTab,
 } from '@/types/game';
 import {
-  completeTask,
-  claimStatusPostTask,
-  submitVideoPromoTask,
   openMysteryBox,
   addInGameStayTime,
   updateTaskProgressMetrics,
 } from '@/lib/storage';
-import { recordSimulatedUserBoost } from '@/lib/telegram';
 import { playClickSound, playCoinSound } from '@/lib/sound';
 import confetti from 'canvas-confetti';
 import {
@@ -170,53 +166,35 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
     }
   };
 
-  // Helper to complete task with shake and minor confetti burst
+  // SECURITY: Task rewards must never be credited by browser-side code.
+  // The server/API must verify the task and update the player's database record.
   const handleClaim = (
     taskId: string,
-    reward: number,
-    title: string,
-    proof?: string,
-    targetEl?: HTMLElement | null
+    _reward: number,
+    _title: string,
+    _proof?: string,
+    _targetEl?: HTMLElement | null
   ) => {
     playClickSound();
-    const res = completeTask(taskId, reward, title, proof);
-    if (res.success) {
-      playCoinSound();
-      triggerTaskShakeAndConfetti(taskId, targetEl);
-      onToast(res.message);
-    } else {
-      onToast(res.message);
-    }
+    onToast('This task reward is locked until server verification is completed. No coins were credited.');
   };
 
-  // Open link and start verification countdown
+  // Opening a link is not proof of completion. Never award after a timer.
   const handleOpenAndVerify = (
     taskId: string,
-    reward: number,
+    _reward: number,
     title: string,
     url: string,
-    targetEl?: HTMLElement | null
+    _targetEl?: HTMLElement | null
   ) => {
     playClickSound();
     try {
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch {
-      // fallback
+      // The link remains available on the task card if popups are blocked.
     }
-
-    setVerifyingTaskId(taskId);
-    onToast(`Verifying membership on ${title}...`);
-
-    if (taskId === 'boost_main_channel') {
-      recordSimulatedUserBoost(gameState.telegramUser?.id || gameState.deviceId, 'main');
-    } else if (taskId === 'boost_proof_channel') {
-      recordSimulatedUserBoost(gameState.telegramUser?.id || gameState.deviceId, 'proof');
-    }
-
-    setTimeout(() => {
-      setVerifyingTaskId(null);
-      handleClaim(taskId, reward, title, undefined, targetEl);
-    }, 3000);
+    setVerifyingTaskId(null);
+    onToast(`${title}: complete the task, then use server verification. Opening the link does not award coins.`);
   };
 
   const handleCopyReferral = () => {
@@ -232,16 +210,7 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
 
   const handleStatusSubmit = () => {
     playClickSound();
-    const res = claimStatusPostTask(statusScreenshotProof || 'screenshot_status_verified.png');
-    if (res.success) {
-      playCoinSound();
-      triggerTaskShakeAndConfetti('promotion_status');
-      onToast(res.message);
-      setShowStatusModal(false);
-      setStatusScreenshotProof('');
-    } else {
-      onToast(res.message);
-    }
+    onToast('Status proof must be uploaded and submitted to the admin verification server. No coins were credited.');
   };
 
   const handleVideoSubmit = () => {
@@ -255,17 +224,7 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
       onToast('Instagram is NOT allowed. Post on TikTok, YouTube or Facebook!');
       return;
     }
-
-    const res = submitVideoPromoTask(videoUrlInput);
-    if (res.success) {
-      playCoinSound();
-      triggerTaskShakeAndConfetti('promotion_video');
-      onToast(res.message);
-      setShowVideoModal(false);
-      setVideoUrlInput('');
-    } else {
-      onToast(res.message);
-    }
+    onToast('Video proof must be submitted to the admin verification server. No coins were credited.');
   };
 
   const handleOpenMysteryBox = () => {
@@ -310,8 +269,7 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
       updateTaskProgressMetrics({
         dailyQuizAnswersToday: nextAnswers,
       });
-      completeTask(`quiz_answer_${quizQuestionIndex}_${Date.now()}`, 100, `Street Quiz Question #${quizQuestionIndex + 1}`);
-      onToast('Correct! +100 SC awarded!');
+      onToast('Correct answer! Quiz reward is awaiting secure server-side verification. No coins were credited.');
       if (quizQuestionIndex + 1 < QUIZ_QUESTIONS.length) {
         setQuizQuestionIndex(quizQuestionIndex + 1);
         setQuizSelectedOption(null);
