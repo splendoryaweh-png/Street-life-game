@@ -1494,7 +1494,8 @@ export function isTaskCompleted(taskId: string): boolean {
 }
 
 /**
- * Completes a task, awards StreetCoins, records transaction, and persists to localStorage
+ * SECURITY: Task rewards must be credited by the server after verification.
+ * This client-side function intentionally never changes the coin balance.
  */
 export function completeTask(
   taskId: string,
@@ -1502,52 +1503,17 @@ export function completeTask(
   taskTitle?: string,
   proofData?: string
 ): { success: boolean; message: string; newBalance: number } {
-  const completedTasks = { ...(currentSnapshot.completedTasks || {}) };
-
-  if (completedTasks[taskId]) {
-    return {
-      success: false,
-      message: 'Task already completed and claimed!',
-      newBalance: currentSnapshot.streetCoin,
-    };
-  }
-
-  // Mark task as completed
-  completedTasks[taskId] = true;
-
-  const title = taskTitle || taskId.replace(/_/g, ' ');
-  const tx: CoinTransaction = {
-    id: `tx_task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    type: 'task_reward',
-    description: `+${reward} SC Task: ${title}`,
-    amount: reward,
-    timestamp: Date.now(),
-  };
-
-  const updatedTransactions = [tx, ...(currentSnapshot.transactions || [])].slice(0, 30);
-  const newStreetCoin = currentSnapshot.streetCoin + reward;
-
-  currentSnapshot = {
-    ...currentSnapshot,
-    streetCoin: newStreetCoin,
-    completedTasks,
-    transactions: updatedTransactions,
-    hasPlayedToday: true,
-  };
-
-  persistState(currentSnapshot);
-  notifyListeners();
-
+  void taskId;
+  void reward;
+  void taskTitle;
+  void proofData;
   return {
-    success: true,
-    message: `+${reward} SC claimed for completing "${title}"!`,
-    newBalance: newStreetCoin,
+    success: false,
+    message: 'Task submitted for secure verification. Coins are added only after server approval.',
+    newBalance: currentSnapshot.streetCoin,
   };
 }
 
-/**
- * Updates task progress metrics and persists to localStorage
- */
 export function updateTaskProgressMetrics(
   updater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)
 ): Record<string, number> {
@@ -1580,7 +1546,8 @@ export function addInGameStayTime(secondsToAdd: number): number {
 }
 
 /**
- * Submit Status Post proof (Max 2 posts per day: 1st=50 SC, 2nd=100 SC)
+ * SECURITY: Status-post proof requires administrator verification on the server.
+ * Do not increment local progress or award coins from the browser.
  */
 export function claimStatusPostTask(screenshotProof?: string): {
   success: boolean;
@@ -1588,101 +1555,44 @@ export function claimStatusPostTask(screenshotProof?: string): {
   postNumber: number;
   message: string;
 } {
-  const todayStr = new Date().toISOString().split('T')[0];
+  void screenshotProof;
   const metrics = currentSnapshot.taskProgress || { ...DEFAULT_TASK_PROGRESS };
-  const postsToday = metrics.statusPostsToday || 0;
-
-  if (postsToday >= 2) {
-    return {
-      success: false,
-      reward: 0,
-      postNumber: postsToday,
-      message: 'Daily status post limit reached (max 2 per day)!',
-    };
-  }
-
-  const nextPostNumber = postsToday + 1;
-  const reward = 10;
-  const taskId = `status_post_${todayStr}_${nextPostNumber}`;
-
-  updateTaskProgressMetrics({
-    statusPostsToday: nextPostNumber,
-  });
-
-  completeTask(taskId, reward, `Status Post #${nextPostNumber}`, screenshotProof);
-
   return {
-    success: true,
-    reward,
-    postNumber: nextPostNumber,
-    message: `+${reward} SC verified for Status Post #${nextPostNumber}!`,
+    success: false,
+    reward: 0,
+    postNumber: metrics.statusPostsToday || 0,
+    message: 'Your status-post proof must be submitted for admin verification. No coins have been added.',
   };
 }
 
 /**
- * Submit Video Promo link (TikTok, FB, YouTube - fixed 200 SC upon verification)
+ * SECURITY: Video-promotion links require administrator verification on the server.
+ * A URL alone is not proof of completion and must never trigger a local reward.
  */
 export function submitVideoPromoTask(videoUrl: string): {
   success: boolean;
   reward: number;
   message: string;
 } {
-  if (!videoUrl || videoUrl.length < 5) {
+  if (!videoUrl || videoUrl.trim().length < 5) {
     return { success: false, reward: 0, message: 'Please enter a valid video URL.' };
   }
-
-  const taskId = 'video_promo_task';
-  const completed = isTaskCompleted(taskId);
-  if (completed) {
-    return { success: false, reward: 0, message: 'Video promo task already claimed!' };
-  }
-
-  updateTaskProgressMetrics({
-    videoPromoSubmitted: 1,
-  });
-
-  const res = completeTask(taskId, 200, 'Video Promo (200 SC)', videoUrl);
-
   return {
-    success: true,
-    reward: 200,
-    message: res.message,
+    success: false,
+    reward: 0,
+    message: 'Video link submitted for admin verification. No coins have been added yet.',
   };
 }
 
-/**
- * Open Mystery Box (Daily random SC reward: 150 - 1,000 SC)
- */
 export function openMysteryBox(): {
   success: boolean;
   reward: number;
   message: string;
 } {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const metrics = currentSnapshot.taskProgress || { ...DEFAULT_TASK_PROGRESS };
-
-  if (metrics.mysteryBoxOpenedToday) {
-    return {
-      success: false,
-      reward: 0,
-      message: 'Mystery Box already opened today! Come back tomorrow.',
-    };
-  }
-
-  // Daily Mystery Box reward: 10 SC
-  const reward = 10;
-  const taskId = `mystery_box_${todayStr}`;
-
-  updateTaskProgressMetrics({
-    mysteryBoxOpenedToday: 1,
-  });
-
-  completeTask(taskId, reward, 'Daily Mystery Box');
-
   return {
-    success: true,
-    reward,
-    message: `Mystery Box unlocked! Received +${reward} SC!`,
+    success: false,
+    reward: 0,
+    message: 'Daily Mystery Box rewards are temporarily locked until server-side reward verification is connected. No coins have been added.',
   };
 }
 
@@ -2102,6 +2012,3 @@ export function getWithdrawalClickRecords(): WithdrawalClickRecord[] {
     return [];
   }
 }
-
-
-
