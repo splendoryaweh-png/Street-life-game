@@ -31,7 +31,6 @@ import {
   ADMIN_TELEGRAM,
   adminExtendRent,
   adminDeleteSong,
-  adminResetAll,
   getAdminLogs,
   getStoredPostedSongs,
   isStudioRentExpired,
@@ -39,7 +38,7 @@ import {
   getWithdrawalClickRecords,
   WithdrawalClickRecord,
 } from '@/lib/storage';
-import { playClickSound, playSuccessSound, playCoinSound } from '@/lib/sound';
+import { playClickSound, playSuccessSound } from '@/lib/sound';
 
 interface AdminPanelScreenProps {
   gameState: UserGameState;
@@ -59,7 +58,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalClickRecord[]>(() =>
     getWithdrawalClickRecords()
   );
-  const [isBanned, setIsBanned] = useState<boolean>(!!gameState.isBanned);
+  const [isBanned] = useState<boolean>(!!gameState.isBanned);
   const [activeAdminTab, setActiveAdminTab] = useState<'general' | 'treasury' | 'withdrawals' | 'tasks'>('general');
 
   const refreshAllData = useCallback(() => {
