@@ -27,6 +27,7 @@ import {
   playClickSound,
 } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import confetti from 'canvas-confetti';
 import { TurfWarMultiplayer } from '@/src/games/TurfWar/TurfWarMultiplayer';
 
@@ -119,7 +120,7 @@ export function TurfWar2D({ onBack, onToast, currentCoins = 0 }: TurfWar2DProps)
   const [earnedShopCoins, setEarnedShopCoins] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // Ad simulation
+  // Adsgram rewarded-ad state
   const [adWatching, setAdWatching] = useState(false);
   const [adDoubled, setAdDoubled] = useState(false);
 
@@ -416,28 +417,38 @@ export function TurfWar2D({ onBack, onToast, currentCoins = 0 }: TurfWar2DProps)
     setWeapon(next);
   }, []);
 
-  // Watch Ad to Double reward to 600 SC
-  const handleDoubleRewardAd = () => {
+  const handleDoubleRewardAd = async () => {
+    if (adWatching || adDoubled) return;
     setAdWatching(true);
-    setTimeout(() => {
-      setAdWatching(false);
+    try {
+      await showAdsgramRewardedAd();
       setAdDoubled(true);
       const extraCoins = 300;
       setEarnedCoins((prev) => prev + extraCoins);
       addGameCoins(extraCoins, `+${extraCoins} SC - Turf War Ad Doubler Bonus`, 'ad_reward');
       playSfx('coin');
-      onToast(`Bonus +300 SC added! Total: 600 SC!`);
-    }, 2000);
+      onToast('Bonus +300 SC added! Total: 600 SC!');
+    } catch (error) {
+      console.error('Turf War reward ad error:', error);
+      onToast('The ad was not completed or is unavailable. No bonus was added.');
+    } finally {
+      setAdWatching(false);
+    }
   };
 
-  // Watch Ad to Retry
-  const handleRetryAd = () => {
+  const handleRetryAd = async () => {
+    if (adWatching) return;
     setAdWatching(true);
-    setTimeout(() => {
-      setAdWatching(false);
+    try {
+      await showAdsgramRewardedAd();
       startLevel(level);
-      onToast(`Respawned on same map with full health! Defend the turf!`);
-    }, 1500);
+      onToast('Respawned on same map with full health! Defend the turf!');
+    } catch (error) {
+      console.error('Turf War retry ad error:', error);
+      onToast('The ad was not completed or is unavailable. You have not been restarted.');
+    } finally {
+      setAdWatching(false);
+    }
   };
 
   // Joystick touch handlers
