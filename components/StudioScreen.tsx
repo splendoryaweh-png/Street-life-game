@@ -46,6 +46,7 @@ import {
   GROUP_TELEGRAM,
 } from '@/lib/storage';
 import { playClickSound, playCoinSound, playSuccessSound } from '@/lib/sound';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import { StudioBeats } from '@/src/components/StudioBeats';
 import { LongBeat } from '@/src/data/longBeatsData';
 
@@ -189,7 +190,6 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
   const [isPreviewPlaying, setIsPreviewPlaying] = useState<boolean>(false);
   const [visibleBeatsCount, setVisibleBeatsCount] = useState<number>(2); // Lazy load 2 at a time
   const [isAdWatching, setIsAdWatching] = useState<boolean>(false);
-  const [adCountdown, setAdCountdown] = useState<number>(5);
   const [currentAdIndex, setCurrentAdIndex] = useState<number>(() => {
     return ((gameState.studioAdsWatched || 0) % 33) + 1;
   });
@@ -665,29 +665,25 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
     }
   };
 
-  // WATCH AD UNDER STUDIO (10 COINS ONLY, 33 TOTAL ADS, 5/DAY PER AD)
-  const handleWatchStudioAd = () => {
+  // Credit Studio rewards only after Adsgram confirms a completed rewarded ad.
+  const handleWatchStudioAd = async () => {
     if (isAdWatching) return;
     playClickSound();
     setIsAdWatching(true);
-    setAdCountdown(5);
-
-    const timer = setInterval(() => {
-      setAdCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setIsAdWatching(false);
-          const res = watchStudioAd(currentAdIndex);
-          onToast(res.message);
-          if (res.success) {
-            playCoinSound();
-            setCurrentAdIndex(res.nextAdIndex);
-          }
-          return 5;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    try {
+      await showAdsgramRewardedAd();
+      const res = watchStudioAd(currentAdIndex);
+      onToast(res.message);
+      if (res.success) {
+        playCoinSound();
+        setCurrentAdIndex(res.nextAdIndex);
+      }
+    } catch (error) {
+      console.error('Studio Adsgram error:', error);
+      onToast('The advertisement was not completed or is unavailable. No coins were added.');
+    } finally {
+      setIsAdWatching(false);
+    }
   };
 
   // Tap screen listener when browser audio is blocked
@@ -892,7 +888,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
             type="button"
             className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-black text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(6,182,212,0.4)] active:scale-95 transition-all cursor-pointer shrink-0"
           >
-            {isAdWatching ? `Ad (${adCountdown}s)` : '+10 Coins'}
+            {isAdWatching ? 'Loading Ad...' : '+10 Coins'}
           </button>
         </div>
 
