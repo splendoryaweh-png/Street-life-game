@@ -40,6 +40,12 @@ function verifyTelegramInitData(initData: string) {
   }
 }
 
+function isConfiguredAdmin(telegramId: number) {
+  const raw = process.env.STREETLIFE_ADMIN_TELEGRAM_IDS || process.env.ADMIN_TELEGRAM_IDS || process.env.ADMIN_TELEGRAM_ID || '';
+  const ids = raw.split(',').map((value) => value.trim()).filter(Boolean);
+  return ids.includes(String(telegramId));
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
@@ -77,7 +83,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { ok: true, player },
+      { ok: true, player, isAdmin: isConfiguredAdmin(user.id) },
       { headers: { 'Cache-Control': 'no-store' } }
     );
   } catch (error) {
