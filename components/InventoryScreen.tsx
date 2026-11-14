@@ -93,6 +93,87 @@ type ShopCategory =
 
 type ActiveViewMode = 'outside' | 'inside' | 'studio' | 'vehicle' | null;
 
+type InventoryAdsgramShowResult = {
+  done: boolean;
+  description?: string;
+  state?: 'load' | 'render' | 'playing' | 'destroy';
+  error?: boolean;
+};
+
+type InventoryAdsgramController = {
+  show: () => Promise<InventoryAdsgramShowResult>;
+};
+
+function getInventoryAdsgram() {
+  return (window as Window & {
+    Adsgram?: {
+      init: (options: { blockId: string }) => InventoryAdsgramController;
+    };
+  }).Adsgram;
+}
+
+const INVENTORY_ADSGRAM_BLOCK_ID = '59485';
+const INVENTORY_ADSGRAM_SCRIPT_URL = 'https://sad.adsgram.ai/js/sad.min.js';
+
+let inventoryAdsgramSdkPromise: Promise<void> | null = null;
+
+function loadInventoryAdsgramSdk(): Promise<void> {
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('Ads are only available in the browser.'));
+  }
+
+  if (getInventoryAdsgram()) return Promise.resolve();
+  if (inventoryAdsgramSdkPromise) return inventoryAdsgramSdkPromise;
+
+  inventoryAdsgramSdkPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      `script[src=\"${INVENTORY_ADSGRAM_SCRIPT_URL}\"]`
+    );
+    const script = existing || document.createElement('script');
+    let settled = false;
+
+    const cleanup = () => {
+      script.removeEventListener('load', handleLoad);
+      script.removeEventListener('error', handleError);
+      clearTimeout(timeoutId);
+    };
+
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (error) {
+        inventoryAdsgramSdkPromise = null;
+        reject(error);
+      } else {
+        resolve();
+      }
+    };
+
+    const handleLoad = () => {
+      if (getInventoryAdsgram()) finish();
+      else finish(new Error('Adsgram SDK did not initialize.'));
+    };
+
+    const handleError = () => finish(new Error('Could not load Adsgram.'));
+    const timeoutId = setTimeout(
+      () => finish(new Error('Adsgram SDK loading timed out.')),
+      10000
+    );
+
+    script.addEventListener('load', handleLoad, { once: true });
+    script.addEventListener('error', handleError, { once: true });
+
+    if (!existing) {
+      script.src = INVENTORY_ADSGRAM_SCRIPT_URL;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+
+  return inventoryAdsgramSdkPromise;
+}
+
 function getRentExpiresTimestamp(): number {
   return Date.now() + 30 * 24 * 60 * 60 * 1000;
 }
@@ -178,6 +259,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
   const [lockedBeatToUpgrade, setLockedBeatToUpgrade] = useState<BeatDefinition | null>(null);
 
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const inventoryAdRequestInProgressRef = useRef<boolean>(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const liveStreamRef = useRef<MediaStream | null>(null);
@@ -225,16 +307,35 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
   // ---------------------------------------------------------------------------
   // WATCH AD TO GET 10 SC
   // ---------------------------------------------------------------------------
-  const handleWatchAdForCoins = () => {
-    if (isWatchingAd) return;
+  const handleWatchAdForCoins = async () => {
+    if (isWatchingAd || inventoryAdRequestInProgressRef.current) return;
+
+    inventoryAdRequestInProgressRef.current = true;
     setIsWatchingAd(true);
     playClickSound();
 
-    setTimeout(() => {
-      setIsWatchingAd(false);
-      addGameCoins(1, '+10 SC - Watched Inventory Ad', 'ad_reward');
+    try {
+      await loadInventoryAdsgramSdk();
+
+      const adsgram = getInventoryAdsgram();
+      if (!adsgram) {
+        throw new Error('Adsgram is unavailable.');
+      }
+
+      const controller = adsgram.init({
+        blockId: INVENTORY_ADSGRAM_BLOCK_ID,
+      });
+      const result = await controller.show();
+
+      if (!result || result.done !== true || result.error === true) {
+        onToast('The ad was not completed. No coins were added.');
+        return;
+      }
+
+      addGameCoins(10, '+10 SC - Completed Inventory Ad', 'ad_reward');
       playSuccessSound();
-      onToast('🎉 +1 Street Coins credited to your balance!');
+      onToast('🎉 +10 Street Coins credited to your balance!');
+
       try {
         confetti({
           particleCount: 50,
@@ -243,7 +344,13 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
           colors: ['#FFD700', '#FACC15', '#FFFFFF'],
         });
       } catch {}
-    }, 1600);
+    } catch (error) {
+      console.error('Inventory Adsgram error:', error);
+      onToast('The ad could not be loaded. Please try again later. No coins were added.');
+    } finally {
+      inventoryAdRequestInProgressRef.current = false;
+      setIsWatchingAd(false);
+    }
   };
 
   // ---------------------------------------------------------------------------
@@ -1004,7 +1111,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
           >
             <Tv className="w-4 h-4 text-yellow-400" />
             <span>
-              {isWatchingAd ? 'Playing Ad Reward...' : 'Watch ad to get 10 SC'}
+              {isWatchingAd ? 'Loading Adsgram ad...' : 'Watch ad to get 10 SC'}
             </span>
           </button>
         </div>
@@ -2653,8 +2760,11 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
         onClose={() => setShowAdsgramChain(false)}
         onCompleteChain={(totalCoins) => {
           setShowAdsgramChain(false);
-          addGameCoins(totalCoins, `+${totalCoins} SC - Adsgram 3-Chain Completed`, 'ad_reward');
-          onToast(`🔥 +${totalCoins} 10 SC credited from Adsgram Chain!`);
+          if (totalCoins <= 0) return;
+
+          // The complete three-ad chain has one fixed reward: 10 Street Coins.
+          addGameCoins(10, '+10 SC - Adsgram 3-Chain Completed', 'ad_reward');
+          onToast('🔥 +10 Street Coins credited from Adsgram Chain!');
         }}
       />
     </div>
