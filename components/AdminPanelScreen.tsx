@@ -29,10 +29,8 @@ import { UserGameState, PostedSong, AdminLog } from '@/types/game';
 import {
   ADMIN_EMAIL,
   ADMIN_TELEGRAM,
-  adminAddCoins,
   adminExtendRent,
   adminDeleteSong,
-  adminToggleBan,
   adminResetAll,
   getAdminLogs,
   getStoredPostedSongs,
@@ -72,15 +70,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
 
   const handleAddCoins = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!coinsAmount || coinsAmount <= 0) {
-      onToast('Enter a valid coin amount');
-      return;
-    }
-    playCoinSound();
-    adminAddCoins(coinsAmount, targetUserId || 'Current User');
-    setLogs(getAdminLogs());
-    onToast(`Added +${coinsAmount.toLocaleString()} Coins successfully!`);
-    setCoinsAmount(1000);
+    onToast('Direct coin adjustments are disabled until balances are managed by the secure player database.');
   };
 
   const handleExtendRent = () => {
@@ -91,11 +81,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
   };
 
   const handleToggleBan = () => {
-    playClickSound();
-    const banned = adminToggleBan(targetUserId || gameState.deviceId);
-    setIsBanned(banned);
-    setLogs(getAdminLogs());
-    onToast(banned ? 'User has been banned!' : 'User ban removed!');
+    onToast('Player bans are disabled until server-side player moderation is configured.');
   };
 
   const handleDeleteSong = (songId: string, songName: string) => {
@@ -107,17 +93,9 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
   };
 
   const handleExecuteResetAll = () => {
-    if (resetConfirmWord !== 'RESET') {
-      onToast('Please type RESET in capital letters to confirm.');
-      return;
-    }
-    playSuccessSound();
-    adminResetAll();
+    onToast('Global reset is disabled. A browser-only reset cannot safely reset every player account.');
     setIsResetConfirmOpen(false);
     setResetConfirmWord('');
-    setLogs(getAdminLogs());
-    setPostedSongs([]);
-    onToast('System and client storage completely reset!');
   };
 
   const isRentExpired = isStudioRentExpired();
