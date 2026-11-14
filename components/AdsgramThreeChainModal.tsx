@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Tv, CheckCircle2, Play, Sparkles, X, Loader2 } from 'lucide-react';
 import { playSuccessSound, playClickSound, playPickupSound } from '@/lib/sound';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 
 interface AdsgramThreeChainModalProps {
   isOpen: boolean;
@@ -11,80 +12,8 @@ interface AdsgramThreeChainModalProps {
   onCompleteChain?: (totalCoins: number) => void;
 }
 
-type AdsgramShowResult = {
-  done: boolean;
-  description?: string;
-  state?: 'load' | 'render' | 'playing' | 'destroy';
-  error?: boolean;
-};
-
-type AdsgramController = {
-  show: () => Promise<AdsgramShowResult>;
-};
-
-declare global {
-  interface Window {
-    Adsgram?: {
-      init: (options: { blockId: string }) => AdsgramController;
-    };
-  }
-}
-
-const ADSGRAM_BLOCK_ID = '59485';
-const ADSGRAM_SCRIPT_URL = 'https://sad.adsgram.ai/js/sad.min.js';
 const TOTAL_ADS = 3;
 const TOTAL_CHAIN_REWARD = 10;
-
-function loadAdsgramSdk(): Promise<void> {
-  if (typeof window === 'undefined') {
-    return Promise.reject(new Error('Ads are only available in the browser.'));
-  }
-
-  if (window.Adsgram) return Promise.resolve();
-
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(
-      `script[src="${ADSGRAM_SCRIPT_URL}"]`
-    );
-
-    if (existing) {
-      if (window.Adsgram) {
-        resolve();
-        return;
-      }
-
-      const onLoad = () => {
-        cleanup();
-        window.Adsgram
-          ? resolve()
-          : reject(new Error('Adsgram SDK did not initialize.'));
-      };
-      const onError = () => {
-        cleanup();
-        reject(new Error('Could not load Adsgram.'));
-      };
-      const cleanup = () => {
-        existing.removeEventListener('load', onLoad);
-        existing.removeEventListener('error', onError);
-      };
-
-      existing.addEventListener('load', onLoad, { once: true });
-      existing.addEventListener('error', onError, { once: true });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = ADSGRAM_SCRIPT_URL;
-    script.async = true;
-    script.onload = () => {
-      window.Adsgram
-        ? resolve()
-        : reject(new Error('Adsgram SDK did not initialize.'));
-    };
-    script.onerror = () => reject(new Error('Could not load Adsgram.'));
-    document.head.appendChild(script);
-  });
-}
 
 function AdsgramThreeChainContent({
   onClose,
@@ -104,6 +33,8 @@ function AdsgramThreeChainContent({
   const [errorMessage, setErrorMessage] = useState('');
   const isRunningRef = useRef(false);
   const hasAwardedRef = useRef(false);
+  const hasDeliveredCallbackRef = useRef(false);
+  const completedAdsRef = useRef(0);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -121,26 +52,23 @@ function AdsgramThreeChainContent({
     setErrorMessage('');
 
     try {
-      await loadAdsgramSdk();
-
-      if (!window.Adsgram) {
-        throw new Error('Adsgram is unavailable.');
-      }
-
-      for (let adNumber = completedAds + 1; adNumber <= TOTAL_ADS; adNumber += 1) {
+      for (let adNumber = completedAdsRef.current + 1; adNumber <= TOTAL_ADS; adNumber += 1) {
         if (!isMountedRef.current) return;
 
         setStatusMessage(`Loading Adsgram advertisement ${adNumber} of ${TOTAL_ADS}...`);
 
-        const controller = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
-        const result = await controller.show();
+        // The shared integration serializes ad playback and confirms done === true.
+        const result = await showAdsgramRewardedAd();
 
         if (!result || result.done !== true || result.error === true) {
-          throw new Error(`Advertisement ${adNumber} was not completed. No chain reward was issued.`);
+          throw new Error(
+            `Advertisement ${adNumber} was not completed. No chain reward was issued.`
+          );
         }
 
         if (!isMountedRef.current) return;
 
+        completedAdsRef.current = adNumber;
         setCompletedAds(adNumber);
         playPickupSound();
         setStatusMessage(
@@ -154,7 +82,9 @@ function AdsgramThreeChainContent({
 
       hasAwardedRef.current = true;
       setIsChainFinished(true);
-      setStatusMessage('All three Adsgram advertisements were confirmed. Your 10-coin reward is ready.');
+      setStatusMessage(
+        'All three Adsgram advertisements were confirmed. Your 10-coin reward is ready.'
+      );
       playSuccessSound();
     } catch (error) {
       console.error('Adsgram three-ad chain error:', error);
@@ -164,7 +94,9 @@ function AdsgramThreeChainContent({
             ? error.message
             : 'Adsgram could not complete the chain. Please try again.'
         );
-        setStatusMessage('The chain was not completed. No coins have been awarded.');
+        setStatusMessage(
+          `The chain stopped after ${completedAdsRef.current} of ${TOTAL_ADS} completed ads. No coins have been awarded yet.`
+        );
       }
     } finally {
       isRunningRef.current = false;
@@ -173,8 +105,16 @@ function AdsgramThreeChainContent({
   };
 
   const handleEnterStudio = () => {
-    if (!isChainFinished || !hasAwardedRef.current) return;
+    if (
+      !isChainFinished ||
+      !hasAwardedRef.current ||
+      hasDeliveredCallbackRef.current
+    ) {
+      return;
+    }
 
+    // Lock before invoking parent callbacks so rapid clicks cannot credit twice.
+    hasDeliveredCallbackRef.current = true;
     playClickSound();
     onAllAdsCompleted?.();
     onCompleteChain?.(TOTAL_CHAIN_REWARD);
