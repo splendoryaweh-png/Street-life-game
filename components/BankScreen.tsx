@@ -114,7 +114,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
   const [withdrawCurrency, setWithdrawCurrency] = useState<CryptoCurrency>('TON');
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [destinationMemo, setDestinationMemo] = useState<string>('');
-  const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState<boolean>(false);
+  const isSubmittingWithdraw = false;
   const [withdrawalSuccessModal, setWithdrawalSuccessModal] = useState<WithdrawalRecord | null>(null);
   const [withdrawalLockPopup, setWithdrawalLockPopup] = useState<{
     show: boolean;
