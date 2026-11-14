@@ -23,7 +23,7 @@ import {
   Send,
   Info,
 } from 'lucide-react';
-import { playClickSound, playSuccessSound, playCoinSound } from '@/lib/sound';
+import { playClickSound } from '@/lib/sound';
 
 export const UNLOCK_DATE = new Date('2026-12-20T00:00:00Z').getTime();
 
