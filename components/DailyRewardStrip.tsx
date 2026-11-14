@@ -25,8 +25,6 @@ interface DailyRewardStripProps {
   dailyStreak: number;
   lastClaimDate: string | null;
   onClaim: (amount: number, bonusItem?: string) => void;
-  onSimulatePlayGame: () => void;
-  onResetTestLock: () => void;
 }
 
 interface DailyRewardItem {
@@ -45,8 +43,6 @@ export function DailyRewardStrip({
   dailyStreak,
   lastClaimDate,
   onClaim,
-  onSimulatePlayGame,
-  onResetTestLock,
 }: DailyRewardStripProps) {
   const [claimCelebration, setClaimCelebration] = useState<{ coins: number; perk: string } | null>(null);
 
@@ -300,43 +296,6 @@ export function DailyRewardStrip({
         </div>
       </div>
 
-      {/* Testing Utilities */}
-      <div className="mt-2.5 pt-2.5 border-t border-white/5 flex items-center justify-between gap-2 text-[11px]">
-        <div className="text-[#9CA3AF] flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#FFD700]" />
-          <span>Status:</span>
-          <span className="font-semibold text-white">
-            {hasPlayedToday ? 'Played (Unlocked)' : 'Not Played (Locked)'}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {!hasPlayedToday ? (
-            <button
-              onClick={() => {
-                playClickSound();
-                onSimulatePlayGame();
-              }}
-              type="button"
-              className="px-2.5 py-1 rounded-md bg-[#FFD700]/15 hover:bg-[#FFD700]/25 text-[#FFD700] font-bold text-[10px] tracking-wide border border-[#FFD700]/30 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
-            >
-              <Play className="w-2.5 h-2.5 fill-current" />
-              Simulate Play
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                playClickSound();
-                onResetTestLock();
-              }}
-              type="button"
-              className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-[#9CA3AF] text-[10px] border border-white/10 transition-colors cursor-pointer"
-            >
-              Re-Lock Test
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
