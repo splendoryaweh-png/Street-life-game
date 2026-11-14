@@ -1,4 +1,3 @@
-
 import { TelegramUser } from '@/types/game';
 
 declare global {
@@ -8,6 +7,8 @@ declare global {
         ready: () => void;
         expand: () => void;
         close?: () => void;
+        /** Original Telegram-signed WebApp init data; send unchanged to the server for verification. */
+        initData?: string;
         initDataUnsafe?: {
           user?: TelegramUser;
         };
@@ -26,16 +27,43 @@ declare global {
 export const STREET_LIFE_BOT_USERNAME = 'Streetlifebot_bot';
 export const STREET_LIFE_BOT_URL = `https://t.me/${STREET_LIFE_BOT_USERNAME}`;
 
+/**
+ * Returns Telegram's original signed initData string.
+ * Do not construct, edit, or trust client-decoded identity data for server auth.
+ * The server must validate this exact string using the bot token.
+ */
+export function getTelegramInitData(): string {
+  if (typeof window === 'undefined') return '';
+
+  try {
+    return window.Telegram?.WebApp?.initData || '';
+  } catch (err) {
+    console.warn('Unable to read Telegram initData:', err);
+    return '';
+  }
+}
+
+/** Returns the currently available Telegram WebApp user snapshot. */
+export function getTelegramUser(): TelegramUser | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (!user || user.id === undefined || user.id === null) return null;
+    return user;
+  } catch (err) {
+    console.warn('Unable to read Telegram WebApp user:', err);
+    return null;
+  }
+}
+
 export function initTelegramWebApp(): TelegramUser | null {
   if (typeof window === 'undefined') return null;
 
   try {
-    window?.Telegram?.WebApp?.ready?.();
-    window?.Telegram?.WebApp?.expand?.();
-
-    if (window?.Telegram?.WebApp?.initDataUnsafe?.user) {
-      return window.Telegram.WebApp.initDataUnsafe.user;
-    }
+    window.Telegram?.WebApp?.ready?.();
+    window.Telegram?.WebApp?.expand?.();
+    return getTelegramUser();
   } catch (err) {
     console.warn('Telegram WebApp safe initialization notice:', err);
   }
