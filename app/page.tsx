@@ -10,8 +10,6 @@ import {
   SERVER_GAME_STATE_SNAPSHOT,
   getLeaderboard,
   saveDailyClaim,
-  saveHasPlayedToday,
-  resetDailyTestState,
   applyInviteCode,
   simulateReferralInvited,
   tickGameState,
@@ -227,20 +225,6 @@ export default function StreetLifeApp() {
     showToast(
       `Claimed +${rewardAmount} Street Coins ${bonusItem ? `& ${bonusItem}` : ''}! Total: ${newTotal.toLocaleString()} SC`
     );
-  };
-
-  // Simulate Playing 1 Game (Unlock daily reward)
-  const handleSimulatePlayGame = () => {
-    playCoinSound();
-    saveHasPlayedToday(true);
-    showToast('Game completed! Daily Reward is now unlocked 🔓');
-  };
-
-  // Reset test lock
-  const handleResetTestLock = () => {
-    playClickSound();
-    resetDailyTestState();
-    showToast('Daily Reward locked again for testing 🔒');
   };
 
   const handleComingSoonGame = (title: string) => {
@@ -609,8 +593,6 @@ export default function StreetLifeApp() {
               dailyStreak={activeGameState.dailyStreak}
               lastClaimDate={activeGameState.lastClaimDate}
               onClaim={handleClaimDailyReward}
-              onSimulatePlayGame={handleSimulatePlayGame}
-              onResetTestLock={handleResetTestLock}
             />
 
             {/* SYNDICATE REFERRALS (Kept on HOME tab) */}
