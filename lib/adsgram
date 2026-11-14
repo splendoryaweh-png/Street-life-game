@@ -1,4 +1,3 @@
-
 'use client';
 
 /**
@@ -6,17 +5,17 @@
  *
  * Adsgram Reward Block ID: 59485
  *
- * This file:
- * - Loads the Adsgram SDK only once.
- * - Initializes the Reward controller only once.
- * - Prevents multiple ads from opening at the same time.
- * - Returns success only when the ad is completed.
- * - Does NOT credit coins itself.
+ * Responsibilities:
+ * - Load the Adsgram SDK once and handle an already-present script safely.
+ * - Initialize one shared rewarded-ad controller.
+ * - Prevent overlapping rewarded advertisements.
+ * - Report success only when Adsgram explicitly returns done === true.
+ * - Never award coins or game items from this module.
  */
 
 const ADSGRAM_BLOCK_ID = '59485';
-
 const ADSGRAM_SCRIPT_URL = 'https://sad.adsgram.ai/js/sad.min.js';
+const ADSGRAM_LOAD_TIMEOUT_MS = 15_000;
 
 export interface AdsgramShowResult {
   done: boolean;
@@ -25,7 +24,7 @@ export interface AdsgramShowResult {
   error: boolean;
 }
 
-interface AdsgramController {
+export interface AdsgramController {
   show: () => Promise<AdsgramShowResult>;
   destroy?: () => void;
 }
@@ -44,20 +43,17 @@ declare global {
 }
 
 let sdkLoadPromise: Promise<AdsgramSDK> | null = null;
-
+let controllerPromise: Promise<AdsgramController> | null = null;
 let adsgramController: AdsgramController | null = null;
-
 let isShowingAd = false;
 
 /**
- * Load the Adsgram SDK.
- * Reuses an existing script if one is already present.
+ * Load Adsgram in the browser. If another part of the app has already
+ * inserted the SDK script, reuse it instead of inserting a duplicate.
  */
 function loadAdsgramSDK(): Promise<AdsgramSDK> {
-  if (typeof window === 'undefined') {
-    return Promise.reject(
-      new Error('Adsgram can only run in the browser.')
-    );
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return Promise.reject(new Error('Adsgram can only run in the browser.'));
   }
 
   if (window.Adsgram) {
@@ -68,105 +64,135 @@ function loadAdsgramSDK(): Promise<AdsgramSDK> {
     return sdkLoadPromise;
   }
 
-  sdkLoadPromise = new Promise<AdsgramSDK>((resolve, reject) => {
-    let script = document.querySelector<HTMLScriptElement>(
-      `script[src="${ADSGRAM_SCRIPT_URL}"]`
+  const pending = new Promise<AdsgramSDK>((resolve, reject) => {
+    let script = Array.from(document.scripts).find(
+      (candidate) => candidate.src === ADSGRAM_SCRIPT_URL
     );
+    let settled = false;
+    let timeoutId: number | undefined;
 
-    const handleLoad = () => {
-      if (window.Adsgram) {
-        resolve(window.Adsgram);
-      } else {
-        sdkLoadPromise = null;
-        reject(
-          new Error('Adsgram SDK loaded, but its API was not found.')
-        );
+    const cleanup = () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
       }
+      script?.removeEventListener('load', handleLoad);
+      script?.removeEventListener('error', handleError);
     };
 
-    const handleError = () => {
-      sdkLoadPromise = null;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
 
-      reject(
-        new Error('Unable to load the Adsgram advertising SDK.')
-      );
-    };
-
-    if (script) {
-      script.addEventListener('load', handleLoad, { once: true });
-      script.addEventListener('error', handleError, { once: true });
-
-      // The script may already have loaded before these listeners
-      // were attached.
-      if (window.Adsgram) {
-        resolve(window.Adsgram);
+      if (error) {
+        reject(error);
+        return;
       }
 
-      return;
+      if (!window.Adsgram || typeof window.Adsgram.init !== 'function') {
+        reject(new Error('Adsgram SDK loaded, but its API was not found.'));
+        return;
+      }
+
+      resolve(window.Adsgram);
+    };
+
+    const handleLoad = () => finish();
+    const handleError = () =>
+      finish(new Error('Unable to load the Adsgram advertising SDK.'));
+
+    timeoutId = window.setTimeout(() => {
+      finish(new Error('Adsgram SDK loading timed out.'));
+    }, ADSGRAM_LOAD_TIMEOUT_MS);
+
+    if (!script) {
+      script = document.createElement('script');
+      script.src = ADSGRAM_SCRIPT_URL;
+      script.async = true;
     }
-
-    script = document.createElement('script');
-    script.src = ADSGRAM_SCRIPT_URL;
-    script.async = true;
 
     script.addEventListener('load', handleLoad, { once: true });
     script.addEventListener('error', handleError, { once: true });
 
-    document.head.appendChild(script);
+    // The SDK may have become available between the first check and
+    // listener registration, or the script may already have loaded.
+    if (window.Adsgram) {
+      finish();
+      return;
+    }
+
+    if (!script.isConnected) {
+      document.head.appendChild(script);
+    }
   });
 
-  return sdkLoadPromise;
+  sdkLoadPromise = pending;
+
+  // A failed load must be retryable on the next user attempt.
+  void pending.catch(() => {
+    if (sdkLoadPromise === pending) {
+      sdkLoadPromise = null;
+    }
+  });
+
+  return pending;
 }
 
-/**
- * Get the shared Adsgram controller.
- * The controller is initialized only once.
- */
+/** Return the single shared Adsgram controller. */
 export async function getAdsgramController(): Promise<AdsgramController> {
   if (adsgramController) {
     return adsgramController;
   }
 
-  const sdk = await loadAdsgramSDK();
-
-  if (!sdk || typeof sdk.init !== 'function') {
-    throw new Error('Adsgram initialization is unavailable.');
+  if (controllerPromise) {
+    return controllerPromise;
   }
 
-  adsgramController = sdk.init({
-    blockId: ADSGRAM_BLOCK_ID,
-    debug: false,
-  });
+  const pending = (async () => {
+    const sdk = await loadAdsgramSDK();
 
-  if (
-    !adsgramController ||
-    typeof adsgramController.show !== 'function'
-  ) {
-    adsgramController = null;
+    if (!sdk || typeof sdk.init !== 'function') {
+      throw new Error('Adsgram initialization is unavailable.');
+    }
 
-    throw new Error('Adsgram controller could not be initialized.');
+    const controller = sdk.init({
+      blockId: ADSGRAM_BLOCK_ID,
+      debug: false,
+    });
+
+    if (!controller || typeof controller.show !== 'function') {
+      throw new Error('Adsgram controller could not be initialized.');
+    }
+
+    adsgramController = controller;
+    return controller;
+  })();
+
+  controllerPromise = pending;
+
+  try {
+    return await pending;
+  } finally {
+    if (controllerPromise === pending) {
+      controllerPromise = null;
+    }
   }
-
-  return adsgramController;
 }
 
 /**
- * Show a rewarded advertisement.
- *
- * A successful result means Adsgram reports that the ad
- * was completed. The calling screen must handle its own
- * reward and coin-crediting logic.
+ * Show one rewarded advertisement. The caller must grant its own reward
+ * only after this function resolves successfully.
  */
 export async function showAdsgramRewardedAd(): Promise<AdsgramShowResult> {
   if (isShowingAd) {
     throw new Error('An advertisement is already playing.');
   }
 
+  // Set the lock before the first await so two rapid calls cannot overlap.
   isShowingAd = true;
 
   try {
     const controller = await getAdsgramController();
-
     const result = await controller.show();
 
     if (!result || result.done !== true || result.error === true) {
@@ -181,18 +207,27 @@ export async function showAdsgramRewardedAd(): Promise<AdsgramShowResult> {
   }
 }
 
-/**
- * Check whether an advertisement is currently playing.
- */
+/** Check whether a rewarded advertisement is currently in progress. */
 export function isAdsgramAdShowing(): boolean {
   return isShowingAd;
 }
 
 /**
- * Reset the controller if it needs to be reinitialized.
+ * Clear a cached controller after a known SDK/controller failure.
+ * Do not unlock or destroy an advertisement while it is in progress.
  */
 export function resetAdsgramController(): void {
+  if (isShowingAd) {
+    return;
+  }
+
+  try {
+    adsgramController?.destroy?.();
+  } catch {
+    // Resetting the cache must remain safe even if SDK cleanup fails.
+  }
+
   adsgramController = null;
+  controllerPromise = null;
   sdkLoadPromise = null;
-  isShowingAd = false;
 }
