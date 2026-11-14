@@ -20,12 +20,14 @@ import {
 } from 'lucide-react';
 import { playCoinSound, playSirenSound, playClickSound, playPickupSound, playSuccessSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import {
   getTodayDailyClaim,
   consumeRacingNitro,
   claimRacingAdNitro,
   buyRacingNitroWithCoins,
   evaluateRacingBonusCoin,
+  updateTodayDailyClaim,
 } from '@/lib/dailyFree';
 import confetti from 'canvas-confetti';
 import { RaceMultiplayer } from '@/src/games/StreetRace/RaceMultiplayer';
@@ -194,26 +196,41 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
     }
   }, [dailyFreeNitro, onToast, playSfx]);
 
-  const handleWatchAdForNitro = useCallback(() => {
+  const handleWatchAdForNitro = useCallback(async () => {
+    if (isWatchingNitroAd) return;
+
     if (nitroAdsWatched >= 5) {
       onToast('Maximum 5 nitro ad bonuses reached today!');
       return;
     }
+
     setIsWatchingNitroAd(true);
     playClickSound();
-    setTimeout(() => {
+
+    try {
+      // The reward is granted only after Adsgram confirms done === true.
+      await showAdsgramRewardedAd();
+
       const res = claimRacingAdNitro();
-      setIsWatchingNitroAd(false);
-      if (res.success) {
-        setDailyFreeNitro(res.remaining);
+      if (!res.success) {
         setNitroAdsWatched(res.totalAdsClaimed);
-        nitroRef.current = Math.min(100, nitroRef.current + 60);
-        setNitroAvailable(Math.round(nitroRef.current));
-        playSfx('pickup');
-        onToast(`⚡ +1 Nitro Granted from Ad! (${res.totalAdsClaimed}/5 today)`);
+        onToast('Daily Nitro ad limit reached. No Nitro was granted.');
+        return;
       }
-    }, 1500);
-  }, [nitroAdsWatched, onToast, playSfx]);
+
+      setDailyFreeNitro(res.remaining);
+      setNitroAdsWatched(res.totalAdsClaimed);
+      nitroRef.current = Math.min(100, nitroRef.current + 60);
+      setNitroAvailable(Math.round(nitroRef.current));
+      playSfx('pickup');
+      onToast(`⚡ +1 Nitro Granted from Adsgram! (${res.totalAdsClaimed}/5 today)`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Advertisement unavailable.';
+      onToast(`No Nitro granted: ${message}`);
+    } finally {
+      setIsWatchingNitroAd(false);
+    }
+  }, [isWatchingNitroAd, nitroAdsWatched, onToast, playSfx]);
 
   const handleBuyNitroBottle = useCallback(() => {
     if (currentCoins < 50) {
@@ -294,25 +311,33 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
     [onToast, playSfx, selectedMode]
   );
 
-  // Watch Ad to Continue (Solo = continue from same spot, PVP = retry race)
-  const handleWatchAdContinue = () => {
+  // Watch a real Adsgram ad to continue (Solo) or retry (PVP).
+  const handleWatchAdContinue = async () => {
+    if (adWatching) return;
+
     setAdWatching(true);
-    setTimeout(() => {
-      setAdWatching(false);
+    try {
+      // Do not resume/restart or record a completion unless Adsgram confirms it.
+      await showAdsgramRewardedAd();
+
+      const dailyRecord = updateTodayDailyClaim((prev) => ({
+        race_continue_ad_claims_count: (prev.race_continue_ad_claims_count || 0) + 1,
+      }));
+
       setHealth(100);
       healthRef.current = 100;
       setGameState('playing');
       isPlayingRef.current = true;
 
       if (selectedMode === 'solo') {
-        // Continue from same spot
+        // Continue from the same distance and repair the car.
         if (playerCarRef.current) {
           playerCarRef.current.position.x = 0;
           targetXRef.current = 0;
         }
-        onToast('Car repaired! Continuing from same spot!');
+        onToast(`Car repaired! Continuing from the same spot. Ad recorded (${dailyRecord.race_continue_ad_claims_count} today).`);
       } else {
-        // PVP retry race
+        // PVP retry race.
         distanceRef.current = 0;
         setDistanceMeters(0);
         pvpTimerRef.current = 60;
@@ -323,10 +348,15 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
           playerCarRef.current.position.x = 0;
           targetXRef.current = 0;
         }
-        onToast('PVP Race Restarted! Sprint the 2km in 60s!');
+        onToast(`PVP Race Restarted! Sprint the 2km in 60s! Ad recorded (${dailyRecord.race_continue_ad_claims_count} today).`);
       }
       playSfx('pickup');
-    }, 1800);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Advertisement unavailable.';
+      onToast(`Race not continued: ${message}`);
+    } finally {
+      setAdWatching(false);
+    }
   };
 
   // Keyboard controls
