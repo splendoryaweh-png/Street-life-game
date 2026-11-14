@@ -344,6 +344,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
         setDistanceMeters(0);
         pvpTimerRef.current = 60;
         setPvpTimeRemaining(60);
+        pvpRankRef.current = 1;
         setPvpRank(1);
         setPvpFailReason(null);
         if (playerCarRef.current) {
