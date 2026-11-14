@@ -909,11 +909,46 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
+      if (animFrameIdRef.current !== null) {
+        cancelAnimationFrame(animFrameIdRef.current);
+        animFrameIdRef.current = null;
+      }
       if (renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+
+      // Release Three.js GPU resources whenever the race scene is rebuilt
+      // or the player leaves the game (important on memory-limited phones).
+      scene.traverse((object) => {
+        const mesh = object as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        mesh.geometry?.dispose();
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : mesh.material
+            ? [mesh.material]
+            : [];
+        materials.forEach((material) => {
+          Object.values(material).forEach((value) => {
+            if (value instanceof THREE.Texture) value.dispose();
+          });
+          material.dispose();
+        });
+      });
+
       renderer.dispose();
+      scene.clear();
+      if (sceneRef.current === scene) sceneRef.current = null;
+      if (cameraRef.current === camera) cameraRef.current = null;
+      if (rendererRef.current === renderer) rendererRef.current = null;
+      if (playerCarRef.current) playerCarRef.current = null;
+      exhaustFlamesRef.current = [];
+      roadSegmentsRef.current = [];
+      trafficListRef.current = [];
+      coinsListRef.current = [];
+      nitroListRef.current = [];
+      fuelListRef.current = [];
+      pvpRivalsRef.current = [];
     };
   }, [handleEndRun, onToast, playSfx, pvpRank, selectedMode]);
 
