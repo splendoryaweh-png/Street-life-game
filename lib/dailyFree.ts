@@ -15,6 +15,7 @@ export interface DailyClaimsDbRecord {
   free_nitro_granted: number;
   free_nitro_remaining: number;
   nitro_ad_claims_count: number; // max 5 per day
+  race_continue_ad_claims_count: number; // completed Street Race continue ads today
   coin_bonus_claimed_count: number; // up to 5 coins get 2X bonus
   shooter_powerup_daily_granted: boolean;
   shooter_powerup_type: 'double_bullet' | 'energy_pack' | null;
@@ -104,6 +105,7 @@ export function getTodayDailyClaim(currentStreak = 1): DailyClaimsDbRecord {
       free_nitro_granted: 3,
       free_nitro_remaining: 3,
       nitro_ad_claims_count: 0,
+      race_continue_ad_claims_count: 0,
       coin_bonus_claimed_count: 0,
       shooter_powerup_daily_granted: false,
       shooter_powerup_type: null,
@@ -197,6 +199,26 @@ export function claimRacingAdNitro(): { success: boolean; remaining: number; tot
     success: true,
     remaining: updated.free_nitro_remaining,
     totalAdsClaimed: updated.nitro_ad_claims_count,
+  };
+}
+
+/**
+ * Record a completed Street Race continue advertisement.
+ * Call this only after Adsgram returns done === true.
+ * This records the completed view; it does not grant coins.
+ */
+export function recordRacingContinueAd(): {
+  success: boolean;
+  totalAdsClaimed: number;
+} {
+  const updated = updateTodayDailyClaim((prev) => ({
+    race_continue_ad_claims_count:
+      (prev.race_continue_ad_claims_count ?? 0) + 1,
+  }));
+
+  return {
+    success: true,
+    totalAdsClaimed: updated.race_continue_ad_claims_count,
   };
 }
 
