@@ -321,7 +321,7 @@ export const SERVER_GAME_STATE_SNAPSHOT: UserGameState = {
   inventoryArray: DEFAULT_INVENTORY_ARRAY,
   equippedItems: DEFAULT_EQUIPPED_ITEMS,
   // PROM 4: Watch Ads
-  watchCountDaily: 5,
+  watchCountDaily: 0,
   lastWatchDate: null,
   boostUntil: null,
   // PROM 6: Task System
@@ -588,7 +588,7 @@ export function subscribeGameState(listener: () => void) {
       // PROM 4: Watch Ads Hydration
       const todayStr = new Date().toISOString().split('T')[0];
       let lastWatchDate = localStorage.getItem('lastWatchDate') || loadedData.lastWatchDate || todayStr;
-      let watchCountDaily = 5;
+      let watchCountDaily = 0;
       const rawWatchCount = localStorage.getItem('watchCountDaily');
       if (rawWatchCount !== null) {
         watchCountDaily = parseInt(rawWatchCount, 10) || 0;
@@ -1400,18 +1400,21 @@ export function toggleEquipItem(itemId: string): { isEquipped: boolean; equipped
 }
 
 // ---------------------------------------------------------------------------
-// PROM 4: Watch Ads System (Watch & Earn, Rewarded Simulation, Multipliers, Boost)
+// PROM 4: Watch Ads System (Adsgram Rewarded Ads)
 // ---------------------------------------------------------------------------
 
-/**
- * Ad network placeholder as requested in Prom 4.
- * Later replace with Adsgram / OnClickA
- */
-export function showRewardedAd(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 3000));
-}
+const WATCH_AD_REWARD = 10;
+const WATCH_AD_DAILY_LIMIT = 33;
 
-export function claimWatchAdReward(baseAmount: number = 10): {
+/**
+ * Credits the fixed Watch & Earn reward after the Adsgram rewarded-video
+ * flow reports successful completion.
+ *
+ * SECURITY NOTE:
+ * This function updates client-side state. It is not server-side verification
+ * and must not be treated as tamper-proof for valuable rewards.
+ */
+export function claimWatchAdReward(_baseAmount: number = WATCH_AD_REWARD): {
   success: boolean;
   reward: number;
   multiplier: number;
@@ -1419,11 +1422,17 @@ export function claimWatchAdReward(baseAmount: number = 10): {
   limitReached: boolean;
   boostActivated: boolean;
 } {
-  const currentCount = typeof currentSnapshot.watchCountDaily === 'number'
-    ? currentSnapshot.watchCountDaily
-    : 0;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const lastWatchDate = currentSnapshot.lastWatchDate || todayStr;
 
-  if (currentCount >= 33) {
+  // Reset the count when a new day begins.
+  const currentCount =
+    lastWatchDate === todayStr &&
+    typeof currentSnapshot.watchCountDaily === 'number'
+      ? currentSnapshot.watchCountDaily
+      : 0;
+
+  if (currentCount >= WATCH_AD_DAILY_LIMIT) {
     return {
       success: false,
       reward: 0,
@@ -1435,36 +1444,38 @@ export function claimWatchAdReward(baseAmount: number = 10): {
   }
 
   const nextCount = currentCount + 1;
-  const reward = 10; // Coins 10 only as specified
+  const reward = WATCH_AD_REWARD;
   const multiplier = 1;
-  const todayStr = new Date().toISOString().split('T')[0];
+
   let boostUntil = currentSnapshot.boostUntil || null;
   let boostActivated = false;
 
-  // Boost x2 for 1 hour after 5 ads
+  // Preserve the existing one-hour boost feature after the fifth ad.
   if (nextCount >= 5 && (!boostUntil || Date.now() > boostUntil)) {
-    boostUntil = Date.now() + 3600000; // 1 hour
+    boostUntil = Date.now() + 60 * 60 * 1000;
     boostActivated = true;
   }
 
-  const tx: CoinTransaction = {
-    id: 'tx_ad_' + Date.now(),
+  const now = Date.now();
+  const transaction: CoinTransaction = {
+    id: `tx_ad_${now}_${Math.random().toString(36).slice(2, 8)}`,
     type: 'ad_reward',
-    description: `+${reward} S for watching ad (${multiplier}x multiplier)`,
+    description: `+${reward} SC for completing a rewarded ad`,
     amount: reward,
-    timestamp: Date.now(),
+    timestamp: now,
   };
-
-  const updatedTransactions = [tx, ...(currentSnapshot.transactions || [])].slice(0, 30);
 
   currentSnapshot = {
     ...currentSnapshot,
-    streetCoin: currentSnapshot.streetCoin + reward,
+    streetCoin: (currentSnapshot.streetCoin || 0) + reward,
     adsWatched: (currentSnapshot.adsWatched || 0) + 1,
     watchCountDaily: nextCount,
     lastWatchDate: todayStr,
     boostUntil,
-    transactions: updatedTransactions,
+    transactions: [
+      transaction,
+      ...(currentSnapshot.transactions || []),
+    ].slice(0, 30),
     hasPlayedToday: true,
   };
 
@@ -1476,7 +1487,7 @@ export function claimWatchAdReward(baseAmount: number = 10): {
     reward,
     multiplier,
     dailyCount: nextCount,
-    limitReached: nextCount >= 10,
+    limitReached: nextCount >= WATCH_AD_DAILY_LIMIT,
     boostActivated,
   };
 }
