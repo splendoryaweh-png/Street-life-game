@@ -96,6 +96,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
 
   // PVP specific state: Position, 60s Timer, Fail status
   const [pvpRank, setPvpRank] = useState<number>(1);
+  const pvpRankRef = useRef(1);
   const [pvpTimeRemaining, setPvpTimeRemaining] = useState<number>(60);
   const [pvpFailReason, setPvpFailReason] = useState<string | null>(null);
   const [adWatching, setAdWatching] = useState<boolean>(false);
@@ -175,6 +176,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
     setNitroAvailable(100);
     nitroRef.current = 100;
     targetXRef.current = 0;
+    pvpRankRef.current = 1;
     setPvpRank(1);
     pvpTimerRef.current = 60;
     setPvpTimeRemaining(60);
@@ -688,7 +690,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
         pvpTimerRef.current -= delta;
         setPvpTimeRemaining(Math.max(0, Math.ceil(pvpTimerRef.current)));
         if (pvpTimerRef.current <= 0) {
-          handleEndRun(false, pvpRank, 'Time Expired (60s limit reached)');
+          handleEndRun(false, pvpRankRef.current, 'Time Expired (60s limit reached)');
           return;
         }
       }
@@ -734,6 +736,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
         rivals.forEach((r) => {
           if (r.distance > distanceRef.current) currentRank++;
         });
+        pvpRankRef.current = currentRank;
         setPvpRank(currentRank);
         // If not finish top 3 = FAIL, if 1..3 = WIN
         const isWin = currentRank <= 3;
@@ -806,7 +809,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
             playSfx('crash');
             t.mesh.position.z += 25;
             if (healthRef.current <= 0) {
-              handleEndRun(false, pvpRank, 'Vehicle Wrecked');
+              handleEndRun(false, pvpRankRef.current, 'Vehicle Wrecked');
             }
           }
         }
@@ -950,7 +953,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
       fuelListRef.current = [];
       pvpRivalsRef.current = [];
     };
-  }, [handleEndRun, onToast, playSfx, pvpRank, selectedMode]);
+  }, [handleEndRun, onToast, playSfx, selectedMode]);
 
   // -------------------------------------------------------------------------
   // MODE SELECTION SCREEN (Card 1: SOLO RACE | Card 2: PVP RACE | Card 3: MULTIPLAYER)
