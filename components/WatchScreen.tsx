@@ -55,22 +55,36 @@ function loadAdsgramSdk(): Promise<void> {
     );
 
     if (existing) {
-      existing.addEventListener(
-        'load',
-        () =>
-          window.Adsgram
-            ? resolve()
-            : reject(new Error('Adsgram SDK did not initialize.')),
-        { once: true }
-      );
+      if (window.Adsgram) {
+        resolve();
+        return;
+      }
 
-      existing.addEventListener(
-        'error',
-        () => reject(new Error('Could not load Adsgram.')),
-        { once: true }
-      );
+      const finishLoading = () => {
+        if (window.Adsgram) {
+          resolve();
+        } else {
+          reject(new Error('Adsgram SDK did not initialize.'));
+        }
+      };
 
-      if (window.Adsgram) resolve();
+      const failLoading = () =>
+        reject(new Error('Could not load Adsgram.'));
+
+      existing.addEventListener('load', finishLoading, { once: true });
+      existing.addEventListener('error', failLoading, { once: true });
+
+      // Another screen may have loaded the shared SDK before this component
+      // attached its event listeners. Check its ready state to avoid waiting
+      // forever for an event that has already fired.
+      const readyState = (existing as HTMLScriptElement & {
+        readyState?: string;
+      }).readyState;
+
+      if (readyState === 'loaded' || readyState === 'complete') {
+        finishLoading();
+      }
+
       return;
     }
 
@@ -394,7 +408,7 @@ export function WatchScreen({
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-gray-400">
-                TIER 1 (5 ADS)
+                MILESTONE 1 (5 ADS)
               </span>
 
               {adsWatchedToday >= 5 && (
@@ -404,10 +418,10 @@ export function WatchScreen({
 
             <div className="my-1.5">
               <div className="text-xl font-black text-amber-400">
-                2x COINS
+                10 COINS
               </div>
               <p className="text-[10px] text-gray-300">
-                +1,000 S per view
+                Fixed reward per completed ad
               </p>
             </div>
 
@@ -427,7 +441,7 @@ export function WatchScreen({
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-gray-400">
-                TIER 2 (10 ADS)
+                MILESTONE 2 (10 ADS)
               </span>
 
               {adsWatchedToday >= 10 && (
@@ -437,10 +451,10 @@ export function WatchScreen({
 
             <div className="my-1.5">
               <div className="text-xl font-black text-purple-400">
-                3x COINS
+                10 COINS
               </div>
               <p className="text-[10px] text-gray-300">
-                +1,500 S per view
+                No extra coin multiplier
               </p>
             </div>
 
