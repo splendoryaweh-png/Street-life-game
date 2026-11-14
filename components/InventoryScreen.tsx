@@ -38,6 +38,7 @@ import {
   STUDIO_LEVEL_NAMES,
 } from '@/lib/freestyleBeats';
 import { AdsgramThreeChainModal } from '@/components/AdsgramThreeChainModal';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import {
   Store,
   Hammer,
@@ -92,87 +93,6 @@ type ShopCategory =
   | 'food_drinks';
 
 type ActiveViewMode = 'outside' | 'inside' | 'studio' | 'vehicle' | null;
-
-type InventoryAdsgramShowResult = {
-  done: boolean;
-  description?: string;
-  state?: 'load' | 'render' | 'playing' | 'destroy';
-  error?: boolean;
-};
-
-type InventoryAdsgramController = {
-  show: () => Promise<InventoryAdsgramShowResult>;
-};
-
-function getInventoryAdsgram() {
-  return (window as Window & {
-    Adsgram?: {
-      init: (options: { blockId: string }) => InventoryAdsgramController;
-    };
-  }).Adsgram;
-}
-
-const INVENTORY_ADSGRAM_BLOCK_ID = '59485';
-const INVENTORY_ADSGRAM_SCRIPT_URL = 'https://sad.adsgram.ai/js/sad.min.js';
-
-let inventoryAdsgramSdkPromise: Promise<void> | null = null;
-
-function loadInventoryAdsgramSdk(): Promise<void> {
-  if (typeof window === 'undefined') {
-    return Promise.reject(new Error('Ads are only available in the browser.'));
-  }
-
-  if (getInventoryAdsgram()) return Promise.resolve();
-  if (inventoryAdsgramSdkPromise) return inventoryAdsgramSdkPromise;
-
-  inventoryAdsgramSdkPromise = new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(
-      `script[src=\"${INVENTORY_ADSGRAM_SCRIPT_URL}\"]`
-    );
-    const script = existing || document.createElement('script');
-    let settled = false;
-
-    const cleanup = () => {
-      script.removeEventListener('load', handleLoad);
-      script.removeEventListener('error', handleError);
-      clearTimeout(timeoutId);
-    };
-
-    const finish = (error?: Error) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      if (error) {
-        inventoryAdsgramSdkPromise = null;
-        reject(error);
-      } else {
-        resolve();
-      }
-    };
-
-    const handleLoad = () => {
-      if (getInventoryAdsgram()) finish();
-      else finish(new Error('Adsgram SDK did not initialize.'));
-    };
-
-    const handleError = () => finish(new Error('Could not load Adsgram.'));
-    const timeoutId = setTimeout(
-      () => finish(new Error('Adsgram SDK loading timed out.')),
-      10000
-    );
-
-    script.addEventListener('load', handleLoad, { once: true });
-    script.addEventListener('error', handleError, { once: true });
-
-    if (!existing) {
-      script.src = INVENTORY_ADSGRAM_SCRIPT_URL;
-      script.async = true;
-      document.head.appendChild(script);
-    }
-  });
-
-  return inventoryAdsgramSdkPromise;
-}
 
 function getRentExpiresTimestamp(): number {
   return Date.now() + 30 * 24 * 60 * 60 * 1000;
@@ -315,23 +235,11 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
     playClickSound();
 
     try {
-      await loadInventoryAdsgramSdk();
+      // The shared Adsgram integration loads one SDK/controller and verifies
+      // that Adsgram explicitly confirms a completed rewarded advertisement.
+      await showAdsgramRewardedAd();
 
-      const adsgram = getInventoryAdsgram();
-      if (!adsgram) {
-        throw new Error('Adsgram is unavailable.');
-      }
-
-      const controller = adsgram.init({
-        blockId: INVENTORY_ADSGRAM_BLOCK_ID,
-      });
-      const result = await controller.show();
-
-      if (!result || result.done !== true || result.error === true) {
-        onToast('The ad was not completed. No coins were added.');
-        return;
-      }
-
+      // Credit the existing game ledger only after confirmed ad completion.
       addGameCoins(10, '+10 SC - Completed Inventory Ad', 'ad_reward');
       playSuccessSound();
       onToast('🎉 +10 Street Coins credited to your balance!');
@@ -346,7 +254,9 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
       } catch {}
     } catch (error) {
       console.error('Inventory Adsgram error:', error);
-      onToast('The ad could not be loaded. Please try again later. No coins were added.');
+      const message =
+        error instanceof Error ? error.message : 'Adsgram could not complete the advertisement.';
+      onToast(`${message} No coins were added. Please try again.`);
     } finally {
       inventoryAdRequestInProgressRef.current = false;
       setIsWatchingAd(false);
