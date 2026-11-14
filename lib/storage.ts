@@ -286,7 +286,7 @@ export const DEFAULT_COMPLETED_TASKS: Record<string, boolean> = {};
 
 // Canonical Server-Side Baseline Snapshot
 export const SERVER_GAME_STATE_SNAPSHOT: UserGameState = {
-  streetCoin: 12450,
+  streetCoin: 1000,
   myReferralCode: 'SL7K9B2',
   deviceId: 'SL-DEV-001',
   hasPlayedToday: false,
@@ -502,7 +502,7 @@ export function subscribeGameState(listener: () => void) {
       // Generate deviceId & myReferralCode if missing
       const deviceId = loadedData.deviceId || generateDeviceId();
       const myReferralCode = loadedData.myReferralCode || generateReferralCode();
-      const streetCoin = typeof loadedData.streetCoin === 'number' && !isNaN(loadedData.streetCoin) ? loadedData.streetCoin : 12450;
+      const streetCoin = typeof loadedData.streetCoin === 'number' && !isNaN(loadedData.streetCoin) ? loadedData.streetCoin : 1000;
       const hasPlayedToday = !!loadedData.hasPlayedToday;
       const dailyStreak = loadedData.dailyStreak || 1;
       const lastClaimDate = loadedData.lastClaimDate || null;
