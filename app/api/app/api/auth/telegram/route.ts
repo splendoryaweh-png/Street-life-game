@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       first_name: first_name || null,
       last_name: last_name || null,
       photo_url: photo_url || null,
-      coins: 0,
+      coins: 1000,
     }).select().single();
     if (error) throw error;
     return NextResponse.json({ ok: true, player: data });
