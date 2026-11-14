@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Volume2, VolumeX, Sparkles, Coins, Trophy, Zap, Gift, Tv, CheckCircle2, X } from 'lucide-react';
 import { playCoinSound, playSuccessSound, playClickSound, playSirenSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import { consumeSlotDailyFreeSpin, getTodayDailyClaim } from '@/lib/dailyFree';
 import confetti from 'canvas-confetti';
 
@@ -56,7 +57,6 @@ export function StreetSlot({ onBack, onToast, currentCoins }: StreetSlotProps) {
   const [showCardsModal, setShowCardsModal] = useState<boolean>(false);
   const [adsWatchedCount, setAdsWatchedCount] = useState<number>(0);
   const [isWatchingAd, setIsWatchingAd] = useState<boolean>(false);
-  const [adCountdown, setAdCountdown] = useState<number>(3);
 
   const playSfx = useCallback(
     (type: 'coin' | 'success' | 'click' | 'jackpot') => {
@@ -167,39 +167,34 @@ export function StreetSlot({ onBack, onToast, currentCoins }: StreetSlotProps) {
     }, 70);
   };
 
-  // Card Option 1: Watch 3 Ads to get 1 more spin
-  const handleWatchAdForSpin = () => {
+  // Count only actual Adsgram completions toward the three-ad extra spin.
+  const handleWatchAdForSpin = async () => {
     if (isWatchingAd) return;
     setIsWatchingAd(true);
-    setAdCountdown(3);
     playClickSound();
-
-    const timer = setInterval(() => {
-      setAdCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setIsWatchingAd(false);
-          const nextCount = adsWatchedCount + 1;
-          setAdsWatchedCount(nextCount);
-
-          if (nextCount >= 3) {
-            setAdsWatchedCount(0);
-            setFreeSpinsToday(1);
-            setShowCardsModal(false);
-            playSuccessSound();
-            onToast('🎉 3 Ads Watched! +1 Spin Awarded!');
-            try {
-              confetti({ particleCount: 50, spread: 60, origin: { y: 0.5 } });
-            } catch {}
-          } else {
-            playCoinSound();
-            onToast(`📺 Ad ${nextCount}/3 watched! Watch ${3 - nextCount} more for 1 spin.`);
-          }
-          return 3;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    try {
+      await showAdsgramRewardedAd();
+      const nextCount = adsWatchedCount + 1;
+      if (nextCount >= 3) {
+        setAdsWatchedCount(0);
+        setFreeSpinsToday(1);
+        setShowCardsModal(false);
+        playSuccessSound();
+        onToast('🎉 3 Ads Watched! +1 Spin Awarded!');
+        try {
+          confetti({ particleCount: 50, spread: 60, origin: { y: 0.5 } });
+        } catch {}
+      } else {
+        setAdsWatchedCount(nextCount);
+        playCoinSound();
+        onToast(`📺 Ad ${nextCount}/3 completed! Watch ${3 - nextCount} more for 1 spin.`);
+      }
+    } catch (error) {
+      console.error('Street Slot Adsgram error:', error);
+      onToast('The ad was not completed or is unavailable. Your progress was not changed.');
+    } finally {
+      setIsWatchingAd(false);
+    }
   };
 
   // Card Option 2: Spend 5,000 SC to get 1 spin
