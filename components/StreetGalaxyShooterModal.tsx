@@ -404,11 +404,12 @@ export function StreetGalaxyShooterModal({
     playSfx('fail');
   }, [playSfx]);
 
-  // Watch Ad to Continue with 50% energy
-  const handleWatchAdContinue = () => {
+  // Continue only after Adsgram confirms the rewarded ad completed.
+  const handleWatchAdContinue = async () => {
+    if (adWatching) return;
     setAdWatching(true);
-    setTimeout(() => {
-      setAdWatching(false);
+    try {
+      await showAdsgramRewardedAd();
       gameRef.current.energy = 50;
       gameRef.current.bullets = [];
       setEnergy(50);
@@ -416,7 +417,12 @@ export function StreetGalaxyShooterModal({
       gameRef.current.isRunning = true;
       onToast('Shields recharged to 50%! Keep fighting!');
       playSfx('pickup');
-    }, 1800);
+    } catch (error) {
+      console.error('Street Galaxy continue Adsgram error:', error);
+      onToast('The ad was not completed or is unavailable. Your game was not continued.');
+    } finally {
+      setAdWatching(false);
+    }
   };
 
   // Main Canvas Animation Loop
