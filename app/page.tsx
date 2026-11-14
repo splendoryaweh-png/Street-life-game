@@ -16,7 +16,7 @@ import {
   simulateReferralInvited,
   tickGameState,
 } from '@/lib/storage';
-import { initTelegramWebApp, BotNotification } from '@/lib/telegram';
+import { initTelegramWebApp, getTelegramInitData, BotNotification } from '@/lib/telegram';
 import { playCoinSound, playClickSound, playSuccessSound } from '@/lib/sound';
 import Link from 'next/link';
 import { Bot, X, Eye, EyeOff, Wallet, CheckSquare, Tv, Gift, Swords, Mic2, Gamepad2, Shield } from 'lucide-react';
@@ -67,6 +67,7 @@ export default function StreetLifeApp() {
   const [activeTab, setActiveTab] = useState<NavTab>('HOME');
   const [leaderboard] = useState<LeaderboardEntry[]>(() => getLeaderboard());
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isStreetLifeAdmin, setIsStreetLifeAdmin] = useState<boolean>(false);
 
   // Reactive Game State Store (streetLife_save_v2)
   const gameState: UserGameState = useSyncExternalStore(
@@ -86,8 +87,7 @@ export default function StreetLifeApp() {
   const activeGameState = isMounted ? gameState : SERVER_GAME_STATE_SNAPSHOT;
   const activeTelegramUser = isMounted ? telegramUser : null;
 
-  // Admin access is tied to the verified Telegram numeric ID, never a username or email.
-  const isStreetLifeAdmin = String(activeTelegramUser?.id ?? '') === '7184752443';
+  // Admin access is granted only by the server after Telegram initData signature validation.
 
   // Modals
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -152,6 +152,32 @@ export default function StreetLifeApp() {
     }
 
     initTelegramWebApp();
+
+    // Never authorize admin UI from initDataUnsafe or a client-supplied Telegram ID.
+    const verifyAdminAccess = async () => {
+      const initData = getTelegramInitData();
+      if (!initData) {
+        setIsStreetLifeAdmin(false);
+        return;
+      }
+      try {
+        const response = await fetch('/api/auth/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initData }),
+          cache: 'no-store',
+        });
+        if (!response.ok) {
+          setIsStreetLifeAdmin(false);
+          return;
+        }
+        const result = await response.json();
+        setIsStreetLifeAdmin(result?.isAdmin === true);
+      } catch {
+        setIsStreetLifeAdmin(false);
+      }
+    };
+    void verifyAdminAccess();
 
     const timer = setTimeout(() => {
       setIsLoading(false);
