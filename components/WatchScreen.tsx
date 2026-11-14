@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserGameState, NavTab } from '@/types/game';
 import { claimWatchAdReward } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import { playClickSound, playCoinSound } from '@/lib/sound';
 import confetti from 'canvas-confetti';
 import {
@@ -20,89 +21,6 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/src/contexts/LanguageContext';
 
-type AdsgramShowResult = {
-  done: boolean;
-  description?: string;
-  state?: 'load' | 'render' | 'playing' | 'destroy';
-  error?: boolean;
-};
-
-type AdsgramController = {
-  show: () => Promise<AdsgramShowResult>;
-};
-
-declare global {
-  interface Window {
-    Adsgram?: {
-      init: (options: { blockId: string }) => AdsgramController;
-    };
-  }
-}
-
-const ADSGRAM_BLOCK_ID = '59485';
-const ADSGRAM_SCRIPT_URL = 'https://sad.adsgram.ai/js/sad.min.js';
-
-function loadAdsgramSdk(): Promise<void> {
-  if (typeof window === 'undefined') {
-    return Promise.reject(new Error('Ads are only available in the browser.'));
-  }
-
-  if (window.Adsgram) return Promise.resolve();
-
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(
-      `script[src="${ADSGRAM_SCRIPT_URL}"]`
-    );
-
-    if (existing) {
-      if (window.Adsgram) {
-        resolve();
-        return;
-      }
-
-      const finishLoading = () => {
-        if (window.Adsgram) {
-          resolve();
-        } else {
-          reject(new Error('Adsgram SDK did not initialize.'));
-        }
-      };
-
-      const failLoading = () =>
-        reject(new Error('Could not load Adsgram.'));
-
-      existing.addEventListener('load', finishLoading, { once: true });
-      existing.addEventListener('error', failLoading, { once: true });
-
-      // Another screen may have loaded the shared SDK before this component
-      // attached its event listeners. Check its ready state to avoid waiting
-      // forever for an event that has already fired.
-      const readyState = (existing as HTMLScriptElement & {
-        readyState?: string;
-      }).readyState;
-
-      if (readyState === 'loaded' || readyState === 'complete') {
-        finishLoading();
-      }
-
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = ADSGRAM_SCRIPT_URL;
-    script.async = true;
-
-    script.onload = () =>
-      window.Adsgram
-        ? resolve()
-        : reject(new Error('Adsgram SDK did not initialize.'));
-
-    script.onerror = () => reject(new Error('Could not load Adsgram.'));
-
-    document.head.appendChild(script);
-  });
-}
-
 interface WatchScreenProps {
   gameState: UserGameState;
   onNavigateTab: (tab: NavTab) => void;
@@ -119,6 +37,7 @@ export function WatchScreen({
   const { t } = useLanguage();
 
   const [isPlayingAd, setIsPlayingAd] = useState(false);
+  const adRequestInProgress = useRef(false);
 
   const [rewardModal, setRewardModal] = useState<{
     isOpen: boolean;
@@ -144,11 +63,17 @@ export function WatchScreen({
   useEffect(() => {
     const updateResetTime = () => {
       const now = new Date();
-      const tomorrow = new Date(now);
+      // Watch & Earn daily claims are keyed to the UTC date in lib/storage.ts.
+      // Keep the displayed countdown aligned with that same reset boundary.
+      const nextUtcDay = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate() + 1
+        )
+      );
 
-      tomorrow.setHours(24, 0, 0, 0);
-
-      const diffMs = tomorrow.getTime() - now.getTime();
+      const diffMs = nextUtcDay.getTime() - now.getTime();
       const hours = Math.floor(diffMs / (1000 * 60 * 60));
       const minutes = Math.floor(
         (diffMs % (1000 * 60 * 60)) / (1000 * 60)
@@ -177,38 +102,25 @@ export function WatchScreen({
   }, [gameState.boostUntil]);
 
   const handleStartAd = async () => {
-    if (isPlayingAd) return;
+    // The ref closes the small window before React applies the disabled state.
+    if (adRequestInProgress.current) return;
 
     if (isLimitReached) {
       onToast('Daily limit reached! Come back after reset.');
       return;
     }
 
+    adRequestInProgress.current = true;
     playClickSound();
     setIsPlayingAd(true);
 
     try {
-      await loadAdsgramSdk();
+      // This shared helper resolves only when Adsgram explicitly confirms
+      // done === true. Failed, skipped, or incomplete ads reject instead.
+      await showAdsgramRewardedAd();
 
-      if (!window.Adsgram) {
-        throw new Error('Adsgram is unavailable.');
-      }
-
-      const controller = window.Adsgram.init({
-        blockId: ADSGRAM_BLOCK_ID,
-      });
-
-      const result = await controller.show();
-
-      if (
-        !result ||
-        result.done !== true ||
-        result.error === true
-      ) {
-        onToast('The ad was not completed. No coins were added.');
-        return;
-      }
-
+      // Keep the fixed reward and the existing daily limit/boost logic in
+      // the storage layer. No reward is granted before verified completion.
       const res = claimWatchAdReward(10);
 
       if (!res.success) {
@@ -238,8 +150,9 @@ export function WatchScreen({
       }
     } catch (error) {
       console.error('Adsgram rewarded ad error:', error);
-      onToast('No ad is available right now. Please try again later.');
+      onToast('The ad was not completed or is unavailable. No coins were added.');
     } finally {
+      adRequestInProgress.current = false;
       setIsPlayingAd(false);
     }
   };
