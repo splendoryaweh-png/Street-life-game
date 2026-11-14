@@ -896,7 +896,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
           <div className="mt-2.5 w-full bg-black/60 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-cyan-400 h-full transition-all duration-1000 shadow-[0_0_8px_#06b6d4]"
-              style={{ width: `${((5 - adCountdown) / 5) * 100}%` }}
+              style={{ width: '100%' }}
             />
           </div>
         )}
