@@ -17,61 +17,9 @@ import {
 
 const SAVE_KEY_V2 = 'streetLife_save_v2';
 
-export const DEFAULT_WITHDRAWALS: WithdrawalRecord[] = [
-  {
-    id: 'wdr_init_1',
-    timestamp: 1773489000000 - 3600000 * 4,
-    coinAmount: 5000,
-    payoutAmount: 0.5,
-    currency: 'TON',
-    network: 'TON Network',
-    destinationAddress: 'UQDx4B9aZ908yKp1M7xQ',
-    status: 'completed',
-    txHash: '0x3f7a9d2c18b4e7a02b6d8f51a4c9e7f8',
-  },
-  {
-    id: 'wdr_init_2',
-    timestamp: 1773489000000 - 3600000 * 26,
-    coinAmount: 2500,
-    payoutAmount: 2.5,
-    currency: 'USDT',
-    network: 'USDT (TRC-20)',
-    destinationAddress: 'TPx79a1F6e39eM21k8L0',
-    status: 'completed',
-    txHash: '0x99b1e84d2f09a63c71a4d8c2e910fa31',
-  },
-];
+export const DEFAULT_WITHDRAWALS: WithdrawalRecord[] = [];
 
-export const DEFAULT_TRANSACTIONS: CoinTransaction[] = [
-  {
-    id: 'tx_seed_1',
-    type: 'referral',
-    description: '+10 for referral',
-    amount: 10,
-    timestamp: 1773489000000,
-  },
-  {
-    id: 'tx_seed_2',
-    type: 'boss_kill',
-    description: '+10 for boss kill',
-    amount: 10,
-    timestamp: 1773487000000,
-  },
-  {
-    id: 'tx_seed_3',
-    type: 'welcome_bonus',
-    description: '+10 for welcome bonus',
-    amount: 10,
-    timestamp: 1773484000000,
-  },
-  {
-    id: 'tx_seed_4',
-    type: 'daily_reward',
-    description: '+10 for daily claim',
-    amount: 10,
-    timestamp: 1773480000000,
-  },
-];
+export const DEFAULT_TRANSACTIONS: CoinTransaction[] = [];
 
 export const DEFAULT_INVENTORY_ITEMS: InventoryItem[] = [
   {
