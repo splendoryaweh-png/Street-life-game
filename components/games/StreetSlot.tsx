@@ -370,7 +370,7 @@ export function StreetSlot({ onBack, onToast, currentCoins }: StreetSlotProps) {
                   className="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                 >
                   {isWatchingAd ? (
-                    <span>Watching Ad... ({adCountdown}s)</span>
+                    <span>Loading Adsgram...</span>
                   ) : (
                     <>
                       <Tv className="w-3.5 h-3.5" />
