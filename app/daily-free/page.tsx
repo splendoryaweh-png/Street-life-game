@@ -155,6 +155,8 @@ export default function DailyFreePage() {
   const [dbExpanded, setDbExpanded] = useState(false);
   const [adWatchingType, setAdWatchingType] = useState<string | null>(null);
   const [isClaimingLoginReward, setIsClaimingLoginReward] = useState(false);
+  const [isPurchasingNitro, setIsPurchasingNitro] = useState(false);
+  const [pendingNitroPurchaseId, setPendingNitroPurchaseId] = useState<string | null>(null);
 
   // 7-Day Modal & Preview State
   const [showStreakModal, setShowStreakModal] = useState(false);
@@ -330,22 +332,73 @@ export default function DailyFreePage() {
   };
 
   // Buy Nitro with Coins
-  const handleBuyNitro = () => {
+  const handleBuyNitro = async () => {
+    if (isPurchasingNitro) return;
+
+    const initData = typeof window !== 'undefined'
+      ? window.Telegram?.WebApp?.initData || ''
+      : '';
+    if (!initData) {
+      showToast('Open STREET LIFE inside Telegram to purchase Nitro.');
+      playClickSound();
+      return;
+    }
+
     if (currentCoins < 50) {
       showToast('Need at least 50 SC to buy a nitro bottle!');
       playClickSound();
       return;
     }
 
-    addGameCoins(-50, '-50 SC - Purchased Nitro Bottle', 'task_reward');
-    buyRacingNitroWithCoins();
-    playPickupSound();
-    triggerFloatingTokens([{ label: '+1 NITRO', icon: '⚡' }]);
-    showToast('⚡ Purchased 1 Nitro for 50 SC!');
-    refreshState();
+    // Keep the same id after uncertain network failures so a retry cannot double-charge.
+    const requestId = pendingNitroPurchaseId || crypto.randomUUID();
+    setPendingNitroPurchaseId(requestId);
+    setIsPurchasingNitro(true);
+    playClickSound();
+
+    try {
+      const response = await fetch('/api/shop/racing-nitro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData, requestId }),
+        cache: 'no-store',
+      });
+      const result = await response.json().catch(() => null);
+
+      if (response.status === 409 || response.status === 400 || response.status === 401) {
+        setPendingNitroPurchaseId(null);
+        showToast(result?.message || result?.error || 'Nitro purchase was not approved.');
+        return;
+      }
+
+      if (!response.ok || result?.ok !== true) {
+        showToast(result?.error || 'Purchase status is uncertain. Retry safely; the same request will be reused.');
+        return;
+      }
+
+      const balance = Number(result.balance);
+      if (!Number.isSafeInteger(balance) || balance < 0) {
+        showToast('Purchase was processed, but the balance response was invalid. Please refresh before retrying.');
+        return;
+      }
+
+      addGameCoins(-50, '-50 SC - Purchased Nitro Bottle', 'task_reward');
+      saveCoins(balance);
+      buyRacingNitroWithCoins();
+      setPendingNitroPurchaseId(null);
+      playPickupSound();
+      triggerFloatingTokens([{ label: '+1 NITRO', icon: '⚡' }]);
+      showToast('⚡ Purchased 1 Nitro for 50 SC!');
+      refreshState();
+    } catch (error) {
+      console.error('Racing Nitro purchase failed:', error);
+      showToast('Connection failed. Retry the purchase; it will reuse the same request safely.');
+    } finally {
+      setIsPurchasingNitro(false);
+    }
   };
 
-  const handleWatchAdForShooter = async () => {
+    const handleWatchAdForShooter = async () => {
     if (!claimRecord || adWatchingType) return;
     if (claimRecord.shooter_ad_powerups_count >= 3) {
       showToast('Maximum 3 shooter power-up ads reached today!');
@@ -672,11 +725,12 @@ export default function DailyFreePage() {
 
             <button
               onClick={handleBuyNitro}
+              disabled={isPurchasingNitro}
               type="button"
               className="py-2.5 px-3 rounded-xl bg-black/50 border border-white/15 text-[10px] font-black text-gray-200 hover:text-white flex items-center justify-center gap-1.5 active:scale-95 transition-all"
             >
               <Coins className="w-3.5 h-3.5 text-[#FFD700]" />
-              Buy Nitro (50 SC)
+              {isPurchasingNitro ? 'Processing...' : 'Buy Nitro (50 SC)'}
             </button>
           </div>
         </div>
