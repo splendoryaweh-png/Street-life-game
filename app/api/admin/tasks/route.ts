@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { recordLeadershipTaskReward } from '@/lib/taskAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -242,10 +243,19 @@ export async function POST(request: Request) {
         );
       }
 
+      const leadershipTracked = await recordLeadershipTaskReward(
+        supabase,
+        Number(submission.player_telegram_id),
+        String(body.submissionId),
+        Number(result.credited || 0),
+        'admin_approved_task'
+      );
+
       return NextResponse.json({
         ok: true,
         message: result.message,
         credited: result.credited,
+        leadershipTracked,
       });
     }
 
