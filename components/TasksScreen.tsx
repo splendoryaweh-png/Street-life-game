@@ -80,6 +80,9 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
   const [activeCategory, setActiveCategory] = useState<TaskCategory>('Social');
   const [verifyingTaskId, setVerifyingTaskId] = useState<string | null>(null);
   const [shakingTaskIds, setShakingTaskIds] = useState<Record<string, boolean>>({});
+  const [taskSubmissionStatuses, setTaskSubmissionStatuses] = useState<Record<string, 'pending' | 'approved' | 'denied'>>({});
+  const [readyToSubmitTaskIds, setReadyToSubmitTaskIds] = useState<Record<string, boolean>>({});
+  const [submittingTaskId, setSubmittingTaskId] = useState<string | null>(null);
 
   // Modals for special tasks
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -108,6 +111,39 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
     mysteryBoxOpenedToday: 0,
     dailyQuizAnswersToday: 0,
   };
+
+  // Load authoritative task submission statuses for this Telegram player.
+  useEffect(() => {
+    const initData = (window as any).Telegram?.WebApp?.initData || '';
+    if (!initData) return;
+
+    let cancelled = false;
+    fetch('/api/tasks', {
+      method: 'GET',
+      headers: { 'x-telegram-init-data': initData },
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Could not load task statuses.');
+        return Array.isArray(result.submissions) ? result.submissions : [];
+      })
+      .then((submissions) => {
+        if (cancelled) return;
+        const next: Record<string, 'pending' | 'approved' | 'denied'> = {};
+        for (const submission of submissions) {
+          if (submission?.task_key && ['pending', 'approved', 'rejected', 'denied'].includes(submission.status)) {
+            next[String(submission.task_key)] = submission.status === 'rejected' || submission.status === 'denied'
+              ? 'denied'
+              : submission.status;
+          }
+        }
+        setTaskSubmissionStatuses(next);
+      })
+      .catch((error) => console.error('Could not load player task statuses:', error));
+
+    return () => { cancelled = true; };
+  }, []);
 
   // Active stay timer: increments every 5 seconds when tasks tab is open
   useEffect(() => {
@@ -179,8 +215,9 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
     onToast('This task reward is locked until server verification is completed. No coins were credited.');
   };
 
-  // Opening a link is not proof of completion. Never award after a timer.
-  const handleOpenAndVerify = (
+  // Social actions require a separate player confirmation after visiting the platform.
+  // The server records that confirmation as pending; only an admin can approve a reward.
+  const handleOpenAndVerify = async (
     taskId: string,
     _reward: number,
     title: string,
@@ -188,13 +225,59 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
     _targetEl?: HTMLElement | null
   ) => {
     playClickSound();
-    try {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch {
-      // The link remains available on the task card if popups are blocked.
+
+    if (taskSubmissionStatuses[taskId] === 'pending') {
+      onToast('This task is already pending admin review.');
+      return;
     }
-    setVerifyingTaskId(null);
-    onToast(`${title}: complete the task, then use server verification. Opening the link does not award coins.`);
+    if (taskSubmissionStatuses[taskId] === 'approved') {
+      onToast('This task has already been approved.');
+      return;
+    }
+
+    if (!readyToSubmitTaskIds[taskId]) {
+      try {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } catch {
+        // The task link remains visible on the card if popups are blocked.
+      }
+      setReadyToSubmitTaskIds((current) => ({ ...current, [taskId]: true }));
+      onToast(`When you finish ${title}, return here and tap Submit for review.`);
+      return;
+    }
+
+    const initData = (window as any).Telegram?.WebApp?.initData || '';
+    if (!initData) {
+      onToast('Open STREET LIFE inside Telegram before submitting a task.');
+      return;
+    }
+
+    setSubmittingTaskId(taskId);
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initData,
+          key: taskId,
+          type: 'social',
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Task submission failed.');
+
+      setTaskSubmissionStatuses((current) => ({ ...current, [taskId]: 'pending' }));
+      setReadyToSubmitTaskIds((current) => {
+        const next = { ...current };
+        delete next[taskId];
+        return next;
+      });
+      onToast(result.message || `${title} submitted. Waiting for admin review.`);
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Could not submit this task.');
+    } finally {
+      setSubmittingTaskId(null);
+    }
   };
 
   const handleCopyReferral = () => {
@@ -380,7 +463,9 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               desc="Official announcements & release drops"
               link={OFFICIAL_LINKS.mainChannel}
               icon={Send}
-              isCompleted={!!completed['social_main_channel']}
+              isCompleted={!!completed['social_main_channel'] || taskSubmissionStatuses['social_main_channel'] === 'approved'}
+              isPending={taskSubmissionStatuses['social_main_channel'] === 'pending'}
+              buttonLabel={submittingTaskId === 'social_main_channel' ? 'Submitting...' : readyToSubmitTaskIds['social_main_channel'] ? 'Submit for review' : undefined}
               isVerifying={verifyingTaskId === 'social_main_channel'}
               onAction={() =>
                 handleOpenAndVerify(
@@ -400,7 +485,9 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               desc="Talk strategy with thousands of hustlers"
               link={OFFICIAL_LINKS.chatGroup}
               icon={MessageSquare}
-              isCompleted={!!completed['social_chat_group']}
+              isCompleted={!!completed['social_chat_group'] || taskSubmissionStatuses['social_chat_group'] === 'approved'}
+              isPending={taskSubmissionStatuses['social_chat_group'] === 'pending'}
+              buttonLabel={submittingTaskId === 'social_chat_group' ? 'Submitting...' : readyToSubmitTaskIds['social_chat_group'] ? 'Submit for review' : undefined}
               isVerifying={verifyingTaskId === 'social_chat_group'}
               onAction={() =>
                 handleOpenAndVerify(
@@ -420,7 +507,9 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               desc="Real verified TON payment transactions"
               link={OFFICIAL_LINKS.paymentProof}
               icon={ShieldCheck}
-              isCompleted={!!completed['social_payment_proof']}
+              isCompleted={!!completed['social_payment_proof'] || taskSubmissionStatuses['social_payment_proof'] === 'approved'}
+              isPending={taskSubmissionStatuses['social_payment_proof'] === 'pending'}
+              buttonLabel={submittingTaskId === 'social_payment_proof' ? 'Submitting...' : readyToSubmitTaskIds['social_payment_proof'] ? 'Submit for review' : undefined}
               isVerifying={verifyingTaskId === 'social_payment_proof'}
               onAction={() =>
                 handleOpenAndVerify(
@@ -440,7 +529,9 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               desc="@streetlife737 official viral clips"
               link={OFFICIAL_LINKS.tiktok}
               icon={Video}
-              isCompleted={!!completed['social_tiktok']}
+              isCompleted={!!completed['social_tiktok'] || taskSubmissionStatuses['social_tiktok'] === 'approved'}
+              isPending={taskSubmissionStatuses['social_tiktok'] === 'pending'}
+              buttonLabel={submittingTaskId === 'social_tiktok' ? 'Submitting...' : readyToSubmitTaskIds['social_tiktok'] ? 'Submit for review' : undefined}
               isVerifying={verifyingTaskId === 'social_tiktok'}
               onAction={() =>
                 handleOpenAndVerify('social_tiktok', 100, 'TikTok', OFFICIAL_LINKS.tiktok)
@@ -455,7 +546,9 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               desc="@streetlife22 game tutorials & podcasts"
               link={OFFICIAL_LINKS.youtube}
               icon={Youtube}
-              isCompleted={!!completed['social_youtube']}
+              isCompleted={!!completed['social_youtube'] || taskSubmissionStatuses['social_youtube'] === 'approved'}
+              isPending={taskSubmissionStatuses['social_youtube'] === 'pending'}
+              buttonLabel={submittingTaskId === 'social_youtube' ? 'Submitting...' : readyToSubmitTaskIds['social_youtube'] ? 'Submit for review' : undefined}
               isVerifying={verifyingTaskId === 'social_youtube'}
               onAction={() =>
                 handleOpenAndVerify('social_youtube', 100, 'YouTube', OFFICIAL_LINKS.youtube)
@@ -470,7 +563,9 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               desc="@streethustle0 breaking news & giveaways"
               link={OFFICIAL_LINKS.x}
               icon={Twitter}
-              isCompleted={!!completed['social_x']}
+              isCompleted={!!completed['social_x'] || taskSubmissionStatuses['social_x'] === 'approved'}
+              isPending={taskSubmissionStatuses['social_x'] === 'pending'}
+              buttonLabel={submittingTaskId === 'social_x' ? 'Submitting...' : readyToSubmitTaskIds['social_x'] ? 'Submit for review' : undefined}
               isVerifying={verifyingTaskId === 'social_x'}
               onAction={() =>
                 handleOpenAndVerify('social_x', 100, 'X', OFFICIAL_LINKS.x)
@@ -497,7 +592,9 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               icon={Flame}
               badge="5,000 SC"
               buttonLabel="Boost Channel"
-              isCompleted={!!completed['boost_main_channel']}
+              isCompleted={!!completed['boost_main_channel'] || taskSubmissionStatuses['boost_main_channel'] === 'approved'}
+              isPending={taskSubmissionStatuses['boost_main_channel'] === 'pending'}
+              buttonLabel={submittingTaskId === 'boost_main_channel' ? 'Submitting...' : readyToSubmitTaskIds['boost_main_channel'] ? 'Submit for review' : undefined}
               isVerifying={verifyingTaskId === 'boost_main_channel'}
               onAction={() =>
                 handleOpenAndVerify(
@@ -518,7 +615,9 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               icon={Flame}
               badge="5,000 SC"
               buttonLabel="Boost Channel"
-              isCompleted={!!completed['boost_proof_channel']}
+              isCompleted={!!completed['boost_proof_channel'] || taskSubmissionStatuses['boost_proof_channel'] === 'approved'}
+              isPending={taskSubmissionStatuses['boost_proof_channel'] === 'pending'}
+              buttonLabel={submittingTaskId === 'boost_proof_channel' ? 'Submitting...' : readyToSubmitTaskIds['boost_proof_channel'] ? 'Submit for review' : undefined}
               isVerifying={verifyingTaskId === 'boost_proof_channel'}
               onAction={() =>
                 handleOpenAndVerify(
@@ -1405,6 +1504,7 @@ interface TaskCardProps {
   badge?: string;
   buttonLabel?: string;
   isCompleted?: boolean;
+  isPending?: boolean;
   isVerifying?: boolean;
   isShaking?: boolean;
   progress?: string;
@@ -1420,6 +1520,7 @@ function TaskCard({
   badge,
   buttonLabel,
   isCompleted,
+  isPending,
   isVerifying,
   isShaking: propIsShaking,
   progress,
@@ -1473,6 +1574,11 @@ function TaskCard({
           <div className="flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black">
             <Check className="w-3.5 h-3.5 stroke-[3]" />
             <span>Done</span>
+          </div>
+        ) : isPending ? (
+          <div className="flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/30 text-amber-300 text-xs font-black">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Pending</span>
           </div>
         ) : isVerifying ? (
           <div className="flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-[#FFD700]/20 text-[#FFD700] text-xs font-black animate-pulse">
