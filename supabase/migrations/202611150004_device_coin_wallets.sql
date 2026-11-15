@@ -163,6 +163,13 @@ begin
     into v_wallet_id, v_balance
   from public.get_or_create_device_coin_wallet(p_telegram_id, p_device_key_hash) w;
 
+  -- Lock the wallet before checking the idempotency key so two concurrent
+  -- retries cannot both pass the duplicate check and race to credit it.
+  select w.balance into v_balance
+  from public.device_coin_wallets w
+  where w.id = v_wallet_id
+  for update;
+
   select * into v_existing
   from public.device_coin_wallet_transactions t
   where t.event_key = p_event_key;
@@ -176,11 +183,6 @@ begin
     return query select true, true, v_existing.balance_after, 'Already applied'::text;
     return;
   end if;
-
-  select w.balance into v_balance
-  from public.device_coin_wallets w
-  where w.id = v_wallet_id
-  for update;
 
   if p_amount < 0 and v_balance < abs(p_amount) then
     return query select false, false, v_balance, 'Insufficient Street Coins'::text;
