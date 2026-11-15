@@ -14,6 +14,8 @@ where d.id = r.id and r.row_num > 1;
 create unique index if not exists daily_login_claims_telegram_date_uidx
   on public.daily_login_claims (telegram_id, claim_date);
 
+drop function if exists public.claim_streetlife_daily_login(bigint);
+
 create or replace function public.claim_streetlife_daily_login(p_telegram_id bigint)
 returns table(success boolean, already_claimed boolean, reward_sc integer, streak_day integer, perk text, claim_date date)
 language plpgsql
