@@ -71,15 +71,15 @@ begin
     return;
   end if;
 
-  select max(claim_date)
+  select max(c.claim_date)
     into v_last_date
-  from public.daily_login_claims
-  where telegram_id = p_telegram_id;
+  from public.daily_login_claims c
+  where c.telegram_id = p_telegram_id;
 
   if v_last_date = v_yesterday then
-    select streak_day into v_streak
-    from public.daily_login_claims
-    where telegram_id = p_telegram_id and claim_date = v_last_date;
+    select c.streak_day into v_streak
+    from public.daily_login_claims c
+    where c.telegram_id = p_telegram_id and c.claim_date = v_last_date;
     v_streak := case when v_streak >= 7 then 1 else v_streak + 1 end;
   else
     v_streak := 1;
