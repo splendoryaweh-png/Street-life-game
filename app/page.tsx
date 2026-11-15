@@ -12,8 +12,8 @@ import {
   saveDailyClaim,
   saveHasPlayedToday,
   resetDailyTestState,
-  applyInviteCode,
-  simulateReferralInvited,
+  saveReferralProfile,
+  saveReferralClaim,
   tickGameState,
 } from '@/lib/storage';
 import { initTelegramWebApp, getTelegramInitData, BotNotification } from '@/lib/telegram';
@@ -116,33 +116,51 @@ export default function StreetLifeApp() {
   useEffect(() => {
     setIsMounted(true);
 
-    // Read a referral code passed through the STREET LIFE Telegram bot.
-    // Telegram Mini Apps provide start_param; browser testing can use startapp/start.
-    try {
-      const telegramStartParam = (
-        window.Telegram?.WebApp?.initDataUnsafe as
-          | { start_param?: string }
-          | undefined
-      )?.start_param;
+    // Load the player's server-assigned referral identity and process Telegram start_param securely.
+    const loadReferralProfile = async () => {
+      const initData = getTelegramInitData();
+      if (!initData) return;
+      try {
+        const response = await fetch('/api/referrals/profile', {
+          method: 'GET',
+          headers: { 'x-telegram-init-data': initData },
+          cache: 'no-store',
+        });
+        const profile = await response.json();
+        if (!response.ok) throw new Error(profile.error || 'Could not load referral profile.');
+        saveReferralProfile(profile);
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const browserStartParam =
-        urlParams.get('startapp') || urlParams.get('start');
-
-      const referralCode = (telegramStartParam || browserStartParam || '').trim();
-
-      if (referralCode) {
-        const result = applyInviteCode(referralCode);
-
-        if (result.success) {
-          playSuccessSound();
-          playCoinSound();
-          setToastMessage(result.message);
+        const telegramStartParam = (
+          window.Telegram?.WebApp?.initDataUnsafe as { start_param?: string } | undefined
+        )?.start_param;
+        const urlParams = new URLSearchParams(window.location.search);
+        const referralCode = (telegramStartParam || urlParams.get('startapp') || urlParams.get('start') || '').trim();
+        if (referralCode && !profile.hasClaimedWelcomeBonus) {
+          const claimResponse = await fetch('/api/referrals/claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData, code: referralCode }),
+          });
+          const claim = await claimResponse.json();
+          if (claimResponse.ok && claim.success) {
+            saveReferralClaim({
+              inviteeBonus: claim.inviteeBonus,
+              referralCode: claim.referralCode || profile.referralCode,
+              referralsCount: claim.referralsCount ?? profile.referralsCount,
+              appliedReferralCode: referralCode.toUpperCase(),
+            });
+            playSuccessSound();
+            playCoinSound();
+            setToastMessage(claim.message);
+          } else if (claim.message) {
+            setToastMessage(claim.message);
+          }
         }
+      } catch (error) {
+        console.error('Referral profile initialization failed:', error);
       }
-    } catch (error) {
-      console.error('Telegram referral-link processing failed:', error);
-    }
+    };
+    void loadReferralProfile();
 
     if (typeof window !== 'undefined') {
       try {
@@ -242,23 +260,36 @@ export default function StreetLifeApp() {
     showToast(`${title} will arrive in future updates!`);
   };
 
-  const handleApplyInvite = (code: string) => {
-    const res = applyInviteCode(code);
-
-    if (res.success) {
+  const handleApplyInvite = async (code: string) => {
+    const initData = getTelegramInitData();
+    if (!initData) {
+      showToast('Open STREET LIFE inside Telegram to claim a referral bonus.');
+      return;
+    }
+    try {
+      const response = await fetch('/api/referrals/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData, code }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        playClickSound();
+        showToast(result.message || result.error || 'Referral could not be applied.');
+        return;
+      }
+      saveReferralClaim({
+        inviteeBonus: result.inviteeBonus,
+        referralCode: result.referralCode || activeGameState.myReferralCode,
+        referralsCount: result.referralsCount ?? activeGameState.referralsCount,
+        appliedReferralCode: code.toUpperCase(),
+      });
       playSuccessSound();
       playCoinSound();
-    } else {
-      playClickSound();
+      showToast(result.message);
+    } catch {
+      showToast('Referral service is temporarily unavailable. Please try again.');
     }
-
-    showToast(res.message);
-  };
-
-  const handleSimulateReferral = () => {
-    playCoinSound();
-    simulateReferralInvited();
-    showToast('🤝 Someone joined via your invite! +10 Coins earned.');
   };
 
   return (
