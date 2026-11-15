@@ -60,32 +60,8 @@ const SC_PER_USDT = 100000; // Fixed rate: 100,000 SC = 1 USDT = 1 USD
 // ============================================================================
 
 export function getPlayerWallet(): PlayerWalletState {
-  if (typeof window === 'undefined') {
-    return {
-      address: '',
-      type: 'telegram',
-      connected: false,
-      tonBalance: 0,
-      usdtBalance: 0,
-    };
-  }
-  try {
-    const raw = localStorage.getItem(STORAGE_PLAYER_WALLET);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed.connected === 'boolean') {
-        const storedUsdt = localStorage.getItem(STORAGE_USDT_BALANCE);
-        const storedTon = localStorage.getItem(STORAGE_TON_BALANCE);
-        return {
-          ...parsed,
-          tonBalance: storedTon ? parseFloat(storedTon) || parsed.tonBalance || 0 : parsed.tonBalance || 0,
-          usdtBalance: storedUsdt ? parseFloat(storedUsdt) || parsed.usdtBalance || 0 : parsed.usdtBalance || 0,
-        };
-      }
-    }
-  } catch (e) {
-    console.error('Error reading player wallet:', e);
-  }
+  // Previous versions stored simulated wallet addresses and balances in localStorage.
+  // They are not proof of a real wallet connection or funds, so never restore them.
   return {
     address: '',
     type: 'telegram',
