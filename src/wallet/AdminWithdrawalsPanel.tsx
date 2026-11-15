@@ -131,48 +131,8 @@ export function AdminWithdrawalsPanel({ onToast }: AdminWithdrawalsPanelProps) {
 
   const handleSaveAdjustAmount = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adjustTarget) return;
-
-    const newAmount = parseFloat(newAmountInput);
-    if (isNaN(newAmount) || newAmount <= 0) {
-      toast('❌ Please enter a positive amount in TON');
-      return;
-    }
-
-    const diff = newAmount - adjustTarget.amountTON;
-
-    if (diff > 0) {
-      // Need to deduct more from admin wallet
-      if (adminWallet.balance < diff) {
-        toast(`❌ Cannot increase by ${diff} TON! Admin wallet balance is only ${adminWallet.balance} TON.`);
-        return;
-      }
-      deductFromAdminWallet(diff);
-      toast(`ℹ️ Deducted additional ${diff} TON from Admin Treasury`);
-    } else if (diff < 0) {
-      // Refund difference to admin wallet
-      const refundAmount = Math.abs(diff);
-      refundToAdminWallet(refundAmount);
-      toast(`ℹ️ Refunded ${refundAmount} TON to Admin Treasury`);
-    }
-
-    // Update list
-    const updated = withdrawals.map((w) => {
-      if (w.id === adjustTarget.id) {
-        return {
-          ...w,
-          amountTON: newAmount,
-        };
-      }
-      return w;
-    });
-
-    saveLockedWithdrawals(updated);
-    setWithdrawals(updated);
-    setAdminWallet(getAdminWallet());
-    setAdjustTarget(null);
-    playSuccessSound();
-    toast(`✅ Withdrawal adjusted to ${newAmount} TON for ${adjustTarget.playerAddress.slice(0, 8)}...`);
+    toast('Withdrawal adjustments are disabled until a real server-backed payout ledger exists.');
+    return;
   };
 
   // ACTION 2: Cancel Withdrawal (Refund TON to admin wallet + Refund game coins to player)
@@ -182,63 +142,20 @@ export function AdminWithdrawalsPanel({ onToast }: AdminWithdrawalsPanelProps) {
   };
 
   const handleConfirmCancel = () => {
-    if (!cancelTarget) return;
-    playClickSound();
-
-    // 1. Refund TON amount to Admin wallet
-    refundToAdminWallet(cancelTarget.amountTON);
-
-    // 2. Refund coins to player (100 coins = 1 TON)
-    const refundCoins = cancelTarget.amountTON * 100;
-    addGameCoins(refundCoins, `Refund from cancelled withdrawal (${cancelTarget.amountTON} TON)`, 'welcome_bonus');
-
-    // 3. Mark status as cancelled
-    const updated = withdrawals.map((w) => {
-      if (w.id === cancelTarget.id) {
-        return {
-          ...w,
-          status: 'cancelled' as const,
-        };
-      }
-      return w;
-    });
-
-    saveLockedWithdrawals(updated);
-    setWithdrawals(updated);
-    setAdminWallet(getAdminWallet());
-    setCancelTarget(null);
-    playSuccessSound();
-    toast(`🛑 Withdrawal cancelled! Refunded ${cancelTarget.amountTON} TON to Treasury & ${refundCoins.toLocaleString()} coins to player.`);
+    toast('Local withdrawal cancellation and coin refunds are disabled. No funds were moved.');
+    return;
   };
 
   // ACTION 3: Approve Early / Unlock Now (Bypass Dec 20, 2026)
-  const handleUnlockEarly = (item: LockedWithdrawal) => {
-    playClickSound();
-    playSuccessSound();
-
-    const updated = withdrawals.map((w) => {
-      if (w.id === item.id) {
-        return {
-          ...w,
-          status: 'unlocked' as const,
-          unlockDate: Date.now(), // unlocked immediately
-        };
-      }
-      return w;
-    });
-
-    saveLockedWithdrawals(updated);
-    setWithdrawals(updated);
-    toast(`🔓 Bypassed Dec 20! ${item.amountTON} TON Unlocked immediately for ${item.playerAddress.slice(0, 8)}...`);
+  const handleUnlockEarly = (_item: LockedWithdrawal) => {
+    toast('Manual withdrawal unlocking is disabled. Only verified payout processing can change withdrawal status.');
+    return;
   };
 
   // ACTION 4: Delete Record
-  const handleDeleteRecord = (id: string) => {
-    playClickSound();
-    const updated = withdrawals.filter((w) => w.id !== id);
-    saveLockedWithdrawals(updated);
-    setWithdrawals(updated);
-    toast('🗑️ Withdrawal record removed from log');
+  const handleDeleteRecord = (_id: string) => {
+    toast('Withdrawal records cannot be deleted from this local panel.');
+    return;
   };
 
   // ACTION 5: Export CSV
