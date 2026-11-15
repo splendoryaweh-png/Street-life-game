@@ -101,3 +101,58 @@ export function isStreetLifeAdmin(telegramId: number | string): boolean {
 
   return allowed.includes(String(telegramId));
 }
+
+
+/**
+ * Records a server-approved task as Leadership activity. This must only be
+ * called after approve_streetlife_task has successfully credited the reward.
+ * Stable event keys make retries safe and prevent duplicate lifetime earnings.
+ */
+export async function recordLeadershipTaskReward(
+  supabase: SupabaseClient,
+  telegramId: number | string,
+  submissionId: string,
+  credited: number,
+  taskKey: string
+): Promise<boolean> {
+  const amount = Number(credited);
+  if (!Number.isSafeInteger(Number(telegramId)) || Number(telegramId) <= 0 ||
+      !submissionId || !Number.isSafeInteger(amount) || amount < 0) {
+    console.error('Leadership task tracking received invalid reward details.');
+    return false;
+  }
+
+  const occurredAt = new Date().toISOString();
+  const events: Array<Record<string, unknown>> = [{
+    telegram_id: Number(telegramId),
+    event_key: `task-completed:${submissionId}`,
+    event_type: 'task_completed',
+    coin_amount: 0,
+    occurred_at: occurredAt,
+    metadata: { task_key: taskKey, submission_id: submissionId },
+  }];
+
+  if (amount > 0) {
+    events.push({
+      telegram_id: Number(telegramId),
+      event_key: `task-coin-earned:${submissionId}`,
+      event_type: 'coin_earned',
+      coin_amount: amount,
+      occurred_at: occurredAt,
+      metadata: { source: 'approved_task', task_key: taskKey, submission_id: submissionId },
+    });
+  }
+
+  try {
+    const { error } = await supabase
+      .from('leadership_activity_events')
+      .upsert(events, { onConflict: 'event_key', ignoreDuplicates: true });
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    // Do not misreport a successful game reward as failed; surface tracking
+    // failure in server logs so it can be reconciled without double-crediting.
+    console.error('Leadership task reward tracking failed:', error);
+    return false;
+  }
+}
