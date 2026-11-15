@@ -1,5 +1,16 @@
 -- Secure daily-login reward recording for the Leadership Board.
 -- Daily claims are keyed by Telegram account and Africa/Lagos calendar date.
+-- Remove duplicate legacy rows before enforcing one claim per account per date.
+with ranked as (
+  select id, row_number() over (
+    partition by telegram_id, claim_date order by created_at asc, id asc
+  ) as row_num
+  from public.daily_login_claims
+)
+delete from public.daily_login_claims d
+using ranked r
+where d.id = r.id and r.row_num > 1;
+
 create unique index if not exists daily_login_claims_telegram_date_uidx
   on public.daily_login_claims (telegram_id, claim_date);
 
@@ -75,3 +86,52 @@ $$;
 
 revoke all on function public.claim_streetlife_daily_login(bigint) from public, anon, authenticated;
 grant execute on function public.claim_streetlife_daily_login(bigint) to service_role;
+
+
+-- Mirror task reward ledger inserts into Leadership in the same DB transaction.
+-- This is the authoritative path; the API helper is a safe retry/fallback.
+create or replace function public.track_task_coin_transaction_for_leadership()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_telegram_id bigint;
+  v_submission_key text;
+begin
+  if new.amount is null or new.amount <= 0 then
+    return new;
+  end if;
+
+  if new.player_telegram_id !~ '^[0-9]+$' then
+    raise warning 'Skipping Leadership task tracking for non-numeric Telegram ID';
+    return new;
+  end if;
+
+  v_telegram_id := new.player_telegram_id::bigint;
+  v_submission_key := coalesce(new.submission_id::text, new.id::text);
+
+  insert into public.leadership_activity_events
+    (telegram_id, event_key, event_type, coin_amount, occurred_at, metadata)
+  values
+    (v_telegram_id, 'task-completed:' || v_submission_key,
+     'task_completed', 0, coalesce(new.created_at, now()),
+     jsonb_build_object('source', 'task_coin_transactions', 'submission_id', new.submission_id)),
+    (v_telegram_id, 'task-coin-earned:' || v_submission_key,
+     'coin_earned', new.amount, coalesce(new.created_at, now()),
+     jsonb_build_object('source', 'approved_task', 'submission_id', new.submission_id))
+  on conflict (event_key) do nothing;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists task_coin_transactions_leadership_after_insert
+  on public.task_coin_transactions;
+
+create trigger task_coin_transactions_leadership_after_insert
+after insert on public.task_coin_transactions
+for each row execute function public.track_task_coin_transaction_for_leadership();
+
+revoke all on function public.track_task_coin_transaction_for_leadership() from public, anon, authenticated;
