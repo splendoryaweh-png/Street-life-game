@@ -87,8 +87,10 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
   // Modals for special tasks
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusScreenshotProof, setStatusScreenshotProof] = useState<string>('');
+  const [statusPlatform, setStatusPlatform] = useState<'WhatsApp' | 'Telegram'>('WhatsApp');
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [videoUrlInput, setVideoUrlInput] = useState('');
+  const [videoScreenshotProof, setVideoScreenshotProof] = useState<string>('');
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [quizQuestionIndex, setQuizQuestionIndex] = useState(0);
   const [quizSelectedOption, setQuizSelectedOption] = useState<number | null>(null);
@@ -133,9 +135,12 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
         const next: Record<string, 'pending' | 'approved' | 'denied'> = {};
         for (const submission of submissions) {
           if (submission?.task_key && ['pending', 'approved', 'rejected', 'denied'].includes(submission.status)) {
-            next[String(submission.task_key)] = submission.status === 'rejected' || submission.status === 'denied'
+            const normalized = submission.status === 'rejected' || submission.status === 'denied'
               ? 'denied'
               : submission.status;
+            next[String(submission.task_key)] = normalized;
+            if (String(submission.task_key).startsWith('status_post_')) next.promotion_status = normalized;
+            if (String(submission.task_key) === 'video_promo_task') next.promotion_video = normalized;
           }
         }
         setTaskSubmissionStatuses(next);
@@ -291,15 +296,51 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
     }
   };
 
-  const handleStatusSubmit = () => {
+  const handleStatusSubmit = async () => {
     playClickSound();
-    onToast('Status proof must be uploaded and submitted to the admin verification server. No coins were credited.');
+    if (!statusScreenshotProof) {
+      onToast('Please upload a screenshot of your posted status first.');
+      return;
+    }
+    const initData = (window as any).Telegram?.WebApp?.initData || '';
+    if (!initData) {
+      onToast('Open STREET LIFE inside Telegram before submitting proof.');
+      return;
+    }
+    setSubmittingTaskId('promotion_status');
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initData,
+          key: `status_post_${Date.now()}`,
+          type: 'status_post',
+          platform: statusPlatform,
+          screenshots: [statusScreenshotProof],
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Status proof submission failed.');
+      setTaskSubmissionStatuses((current) => ({ ...current, promotion_status: 'pending' }));
+      setShowStatusModal(false);
+      setStatusScreenshotProof('');
+      onToast(result.message || 'Status proof submitted. Waiting for admin review.');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Could not submit status proof.');
+    } finally {
+      setSubmittingTaskId(null);
+    }
   };
 
-  const handleVideoSubmit = () => {
+  const handleVideoSubmit = async () => {
     playClickSound();
     if (!videoUrlInput || videoUrlInput.length < 5) {
       onToast('Please enter a valid video link.');
+      return;
+    }
+    if (!videoScreenshotProof) {
+      onToast('Please upload a screenshot showing your video views and likes.');
       return;
     }
     const lower = videoUrlInput.toLowerCase();
@@ -307,7 +348,42 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
       onToast('Instagram is NOT allowed. Post on TikTok, YouTube or Facebook!');
       return;
     }
-    onToast('Video proof must be submitted to the admin verification server. No coins were credited.');
+    const platform = lower.includes('youtube') || lower.includes('youtu.be')
+      ? 'YouTube'
+      : lower.includes('facebook.com') || lower.includes('fb.watch')
+        ? 'Facebook'
+        : 'TikTok';
+    const initData = (window as any).Telegram?.WebApp?.initData || '';
+    if (!initData) {
+      onToast('Open STREET LIFE inside Telegram before submitting proof.');
+      return;
+    }
+    setSubmittingTaskId('promotion_video');
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initData,
+          key: 'video_promo_task',
+          type: 'video',
+          platform,
+          proofUrl: videoUrlInput.trim(),
+          screenshots: [videoScreenshotProof],
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Video submission failed.');
+      setTaskSubmissionStatuses((current) => ({ ...current, promotion_video: 'pending' }));
+      setShowVideoModal(false);
+      setVideoUrlInput('');
+      setVideoScreenshotProof('');
+      onToast(result.message || 'Video submitted. Waiting for admin review.');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Could not submit video proof.');
+    } finally {
+      setSubmittingTaskId(null);
+    }
   };
 
   const handleOpenMysteryBox = () => {
@@ -684,14 +760,14 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
                     playClickSound();
                     setShowStatusModal(true);
                   }}
-                  disabled={(metrics.statusPostsToday || 0) >= 2}
+                  disabled={(metrics.statusPostsToday || 0) >= 2 || taskSubmissionStatuses.promotion_status === 'pending' || submittingTaskId === 'promotion_status'}
                   className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${
                     (metrics.statusPostsToday || 0) >= 2
                       ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
                       : 'bg-[#FFD700] text-black hover:bg-yellow-400 active:scale-95 shadow-[0_0_10px_rgba(255,215,0,0.4)]'
                   }`}
                 >
-                  {(metrics.statusPostsToday || 0) >= 2 ? 'Daily Max Reached' : 'Submit Proof'}
+                  {(metrics.statusPostsToday || 0) >= 2 ? 'Daily Max Reached' : taskSubmissionStatuses.promotion_status === 'pending' ? 'Pending Review' : submittingTaskId === 'promotion_status' ? 'Submitting...' : 'Submit Proof'}
                 </button>
               </div>
             </div>
@@ -728,10 +804,12 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
 
               <div className="flex items-center justify-between pt-1">
                 <div className="text-xs font-bold text-[#9CA3AF]">
-                  Status: {completed['video_promo_task'] ? (
+                  Status: {taskSubmissionStatuses.promotion_video === 'approved' || completed['video_promo_task'] ? (
                     <span className="text-emerald-400">Verified ✓</span>
-                  ) : metrics.videoPromoSubmitted ? (
-                    <span className="text-amber-400">Under Review</span>
+                  ) : taskSubmissionStatuses.promotion_video === 'pending' || metrics.videoPromoSubmitted ? (
+                    <span className="text-amber-400">Pending Review</span>
+                  ) : taskSubmissionStatuses.promotion_video === 'denied' ? (
+                    <span className="text-red-400">Rejected — resubmit</span>
                   ) : (
                     <span className="text-zinc-500">Not Submitted</span>
                   )}
@@ -742,14 +820,14 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
                     playClickSound();
                     setShowVideoModal(true);
                   }}
-                  disabled={!!completed['video_promo_task']}
+                  disabled={!!completed['video_promo_task'] || taskSubmissionStatuses.promotion_video === 'pending' || submittingTaskId === 'promotion_video'}
                   className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${
                     completed['video_promo_task']
                       ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 cursor-not-allowed'
                       : 'bg-[#FFD700] text-black hover:bg-yellow-400 active:scale-95 shadow-[0_0_10px_rgba(255,215,0,0.4)]'
                   }`}
                 >
-                  {completed['video_promo_task'] ? 'Claimed ✓' : 'Submit Video Link'}
+                  {completed['video_promo_task'] || taskSubmissionStatuses.promotion_video === 'approved' ? 'Verified ✓' : taskSubmissionStatuses.promotion_video === 'pending' ? 'Pending Review' : submittingTaskId === 'promotion_video' ? 'Submitting...' : 'Submit Video Link'}
                 </button>
               </div>
             </div>
@@ -1339,11 +1417,33 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               <p>3. Take a screenshot showing timestamp and views, then confirm upload below.</p>
             </div>
 
-            <div className="border-2 border-dashed border-[#FFD700]/30 rounded-xl p-4 text-center bg-[#181818] space-y-2">
-              <Upload className="w-8 h-8 text-[#FFD700] mx-auto animate-bounce" />
-              <div className="text-xs font-bold text-white">Status Screenshot Selected</div>
-              <div className="text-[10px] text-emerald-400 font-mono">proof_status_verified.jpg (1.2 MB)</div>
+            <div className="flex gap-2">
+              {(['WhatsApp', 'Telegram'] as const).map((platform) => (
+                <button key={platform} type="button" onClick={() => setStatusPlatform(platform)}
+                  className={`flex-1 rounded-lg py-2 text-xs font-bold ${statusPlatform === platform ? 'bg-[#FFD700] text-black' : 'bg-white/10 text-white'}`}>
+                  {platform}
+                </button>
+              ))}
             </div>
+            <label className="block border-2 border-dashed border-[#FFD700]/30 rounded-xl p-4 text-center bg-[#181818] space-y-2 cursor-pointer">
+              <Upload className="w-8 h-8 text-[#FFD700] mx-auto" />
+              <div className="text-xs font-bold text-white">{statusScreenshotProof ? 'Status screenshot attached' : 'Upload status screenshot'}</div>
+              <div className="text-[10px] text-gray-400">PNG, JPG or WEBP • max 1.5 MB</div>
+              <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 1.5 * 1024 * 1024) {
+                    onToast('Screenshot must be 1.5 MB or smaller.');
+                    event.target.value = '';
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = () => setStatusScreenshotProof(typeof reader.result === 'string' ? reader.result : '');
+                  reader.onerror = () => onToast('Could not read screenshot.');
+                  reader.readAsDataURL(file);
+                }} />
+            </label>
 
             <div className="flex items-center space-x-2 pt-2">
               <button
@@ -1401,6 +1501,25 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
                 className="w-full bg-[#181818] border border-white/15 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#FFD700]"
               />
             </div>
+            <label className="block border-2 border-dashed border-purple-500/30 rounded-xl p-4 text-center bg-[#181818] space-y-2 cursor-pointer">
+              <Upload className="w-8 h-8 text-purple-400 mx-auto" />
+              <div className="text-xs font-bold text-white">{videoScreenshotProof ? 'Video proof screenshot attached' : 'Upload views and likes screenshot'}</div>
+              <div className="text-[10px] text-gray-400">PNG, JPG or WEBP • max 1.5 MB</div>
+              <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 1.5 * 1024 * 1024) {
+                    onToast('Screenshot must be 1.5 MB or smaller.');
+                    event.target.value = '';
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = () => setVideoScreenshotProof(typeof reader.result === 'string' ? reader.result : '');
+                  reader.onerror = () => onToast('Could not read screenshot.');
+                  reader.readAsDataURL(file);
+                }} />
+            </label>
 
             <div className="flex items-center space-x-2 pt-2">
               <button
