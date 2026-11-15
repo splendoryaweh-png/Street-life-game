@@ -10,6 +10,7 @@ import {
   SERVER_GAME_STATE_SNAPSHOT,
   getLeaderboard,
   saveDailyClaim,
+  saveCoins,
   saveHasPlayedToday,
   resetDailyTestState,
   saveReferralProfile,
@@ -239,6 +240,8 @@ export default function StreetLifeApp() {
       playSuccessSound();
       showToast(`Claimed +${reward} Street Coins ${result.perk ? `& ${result.perk}` : ''}! Total: ${newTotal.toLocaleString()} SC`);
     } else {
+      const currentBalance = Number(result.balance);
+      if (Number.isSafeInteger(currentBalance) && currentBalance >= 0) saveCoins(currentBalance);
       showToast('You have already claimed today’s server-verified reward.');
     }
     return { coins: reward, perk: String(result.perk || '') };
