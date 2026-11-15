@@ -1043,6 +1043,7 @@ export function saveReferralClaim(result: {
   referralCode: string;
   referralsCount: number;
   appliedReferralCode: string;
+  balance: number;
 }): void {
   const bonus = Math.max(0, Number(result.inviteeBonus) || 0);
   const now = Date.now();
@@ -1055,7 +1056,7 @@ export function saveReferralClaim(result: {
   };
   currentSnapshot = {
     ...currentSnapshot,
-    streetCoin: currentSnapshot.streetCoin + bonus,
+    streetCoin: Math.max(0, Number(result.balance) || 0),
     myReferralCode: result.referralCode || currentSnapshot.myReferralCode,
     referralsCount: result.referralsCount,
     hasClaimedWelcomeBonus: true,
