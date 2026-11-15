@@ -651,7 +651,7 @@ export function StudioBeats({
       const extension = beatRec.blob.type.includes('mp4') ? 'm4a' : 'webm';
       const file = new File(
         [beatRec.blob],
-        `StreetLife-${beat.name.replace(/\\s+/g, '_')}-${Date.now()}.${extension}`,
+        `StreetLife-${beat.name.replace(/\s+/g, '_')}-${Date.now()}.${extension}`,
         { type: beatRec.blob.type || 'audio/webm' }
       );
       const form = new FormData();
