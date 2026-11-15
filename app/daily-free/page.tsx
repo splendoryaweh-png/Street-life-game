@@ -344,12 +344,6 @@ export default function DailyFreePage() {
       return;
     }
 
-    if (currentCoins < 50) {
-      showToast('Need at least 50 SC to buy a nitro bottle!');
-      playClickSound();
-      return;
-    }
-
     // Keep the same id after uncertain network failures so a retry cannot double-charge.
     const requestId = pendingNitroPurchaseId || crypto.randomUUID();
     setPendingNitroPurchaseId(requestId);
