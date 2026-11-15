@@ -24,7 +24,7 @@ interface DailyRewardStripProps {
   hasPlayedToday: boolean;
   dailyStreak: number;
   lastClaimDate: string | null;
-  onClaim: (amount: number, bonusItem?: string) => void;
+  onClaim: (amount: number, bonusItem?: string) => Promise<{ coins: number; perk: string }>;
   onSimulatePlayGame: () => void;
   onResetTestLock: () => void;
 }
@@ -48,7 +48,7 @@ export function DailyRewardStrip({
   onSimulatePlayGame,
   onResetTestLock,
 }: DailyRewardStripProps) {
-  const [claimCelebration, setClaimCelebration] = useState<{ coins: number; perk: string } | null>(null);
+  const [claimCelebration, setClaimCelebration] = useState<{ coins: number; perk: string } | null>(null);\n  const [isClaiming, setIsClaiming] = useState(false);
 
   // Daily Free Racing Perks state
   const [freeNitroRemaining, setFreeNitroRemaining] = useState<number>(3);
@@ -83,35 +83,22 @@ export function DailyRewardStrip({
   const currentDayIndex = Math.min(Math.max((dailyStreak - 1) % 7, 0), 6);
   const currentRewardItem = rewards[currentDayIndex];
 
-  const handleClaimClick = () => {
-    if (!hasPlayedToday || isAlreadyClaimedToday) return;
-
-    let finalCoins = currentRewardItem.coins;
-    let extraPerk = currentRewardItem.perk;
-
-    // Day 7 Jackpot Roll (500 to 2000 SC)
-    if (currentRewardItem.day === 7) {
-      const jackpotRoll = getJackpotRoll();
-      finalCoins += jackpotRoll;
-      extraPerk = `JACKPOT HIT! (+${jackpotRoll} Bonus SC!)`;
-    }
-
-    playSuccessSound();
-    onClaim(finalCoins, extraPerk);
-    setClaimCelebration({ coins: finalCoins, perk: extraPerk });
-
+  const handleClaimClick = async () => {
+    if (!hasPlayedToday || isAlreadyClaimedToday || isClaiming) return;
+    setIsClaiming(true);
     try {
-      confetti({
-        particleCount: 90,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#FFD700', '#F59E0B', '#10B981', '#FFFFFF'],
-      });
-    } catch {}
-
-    setTimeout(() => {
-      setClaimCelebration(null);
-    }, 3500);
+      const claimed = await onClaim(currentRewardItem.coins, currentRewardItem.perk);
+      playSuccessSound();
+      setClaimCelebration({ coins: claimed.coins, perk: claimed.perk });
+      try {
+        confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 }, colors: ['#FFD700', '#F59E0B', '#10B981', '#FFFFFF'] });
+      } catch {}
+      setTimeout(() => setClaimCelebration(null), 3500);
+    } catch (error) {
+      console.warn('Secure daily reward claim did not complete:', error);
+    } finally {
+      setIsClaiming(false);
+    }
   };
 
   // Grant this daily Nitro perk only after Adsgram confirms completion.
@@ -251,7 +238,7 @@ export function DailyRewardStrip({
             className="w-full py-3.5 px-4 rounded-xl font-black text-xs uppercase tracking-wider bg-gradient-to-r from-[#FFD700] via-[#FFC300] to-[#FFD700] text-black shadow-lg shadow-[#FFD700]/30 hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <Gift className="w-4 h-4 text-black" />
-            Claim Day {currentRewardItem.day}: {currentRewardItem.coins} SC {currentRewardItem.perk}
+            {isClaiming ? 'Verifying Reward...' : `Claim Day ${currentRewardItem.day}: ${currentRewardItem.coins} SC ${currentRewardItem.perk}`}
           </button>
         )}
       </div>
