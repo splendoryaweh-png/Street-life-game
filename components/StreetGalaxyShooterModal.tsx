@@ -24,6 +24,7 @@ import {
   playSirenSound,
 } from '@/lib/sound';
 import { addGameCoins, saveShooterLevel } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import {
   getOrGrantShooterDailyPowerup,
   claimShooterAdPowerup,
@@ -278,16 +279,16 @@ export function StreetGalaxyShooterModal({
     }
   }, [isOpen, wave]);
 
-  const handleWatchAdForShooterPowerup = useCallback(() => {
-    if (shooterAdsCount >= 3) {
-      onToast('Maximum 3 power-up ads reached today!');
+  const handleWatchAdForShooterPowerup = useCallback(async () => {
+    if (shooterAdsCount >= 3 || isWatchingShooterAd) {
+      if (shooterAdsCount >= 3) onToast('Maximum 3 power-up ads reached today!');
       return;
     }
     setIsWatchingShooterAd(true);
     playClickSound();
-    setTimeout(() => {
+    try {
+      await showAdsgramRewardedAd();
       const res = claimShooterAdPowerup();
-      setIsWatchingShooterAd(false);
       if (res.success && res.powerup) {
         setShooterAdsCount(res.count);
         if (res.powerup === 'double_bullet') {
@@ -300,9 +301,15 @@ export function StreetGalaxyShooterModal({
           onToast('🔋 Energy Pack granted from Ad (100% Energy)!');
         }
         playPickupSound();
+      } else {
+        onToast('Shooter power-up could not be claimed. No reward was added.');
       }
-    }, 1500);
-  }, [onToast, shooterAdsCount]);
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Ad not completed. No power-up was added.');
+    } finally {
+      setIsWatchingShooterAd(false);
+    }
+  }, [onToast, shooterAdsCount, isWatchingShooterAd]);
 
   // Touch Joystick Handlers
   const handleJoystickStart = (e: React.TouchEvent | React.MouseEvent) => {
@@ -395,11 +402,13 @@ export function StreetGalaxyShooterModal({
     playSfx('fail');
   }, [playSfx]);
 
-  // Watch Ad to Continue with 50% energy
-  const handleWatchAdContinue = () => {
+  // Continue only after Adsgram confirms a completed rewarded ad.
+  const handleWatchAdContinue = async () => {
+    if (adWatching) return;
     setAdWatching(true);
-    setTimeout(() => {
-      setAdWatching(false);
+    playClickSound();
+    try {
+      await showAdsgramRewardedAd();
       gameRef.current.energy = 50;
       gameRef.current.bullets = [];
       setEnergy(50);
@@ -407,7 +416,11 @@ export function StreetGalaxyShooterModal({
       gameRef.current.isRunning = true;
       onToast('Shields recharged to 50%! Keep fighting!');
       playSfx('pickup');
-    }, 1800);
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Ad not completed. You cannot continue yet.');
+    } finally {
+      setAdWatching(false);
+    }
   };
 
   // Main Canvas Animation Loop
