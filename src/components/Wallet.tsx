@@ -282,11 +282,7 @@ export function WalletComponent({
 
   // Sync state & check unlocks on mount
   useEffect(() => {
-    // Run unlock verification
-    const { unlockedCount, creditedTON } = checkUnlocks();
-    if (unlockedCount > 0) {
-      toast(`🎉 ${unlockedCount} Locked withdrawal(s) unlocked! +${creditedTON} TON received.`);
-    }
+    // Simulated local withdrawals are not valid payout records; do not auto-credit them.
 
     const handlePlayerWalletChange = (e: Event) => {
       const customEvent = e as CustomEvent<PlayerWalletState>;
@@ -357,7 +353,8 @@ export function WalletComponent({
   // Connect Simulation for Player: ONLY 2 OPTIONS (Telegram Wallet and Tonkeeper)
   const handleConnect = (walletType: 'telegram' | 'tonkeeper') => {
     playClickSound();
-    playSuccessSound();
+    toast('Real Telegram Wallet and Tonkeeper connection is not integrated yet. No wallet was connected.');
+    return;
 
     // Generate clean simulated TON user address
     const prefix = walletType === 'telegram' ? 'UQ-tg-' : 'UQ-tonk-';
@@ -419,6 +416,8 @@ export function WalletComponent({
 
   const handleConfirmSwap = () => {
     playClickSound();
+    toast('SC-to-crypto swaps are unavailable until a real exchange and server settlement are integrated. No coins were deducted.');
+    return;
     if (scAmountNumber <= 0) {
       toast('⚠️ Please enter an amount of SC to swap');
       return;
@@ -494,7 +493,9 @@ export function WalletComponent({
   // WITHDRAWAL SYSTEM VALIDATION & EXECUTION (UNTOUCHED)
   const handleWithdrawSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setWithdrawError(null);
+    setWithdrawError('Withdrawals are temporarily unavailable. No payout has been submitted or coins deducted.');
+    toast('Real on-chain withdrawals are not integrated yet. No payout was submitted.');
+    return;
 
     const amount = parseFloat(withdrawAmountTON);
 
