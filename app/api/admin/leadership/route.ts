@@ -120,6 +120,15 @@ export async function POST(request: Request) {
     }
 
     if (body.action === 'adjust') {
+      const { data: member, error: memberError } = await supabase
+        .from('leadership_members')
+        .select('telegram_id')
+        .eq('telegram_id', telegramId)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (memberError) throw memberError;
+      if (!member) return NextResponse.json({ error: 'Add this registered player to the active Leadership Board before adjusting points.' }, { status: 409 });
+
       const action = body.adjustment;
       const amount = Number(body.amount);
       const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 500) : '';
