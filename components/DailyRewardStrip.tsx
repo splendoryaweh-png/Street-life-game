@@ -48,7 +48,8 @@ export function DailyRewardStrip({
   onSimulatePlayGame,
   onResetTestLock,
 }: DailyRewardStripProps) {
-  const [claimCelebration, setClaimCelebration] = useState<{ coins: number; perk: string } | null>(null);\n  const [isClaiming, setIsClaiming] = useState(false);
+  const [claimCelebration, setClaimCelebration] = useState<{ coins: number; perk: string } | null>(null);
+  const [isClaiming, setIsClaiming] = useState(false);
 
   // Daily Free Racing Perks state
   const [freeNitroRemaining, setFreeNitroRemaining] = useState<number>(3);
@@ -262,7 +263,6 @@ export function DailyRewardStrip({
             <button
               onClick={handleWatchAdForNitro}
               disabled={isWatchingNitroAd || adNitroWatchedToday >= 5}
-              disabled={adNitroWatchedToday >= 5}
               type="button"
               className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] font-bold hover:bg-cyan-500/30 active:scale-95 disabled:opacity-50"
             >
