@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Shield,
   Coins,
@@ -63,12 +63,44 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
   );
   const [isBanned, setIsBanned] = useState<boolean>(!!gameState.isBanned);
   const [activeAdminTab, setActiveAdminTab] = useState<'general' | 'treasury' | 'withdrawals' | 'tasks'>('general');
+  const [registeredPlayerCount, setRegisteredPlayerCount] = useState<number | null>(null);
+  const [playerCountError, setPlayerCountError] = useState(false);
+
+  const refreshPlayerCount = useCallback(async () => {
+    const initData = (window as any).Telegram?.WebApp?.initData || '';
+    if (!initData) {
+      setPlayerCountError(true);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/stats', {
+        method: 'GET',
+        headers: { 'x-telegram-init-data': initData },
+        cache: 'no-store',
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || typeof result.totalPlayers !== 'number') {
+        throw new Error(result.error || 'Player count unavailable');
+      }
+      setRegisteredPlayerCount(result.totalPlayers);
+      setPlayerCountError(false);
+    } catch (error) {
+      console.error('Could not load registered player count:', error);
+      setPlayerCountError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshPlayerCount();
+  }, [refreshPlayerCount]);
 
   const refreshAllData = useCallback(() => {
+    void refreshPlayerCount();
     setLogs(getAdminLogs());
     setPostedSongs(gameState.postedSongs?.length ? gameState.postedSongs : getStoredPostedSongs());
     setWithdrawalRequests(getWithdrawalClickRecords());
-  }, [gameState.postedSongs]);
+  }, [gameState.postedSongs, refreshPlayerCount]);
 
   const handleAddCoins = (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,8 +282,12 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
             <Users className="w-3.5 h-3.5 text-[#FFD700]" />
             <span>Total Hustlers</span>
           </div>
-          <div className="text-xl font-black text-white font-mono mt-1">100+ Active</div>
-          <span className="text-[10px] text-emerald-400">Verified System</span>
+          <div className="text-xl font-black text-white font-mono mt-1">
+            {registeredPlayerCount === null ? (playerCountError ? 'Unavailable' : 'Loading...') : `${registeredPlayerCount.toLocaleString()} Players`}
+          </div>
+          <span className="text-[10px] text-emerald-400">
+            {playerCountError ? 'Could not refresh count' : 'Registered player accounts'}
+          </span>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-[#141414] border border-white/10">
