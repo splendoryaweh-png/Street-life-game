@@ -36,7 +36,7 @@ import {
   buyRacingNitroWithCoins,
   claimShooterAdPowerup,
 } from '@/lib/dailyFree';
-import { getGameStateSnapshot, addGameCoins, saveDailyClaim, saveCoins } from '@/lib/storage';
+import { getGameStateSnapshot, saveDailyClaim, saveCoins } from '@/lib/storage';
 import {
   playCoinSound,
   playSuccessSound,
@@ -376,7 +376,6 @@ export default function DailyFreePage() {
         return;
       }
 
-      addGameCoins(-50, '-50 SC - Purchased Nitro Bottle', 'task_reward');
       saveCoins(balance);
       buyRacingNitroWithCoins();
       setPendingNitroPurchaseId(null);
