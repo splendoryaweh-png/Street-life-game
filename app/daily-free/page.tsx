@@ -45,6 +45,7 @@ import {
 } from '@/lib/sound';
 import confetti from 'canvas-confetti';
 import { TasksEarnCoinsModal } from '@/components/TasksEarnCoinsModal';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 
 interface FloatingToken {
   id: string;
@@ -257,26 +258,31 @@ export default function DailyFreePage() {
     refreshState();
   };
 
-  // Watch Ad for Racing Nitro
-  const handleWatchAdForNitro = () => {
-    if (!claimRecord) return;
+  // Claim Nitro only after a completed Adsgram rewarded advertisement.
+  const handleWatchAdForNitro = async () => {
+    if (!claimRecord || adWatchingType) return;
     if (claimRecord.nitro_ad_claims_count >= 5) {
       showToast('Maximum 5 nitro ad bonuses reached today!');
       return;
     }
-
     setAdWatchingType('nitro');
     playClickSound();
-    setTimeout(() => {
+    try {
+      await showAdsgramRewardedAd();
       const res = claimRacingAdNitro();
-      setAdWatchingType(null);
       if (res.success) {
         playPickupSound();
         triggerFloatingTokens([{ label: '+1 NITRO', icon: '⚡' }]);
         showToast(`⚡ +1 Nitro granted! (${res.remaining} available)`);
         refreshState();
+      } else {
+        showToast('Nitro reward could not be claimed.');
       }
-    }, 1500);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Ad not completed. No Nitro was added.');
+    } finally {
+      setAdWatchingType(null);
+    }
   };
 
   // Buy Nitro with Coins
@@ -295,27 +301,32 @@ export default function DailyFreePage() {
     refreshState();
   };
 
-  // Watch Ad for Shooter Powerup
-  const handleWatchAdForShooter = () => {
-    if (!claimRecord) return;
+  // Claim a shooter power-up only after Adsgram confirms completion.
+  const handleWatchAdForShooter = async () => {
+    if (!claimRecord || adWatchingType) return;
     if (claimRecord.shooter_ad_powerups_count >= 3) {
       showToast('Maximum 3 shooter power-up ads reached today!');
       return;
     }
-
     setAdWatchingType('shooter');
     playClickSound();
-    setTimeout(() => {
+    try {
+      await showAdsgramRewardedAd();
       const res = claimShooterAdPowerup();
-      setAdWatchingType(null);
       if (res.success) {
         playPickupSound();
         const pLabel = res.powerup === 'double_bullet' ? 'Double Bullet' : 'Energy Pack';
         triggerFloatingTokens([{ label: `+1 ${pLabel}`, icon: '🎯' }]);
         showToast(`🎯 +1 Free Power-up (${pLabel}) Activated!`);
         refreshState();
+      } else {
+        showToast('Shooter power-up reward could not be claimed.');
       }
-    }, 1500);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Ad not completed. No power-up was added.');
+    } finally {
+      setAdWatchingType(null);
+    }
   };
 
   // Simulate Push Notification
