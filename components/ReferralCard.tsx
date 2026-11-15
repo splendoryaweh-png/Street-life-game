@@ -2,7 +2,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Copy, Check, Users, Gift, Sparkles, Send, ExternalLink } from 'lucide-react';
+import { Copy, Check, Users, Gift, Send, ExternalLink } from 'lucide-react';
+import { getTelegramInitData } from '@/lib/telegram';
+import { generateDeviceId } from '@/lib/storage';
 
 interface ReferralCardProps {
   myReferralCode: string;
@@ -10,7 +12,6 @@ interface ReferralCardProps {
   hasClaimedWelcomeBonus: boolean;
   appliedReferralCode: string | null;
   onApplyInviteCode: (code: string) => void;
-  onSimulateReferral: () => void;
   onToast: (msg: string) => void;
 }
 
@@ -22,16 +23,14 @@ export function ReferralCard({
   hasClaimedWelcomeBonus,
   appliedReferralCode,
   onApplyInviteCode,
-  onSimulateReferral,
   onToast,
 }: ReferralCardProps) {
   const [inputCode, setInputCode] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [referralLink, setReferralLink] = useState('');
+  const [creatingLink, setCreatingLink] = useState(false);
 
-  const referralLink = myReferralCode
-    ? `https://t.me/${BOT_USERNAME}?startapp=${encodeURIComponent(myReferralCode)}`
-    : '';
 
   const handleCopyCode = async () => {
     try {
@@ -45,18 +44,30 @@ export function ReferralCard({
   };
 
   const handleCopyLink = async () => {
-    if (!referralLink) {
-      onToast('Your referral link is not ready yet.');
-      return;
-    }
-
     try {
-      await navigator.clipboard.writeText(referralLink);
+      let link = referralLink;
+      if (!link) {
+        setCreatingLink(true);
+        const initData = getTelegramInitData();
+        if (!initData) throw new Error('Open STREET LIFE inside Telegram first.');
+        const response = await fetch('/api/referrals/link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initData, deviceId: generateDeviceId() }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.link) throw new Error(result.error || 'Could not create referral link.');
+        link = result.link;
+        setReferralLink(link);
+      }
+      await navigator.clipboard.writeText(link);
       setCopiedLink(true);
       onToast('Telegram invitation link copied! 🔗');
       setTimeout(() => setCopiedLink(false), 2000);
-    } catch {
-      onToast('Could not copy invitation link.');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Could not copy invitation link.');
+    } finally {
+      setCreatingLink(false);
     }
   };
 
@@ -148,7 +159,7 @@ export function ReferralCard({
         </p>
 
         <div className="break-all rounded-lg bg-black/50 border border-white/10 p-2 text-[10px] font-mono text-[#29B6F6]">
-          {referralLink}
+          {referralLink || 'Create your secure phone-specific invitation link using the button below.'}
         </div>
 
         <button
@@ -161,7 +172,7 @@ export function ReferralCard({
           ) : (
             <Copy className="w-4 h-4" />
           )}
-          {copiedLink ? 'Invitation Link Copied' : 'Copy Telegram Invitation Link'}
+          {creatingLink ? 'Creating Link…' : copiedLink ? 'Invitation Link Copied' : 'Create & Copy Invitation Link'}
         </button>
 
         <a
@@ -226,14 +237,6 @@ export function ReferralCard({
           </strong>
         </span>
 
-        <button
-          onClick={onSimulateReferral}
-          type="button"
-          className="px-2.5 py-1 rounded-md bg-[#FFD700]/15 hover:bg-[#FFD700]/25 text-[#FFD700] text-[10px] font-bold border border-[#FFD700]/30 transition-all flex items-center gap-1"
-        >
-          <Sparkles className="w-3 h-3" />
-          Simulate 1 Invite (+100)
-        </button>
       </div>
     </div>
   );

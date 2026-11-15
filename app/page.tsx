@@ -12,8 +12,9 @@ import {
   saveDailyClaim,
   saveHasPlayedToday,
   resetDailyTestState,
-  applyInviteCode,
-  simulateReferralInvited,
+  saveReferralProfile,
+  saveReferralClaim,
+  generateDeviceId,
   tickGameState,
 } from '@/lib/storage';
 import { initTelegramWebApp, getTelegramInitData, BotNotification } from '@/lib/telegram';
@@ -116,33 +117,52 @@ export default function StreetLifeApp() {
   useEffect(() => {
     setIsMounted(true);
 
-    // Read a referral code passed through the STREET LIFE Telegram bot.
-    // Telegram Mini Apps provide start_param; browser testing can use startapp/start.
-    try {
-      const telegramStartParam = (
-        window.Telegram?.WebApp?.initDataUnsafe as
-          | { start_param?: string }
-          | undefined
-      )?.start_param;
+    // Load the player's server-assigned referral identity and process Telegram start_param securely.
+    const loadReferralProfile = async () => {
+      const initData = getTelegramInitData();
+      if (!initData) return;
+      try {
+        const response = await fetch('/api/referrals/profile', {
+          method: 'GET',
+          headers: { 'x-telegram-init-data': initData, 'x-streetlife-device-id': generateDeviceId() },
+          cache: 'no-store',
+        });
+        const profile = await response.json();
+        if (!response.ok) throw new Error(profile.error || 'Could not load referral profile.');
+        saveReferralProfile(profile);
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const browserStartParam =
-        urlParams.get('startapp') || urlParams.get('start');
-
-      const referralCode = (telegramStartParam || browserStartParam || '').trim();
-
-      if (referralCode) {
-        const result = applyInviteCode(referralCode);
-
-        if (result.success) {
-          playSuccessSound();
-          playCoinSound();
-          setToastMessage(result.message);
+        const telegramStartParam = (
+          window.Telegram?.WebApp?.initDataUnsafe as { start_param?: string } | undefined
+        )?.start_param;
+        const urlParams = new URLSearchParams(window.location.search);
+        const referralToken = (telegramStartParam || urlParams.get('startapp') || urlParams.get('start') || '').trim();
+        if (/^[a-f0-9]{64}$/i.test(referralToken) && !profile.hasClaimedWelcomeBonus) {
+          const claimResponse = await fetch('/api/referrals/claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData, token: referralToken, deviceId: generateDeviceId() }),
+          });
+          const claim = await claimResponse.json();
+          if (claimResponse.ok && claim.success) {
+            saveReferralClaim({
+              inviteeBonus: claim.inviteeBonus,
+              balance: claim.balance,
+              referralCode: profile.referralCode,
+              referralsCount: claim.referralsCount ?? profile.referralsCount,
+              appliedReferralCode: 'Referral link',
+            });
+            playSuccessSound();
+            playCoinSound();
+            setToastMessage(claim.message);
+          } else if (claim.message) {
+            setToastMessage(claim.message);
+          }
         }
+      } catch (error) {
+        console.error('Referral profile initialization failed:', error);
       }
-    } catch (error) {
-      console.error('Telegram referral-link processing failed:', error);
-    }
+    };
+    void loadReferralProfile();
 
     if (typeof window !== 'undefined') {
       try {
@@ -242,27 +262,12 @@ export default function StreetLifeApp() {
     showToast(`${title} will arrive in future updates!`);
   };
 
-  const handleApplyInvite = (code: string) => {
-    const res = applyInviteCode(code);
-
-    if (res.success) {
-      playSuccessSound();
-      playCoinSound();
-    } else {
-      playClickSound();
-    }
-
-    showToast(res.message);
-  };
-
-  const handleSimulateReferral = () => {
-    playCoinSound();
-    simulateReferralInvited();
-    showToast('🤝 Someone joined via your invite! +10 Coins earned.');
+  const handleApplyInvite = async (_code: string) => {
+    showToast('Please use your friend’s full Telegram invitation link. A code alone cannot identify the phone wallet that must receive the inviter reward.');
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#0A0A0A] text-white flex flex-col items-center justify-between selection:bg-[#FFD700] selection:text-black overflow-y-auto">
+    <div className="min-h-[100dvh] w-full bg-[#0A0A0A] text-white flex flex-col items-center justify-between selection:bg-[#FFD700] selection:text-black overflow-x-hidden">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-[#FFD700] text-black font-bold text-xs shadow-xl shadow-[#FFD700]/30 animate-in fade-in slide-in-from-top duration-200">
@@ -351,7 +356,7 @@ export default function StreetLifeApp() {
       <main
         className={`w-full max-w-md mx-auto ${
           isChromeHidden ? 'pt-3 pb-16' : 'pt-14 pb-28'
-        } flex-1 flex flex-col min-h-screen overflow-y-auto transition-all duration-300`}
+        } flex-1 flex flex-col min-h-0 overflow-visible transition-all duration-300`}
       >
         {activeTab === 'STUDIO' ? (
           <StudioScreen
@@ -440,7 +445,7 @@ export default function StreetLifeApp() {
             }}
           />
         ) : (
-          <div className="w-full flex-1 min-h-[calc(100dvh-5rem)] overflow-y-auto pb-40 pt-4 px-4 overscroll-contain space-y-4">
+          <div className="w-full flex-1 min-h-0 overflow-visible pb-40 pt-4 px-4 space-y-4">
             {/* CENTER LOGO */}
             <CenterLogo />
 
@@ -614,7 +619,6 @@ export default function StreetLifeApp() {
               hasClaimedWelcomeBonus={activeGameState.hasClaimedWelcomeBonus}
               appliedReferralCode={activeGameState.appliedReferralCode}
               onApplyInviteCode={handleApplyInvite}
-              onSimulateReferral={handleSimulateReferral}
               onToast={showToast}
             />
 

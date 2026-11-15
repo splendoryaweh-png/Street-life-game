@@ -205,14 +205,21 @@ export function generateReferralCode(): string {
 }
 
 // Generate deviceId = UUID + userAgent hash
+const DEVICE_ID_KEY = 'streetlife_device_id_v1';
+
 export function generateDeviceId(): string {
-  if (typeof window === 'undefined') return 'SL-DEV-001';
-  
-  const uuid = typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : 'dev-' + Math.random().toString(36).substring(2, 10);
-  
-  return `SL-DEVICE-${uuid.slice(0, 8)}`;
+  if (typeof window === 'undefined') return '';
+  try {
+    const existing = window.localStorage.getItem(DEVICE_ID_KEY);
+    if (existing && /^[A-Za-z0-9_-]{20,100}$/.test(existing)) return existing;
+    const id = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, '')
+      : Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => b.toString(16).padStart(2, '0')).join('');
+    window.localStorage.setItem(DEVICE_ID_KEY, id);
+    return id;
+  } catch {
+    throw new Error('Street LIFE could not save this phone’s wallet identity. Please enable site storage and reload.');
+  }
 }
 
 // Generate deterministic 100 users for leaderboard (identical on SSR and client)
@@ -1012,6 +1019,54 @@ export function watchAdToSkipCooldown(): { success: boolean; message: string } {
 // ==================== REFERRAL SYSTEM ACTIONS ====================
 
 // Apply invite code: 500 + 20 welcome bonus for invitee
+export function saveReferralProfile(profile: {
+  referralCode: string;
+  referralsCount: number;
+  hasClaimedWelcomeBonus: boolean;
+  appliedReferralCode: string | null;
+  coins?: number;
+}): void {
+  currentSnapshot = {
+    ...currentSnapshot,
+    myReferralCode: profile.referralCode,
+    referralsCount: profile.referralsCount,
+    hasClaimedWelcomeBonus: profile.hasClaimedWelcomeBonus,
+    appliedReferralCode: profile.appliedReferralCode,
+    ...(typeof profile.coins === 'number' ? { streetCoin: profile.coins } : {}),
+  };
+  persistState(currentSnapshot);
+  notifyListeners();
+}
+
+export function saveReferralClaim(result: {
+  inviteeBonus: number;
+  referralCode: string;
+  referralsCount: number;
+  appliedReferralCode: string;
+  balance: number;
+}): void {
+  const bonus = Math.max(0, Number(result.inviteeBonus) || 0);
+  const now = Date.now();
+  const tx: CoinTransaction = {
+    id: `referral_${now}`,
+    type: 'welcome_bonus',
+    description: `+${bonus} for referral welcome bonus`,
+    amount: bonus,
+    timestamp: now,
+  };
+  currentSnapshot = {
+    ...currentSnapshot,
+    streetCoin: Math.max(0, Number(result.balance) || 0),
+    myReferralCode: result.referralCode || currentSnapshot.myReferralCode,
+    referralsCount: result.referralsCount,
+    hasClaimedWelcomeBonus: true,
+    appliedReferralCode: result.appliedReferralCode,
+    transactions: [tx, ...(currentSnapshot.transactions || [])].slice(0, 25),
+  };
+  persistState(currentSnapshot);
+  notifyListeners();
+}
+
 export function applyInviteCode(code: string): { success: boolean; message: string } {
   const cleanCode = code.trim().toUpperCase();
   if (!cleanCode) {
@@ -1194,71 +1249,17 @@ export function completeRiderMission(missionNum: number): void {
 // ---------------------------------------------------------------------------
 
 export function requestWithdrawal(
-  amount: number,
-  currency: CryptoCurrency,
-  network: string,
-  destinationAddress: string,
-  memo?: string
+  _amount: number,
+  _currency: CryptoCurrency,
+  _network: string,
+  _destinationAddress: string,
+  _memo?: string
 ): { success: boolean; message: string; record?: WithdrawalRecord } {
-  if (amount <= 0) {
-    return { success: false, message: 'Invalid withdrawal amount' };
-  }
-  if (currentSnapshot.streetCoin < amount) {
-    return { success: false, message: 'Insufficient Street Coin balance' };
-  }
-  if (!destinationAddress || destinationAddress.trim().length < 4) {
-    return { success: false, message: 'Please enter a valid recipient address' };
-  }
-
-  let payout = 0;
-  if (currency === 'TON') payout = Number((amount / 10000).toFixed(4));
-  else if (currency === 'USDT') payout = Number((amount / 1000).toFixed(2));
-  else if (currency === 'STARS') payout = Math.floor((amount / 100) * 5);
-  else payout = Number((amount / 1000).toFixed(2));
-
-  const randomHash = '0x' + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-
-  const record: WithdrawalRecord = {
-    id: 'wdr_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-    timestamp: Date.now(),
-    coinAmount: amount,
-    payoutAmount: payout,
-    currency,
-    network,
-    destinationAddress: destinationAddress.trim(),
-    memo: memo?.trim() || undefined,
-    status: 'completed',
-    txHash: randomHash,
-  };
-
-  const newCoin = currentSnapshot.streetCoin - amount;
-  const existingWithdrawals = currentSnapshot.withdrawals || DEFAULT_WITHDRAWALS;
-  const updatedWithdrawals = [record, ...existingWithdrawals];
-
-  const tx: CoinTransaction = {
-    id: 'tx_wdr_' + Date.now(),
-    type: 'withdrawal',
-    description: `Withdrew ${amount.toLocaleString()} coins (${payout} ${currency})`,
-    amount: -amount,
-    timestamp: Date.now(),
-  };
-
-  const updatedTransactions = [tx, ...(currentSnapshot.transactions || [])].slice(0, 30);
-
-  currentSnapshot = {
-    ...currentSnapshot,
-    streetCoin: newCoin,
-    withdrawals: updatedWithdrawals,
-    transactions: updatedTransactions,
-  };
-
-  persistState(currentSnapshot);
-  notifyListeners();
-
+  // Never fabricate a transaction hash or mark a payout as completed locally.
+  // Withdrawals must be processed by a verified server-side payout provider.
   return {
-    success: true,
-    message: `Withdrawal of ${amount.toLocaleString()} coins sent!`,
-    record,
+    success: false,
+    message: 'Withdrawals are temporarily unavailable while secure server-side payout processing is being connected. No coins have been deducted.',
   };
 }
 
