@@ -1249,71 +1249,17 @@ export function completeRiderMission(missionNum: number): void {
 // ---------------------------------------------------------------------------
 
 export function requestWithdrawal(
-  amount: number,
-  currency: CryptoCurrency,
-  network: string,
-  destinationAddress: string,
-  memo?: string
+  _amount: number,
+  _currency: CryptoCurrency,
+  _network: string,
+  _destinationAddress: string,
+  _memo?: string
 ): { success: boolean; message: string; record?: WithdrawalRecord } {
-  if (amount <= 0) {
-    return { success: false, message: 'Invalid withdrawal amount' };
-  }
-  if (currentSnapshot.streetCoin < amount) {
-    return { success: false, message: 'Insufficient Street Coin balance' };
-  }
-  if (!destinationAddress || destinationAddress.trim().length < 4) {
-    return { success: false, message: 'Please enter a valid recipient address' };
-  }
-
-  let payout = 0;
-  if (currency === 'TON') payout = Number((amount / 10000).toFixed(4));
-  else if (currency === 'USDT') payout = Number((amount / 1000).toFixed(2));
-  else if (currency === 'STARS') payout = Math.floor((amount / 100) * 5);
-  else payout = Number((amount / 1000).toFixed(2));
-
-  const randomHash = '0x' + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-
-  const record: WithdrawalRecord = {
-    id: 'wdr_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-    timestamp: Date.now(),
-    coinAmount: amount,
-    payoutAmount: payout,
-    currency,
-    network,
-    destinationAddress: destinationAddress.trim(),
-    memo: memo?.trim() || undefined,
-    status: 'completed',
-    txHash: randomHash,
-  };
-
-  const newCoin = currentSnapshot.streetCoin - amount;
-  const existingWithdrawals = currentSnapshot.withdrawals || DEFAULT_WITHDRAWALS;
-  const updatedWithdrawals = [record, ...existingWithdrawals];
-
-  const tx: CoinTransaction = {
-    id: 'tx_wdr_' + Date.now(),
-    type: 'withdrawal',
-    description: `Withdrew ${amount.toLocaleString()} coins (${payout} ${currency})`,
-    amount: -amount,
-    timestamp: Date.now(),
-  };
-
-  const updatedTransactions = [tx, ...(currentSnapshot.transactions || [])].slice(0, 30);
-
-  currentSnapshot = {
-    ...currentSnapshot,
-    streetCoin: newCoin,
-    withdrawals: updatedWithdrawals,
-    transactions: updatedTransactions,
-  };
-
-  persistState(currentSnapshot);
-  notifyListeners();
-
+  // Never fabricate a transaction hash or mark a payout as completed locally.
+  // Withdrawals must be processed by a verified server-side payout provider.
   return {
-    success: true,
-    message: `Withdrawal of ${amount.toLocaleString()} coins sent!`,
-    record,
+    success: false,
+    message: 'Withdrawals are temporarily unavailable while secure server-side payout processing is being connected. No coins have been deducted.',
   };
 }
 
