@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseServiceClient, verifyTelegramInitData, isStreetLifeAdmin } from '@/lib/taskAuth';
+import { createSupabaseServiceClient, verifyTelegramInitData } from '@/lib/taskAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic';
 async function authorize(request: Request) {
   const initData = request.headers.get('x-telegram-init-data') || '';
   const user = verifyTelegramInitData(initData);
-  if (!isStreetLifeAdmin(user.id)) throw new Error('ADMIN_FORBIDDEN');
+  const configured = process.env.STREETLIFE_ADMIN_TELEGRAM_IDS || process.env.ADMIN_TELEGRAM_IDS || process.env.ADMIN_TELEGRAM_ID || '';
+  const allowed = configured.split(',').map((id) => id.trim()).filter(Boolean);
+  if (!allowed.includes(String(user.id))) throw new Error('ADMIN_FORBIDDEN');
   return user;
 }
 
