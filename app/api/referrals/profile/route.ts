@@ -67,7 +67,7 @@ export async function GET(request: Request) {
       referralsCount: count || 0,
       hasClaimedWelcomeBonus: Boolean(player.referred_by || player.referred_by_code),
       appliedReferralCode: player.referred_by_code || null,
-      coins: Number(player.coins || 0),
+      coins: Number(wallet?.balance || 0),
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('Referral profile failed:', error);
