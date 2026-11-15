@@ -27,6 +27,7 @@ import {
   playClickSound,
 } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import confetti from 'canvas-confetti';
 import { TurfWarMultiplayer } from '@/src/games/TurfWar/TurfWarMultiplayer';
 
@@ -416,28 +417,40 @@ export function TurfWar2D({ onBack, onToast, currentCoins = 0 }: TurfWar2DProps)
     setWeapon(next);
   }, []);
 
-  // Watch Ad to Double reward to 600 SC
-  const handleDoubleRewardAd = () => {
+  // Double the reward only after a completed Adsgram rewarded advertisement.
+  const handleDoubleRewardAd = async () => {
+    if (adWatching || adDoubled) return;
     setAdWatching(true);
-    setTimeout(() => {
-      setAdWatching(false);
+    playClickSound();
+    try {
+      await showAdsgramRewardedAd();
       setAdDoubled(true);
       const extraCoins = 300;
       setEarnedCoins((prev) => prev + extraCoins);
       addGameCoins(extraCoins, `+${extraCoins} SC - Turf War Ad Doubler Bonus`, 'ad_reward');
       playSfx('coin');
-      onToast(`Bonus +300 SC added! Total: 600 SC!`);
-    }, 2000);
+      onToast('Bonus +300 SC added! Total: 600 SC!');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Ad not completed. No bonus was added.');
+    } finally {
+      setAdWatching(false);
+    }
   };
 
-  // Watch Ad to Retry
-  const handleRetryAd = () => {
+  // Retry only after Adsgram confirms a completed rewarded advertisement.
+  const handleRetryAd = async () => {
+    if (adWatching) return;
     setAdWatching(true);
-    setTimeout(() => {
-      setAdWatching(false);
+    playClickSound();
+    try {
+      await showAdsgramRewardedAd();
       startLevel(level);
-      onToast(`Respawned on same map with full health! Defend the turf!`);
-    }, 1500);
+      onToast('Respawned on same map with full health! Defend the turf!');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Ad not completed. Retry was not granted.');
+    } finally {
+      setAdWatching(false);
+    }
   };
 
   // Joystick touch handlers
