@@ -1012,6 +1012,53 @@ export function watchAdToSkipCooldown(): { success: boolean; message: string } {
 // ==================== REFERRAL SYSTEM ACTIONS ====================
 
 // Apply invite code: 500 + 20 welcome bonus for invitee
+export function saveReferralProfile(profile: {
+  referralCode: string;
+  referralsCount: number;
+  hasClaimedWelcomeBonus: boolean;
+  appliedReferralCode: string | null;
+  coins?: number;
+}): void {
+  currentSnapshot = {
+    ...currentSnapshot,
+    myReferralCode: profile.referralCode,
+    referralsCount: profile.referralsCount,
+    hasClaimedWelcomeBonus: profile.hasClaimedWelcomeBonus,
+    appliedReferralCode: profile.appliedReferralCode,
+    ...(typeof profile.coins === 'number' ? { streetCoin: profile.coins } : {}),
+  };
+  persistState(currentSnapshot);
+  notifyListeners();
+}
+
+export function saveReferralClaim(result: {
+  inviteeBonus: number;
+  referralCode: string;
+  referralsCount: number;
+  appliedReferralCode: string;
+}): void {
+  const bonus = Math.max(0, Number(result.inviteeBonus) || 0);
+  const now = Date.now();
+  const tx: CoinTransaction = {
+    id: `referral_${now}`,
+    type: 'welcome_bonus',
+    description: `+${bonus} for referral welcome bonus`,
+    amount: bonus,
+    timestamp: now,
+  };
+  currentSnapshot = {
+    ...currentSnapshot,
+    streetCoin: currentSnapshot.streetCoin + bonus,
+    myReferralCode: result.referralCode || currentSnapshot.myReferralCode,
+    referralsCount: result.referralsCount,
+    hasClaimedWelcomeBonus: true,
+    appliedReferralCode: result.appliedReferralCode,
+    transactions: [tx, ...(currentSnapshot.transactions || [])].slice(0, 25),
+  };
+  persistState(currentSnapshot);
+  notifyListeners();
+}
+
 export function applyInviteCode(code: string): { success: boolean; message: string } {
   const cleanCode = code.trim().toUpperCase();
   if (!cleanCode) {
