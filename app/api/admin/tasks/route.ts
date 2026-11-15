@@ -190,6 +190,35 @@ export async function POST(request: Request) {
     const supabase = supabaseAdmin();
 
     if (body.action === 'approve') {
+      // Older submissions may predate player-profile creation. Ensure the
+      // player row exists before the database approval function credits coins.
+      const { data: submission, error: submissionError } = await supabase
+        .from('task_submissions')
+        .select('player_telegram_id, player_username')
+        .eq('id', body.submissionId)
+        .maybeSingle();
+
+      if (submissionError) throw submissionError;
+      if (!submission) {
+        return NextResponse.json({ error: 'Task submission was not found.' }, { status: 404 });
+      }
+
+      const { error: playerError } = await supabase
+        .from('players')
+        .upsert(
+          {
+            telegram_id: String(submission.player_telegram_id),
+            username: submission.player_username || null,
+            coins: 1000,
+          },
+          { onConflict: 'telegram_id', ignoreDuplicates: true }
+        );
+
+      if (playerError) {
+        console.error('Ensure player before task approval failed:', playerError);
+        throw playerError;
+      }
+
       const { data, error } = await supabase.rpc(
         'approve_streetlife_task',
         {
