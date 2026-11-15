@@ -36,7 +36,7 @@ import {
   buyRacingNitroWithCoins,
   claimShooterAdPowerup,
 } from '@/lib/dailyFree';
-import { getGameStateSnapshot, addGameCoins, saveDailyClaim } from '@/lib/storage';
+import { getGameStateSnapshot, addGameCoins, saveDailyClaim, saveCoins } from '@/lib/storage';
 import {
   playCoinSound,
   playSuccessSound,
@@ -212,12 +212,6 @@ export default function DailyFreePage() {
   // Claim All Free Rewards — the server decides eligibility, streak and coin amount.
   const handleClaimAll = async () => {
     if (!claimRecord || isClaimingLoginReward) return;
-    if (claimRecord.claimed_all_today && claimRecord.login_claimed) {
-      showToast('⚠️ You have already claimed all today’s login rewards!');
-      playClickSound();
-      return;
-    }
-
     const initData = typeof window !== 'undefined'
       ? window.Telegram?.WebApp?.initData || ''
       : '';
@@ -240,6 +234,11 @@ export default function DailyFreePage() {
 
       if (!response.ok || result?.ok !== true) {
         if (response.status === 409) {
+          const existingBalance = Number(result?.balance);
+          if (Number.isSafeInteger(existingBalance) && existingBalance >= 0) {
+            saveCoins(existingBalance);
+            setCurrentCoins(existingBalance);
+          }
           updateTodayDailyClaim(() => ({
             login_claimed: true,
             login_reward_sc: Number(result?.reward_sc) || claimRecord.login_reward_sc,
@@ -534,7 +533,7 @@ export default function DailyFreePage() {
           <div className="mt-4">
             <button
               onClick={handleClaimAll}
-              disabled={isClaimingLoginReward || (claimRecord?.claimed_all_today && claimRecord?.login_claimed)}
+              disabled={isClaimingLoginReward}
               type="button"
               className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
                 claimRecord?.claimed_all_today && claimRecord?.login_claimed
