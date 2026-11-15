@@ -14,6 +14,7 @@ import {
   resetDailyTestState,
   saveReferralProfile,
   saveReferralClaim,
+  generateDeviceId,
   tickGameState,
 } from '@/lib/storage';
 import { initTelegramWebApp, getTelegramInitData, BotNotification } from '@/lib/telegram';
@@ -123,7 +124,7 @@ export default function StreetLifeApp() {
       try {
         const response = await fetch('/api/referrals/profile', {
           method: 'GET',
-          headers: { 'x-telegram-init-data': initData },
+          headers: { 'x-telegram-init-data': initData, 'x-streetlife-device-id': generateDeviceId() },
           cache: 'no-store',
         });
         const profile = await response.json();
@@ -134,20 +135,21 @@ export default function StreetLifeApp() {
           window.Telegram?.WebApp?.initDataUnsafe as { start_param?: string } | undefined
         )?.start_param;
         const urlParams = new URLSearchParams(window.location.search);
-        const referralCode = (telegramStartParam || urlParams.get('startapp') || urlParams.get('start') || '').trim();
-        if (referralCode && !profile.hasClaimedWelcomeBonus) {
+        const referralToken = (telegramStartParam || urlParams.get('startapp') || urlParams.get('start') || '').trim();
+        if (/^[a-f0-9]{64}$/i.test(referralToken) && !profile.hasClaimedWelcomeBonus) {
           const claimResponse = await fetch('/api/referrals/claim', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ initData, code: referralCode }),
+            body: JSON.stringify({ initData, token: referralToken, deviceId: generateDeviceId() }),
           });
           const claim = await claimResponse.json();
           if (claimResponse.ok && claim.success) {
             saveReferralClaim({
               inviteeBonus: claim.inviteeBonus,
-              referralCode: claim.referralCode || profile.referralCode,
+              balance: claim.balance,
+              referralCode: profile.referralCode,
               referralsCount: claim.referralsCount ?? profile.referralsCount,
-              appliedReferralCode: referralCode.toUpperCase(),
+              appliedReferralCode: 'Referral link',
             });
             playSuccessSound();
             playCoinSound();
