@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import {
   createSupabaseServiceClient,
   verifyTelegramInitData,
+  recordLeadershipTaskReward,
 } from '@/lib/taskAuth';
 
 export const runtime = 'nodejs';
@@ -376,12 +377,16 @@ export async function POST(request: Request) {
 
       const approval = Array.isArray(approvalData) ? approvalData[0] : approvalData;
       if (approval?.success) {
+        const leadershipTracked = await recordLeadershipTaskReward(
+          supabase, user.id, String(data.id), Number(approval.credited || 0), task.key
+        );
         return NextResponse.json(
           {
             ok: true,
             status: 'approved',
             autoVerified: true,
             credited: approval.credited,
+            leadershipTracked,
             message: `Telegram membership verified! ${approval.credited} SC credited.`,
             submission: { ...data, status: 'approved' },
           },
