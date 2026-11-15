@@ -205,14 +205,21 @@ export function generateReferralCode(): string {
 }
 
 // Generate deviceId = UUID + userAgent hash
+const DEVICE_ID_KEY = 'streetlife_device_id_v1';
+
 export function generateDeviceId(): string {
-  if (typeof window === 'undefined') return 'SL-DEV-001';
-  
-  const uuid = typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : 'dev-' + Math.random().toString(36).substring(2, 10);
-  
-  return `SL-DEVICE-${uuid.slice(0, 8)}`;
+  if (typeof window === 'undefined') return '';
+  try {
+    const existing = window.localStorage.getItem(DEVICE_ID_KEY);
+    if (existing && /^[A-Za-z0-9_-]{20,100}$/.test(existing)) return existing;
+    const id = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, '')
+      : Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => b.toString(16).padStart(2, '0')).join('');
+    window.localStorage.setItem(DEVICE_ID_KEY, id);
+    return id;
+  } catch {
+    throw new Error('Street LIFE could not save this phone’s wallet identity. Please enable site storage and reload.');
+  }
 }
 
 // Generate deterministic 100 users for leaderboard (identical on SSR and client)
