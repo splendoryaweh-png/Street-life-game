@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHmac } from 'node:crypto';
 import { createSupabaseServiceClient, verifyTelegramInitData } from '@/lib/taskAuth';
 
 export const runtime = 'nodejs';
@@ -9,6 +9,11 @@ export async function GET(request: Request) {
   try {
     const initData = request.headers.get('x-telegram-init-data') || '';
     const user = verifyTelegramInitData(initData);
+    const deviceId = request.headers.get('x-streetlife-device-id') || '';
+    if (!/^[A-Za-z0-9_-]{20,100}$/.test(deviceId)) throw new Error('Invalid device identity.');
+    const secret = process.env.STREETLIFE_DEVICE_WALLET_SECRET;
+    if (!secret || secret.length < 32) throw new Error('Wallet secret is not configured.');
+    const deviceHash = createHmac('sha256', secret).update(deviceId).digest('hex');
     const supabase = createSupabaseServiceClient();
 
     const { error: upsertError } = await supabase.from('players').upsert({
@@ -50,8 +55,15 @@ export async function GET(request: Request) {
       .eq('referred_by', String(user.id));
     if (countError) throw countError;
 
+    const { data: walletData, error: walletError } = await supabase.rpc('get_or_create_device_coin_wallet', {
+      p_telegram_id: user.id,
+      p_device_key_hash: deviceHash,
+    });
+    if (walletError) throw walletError;
+    const wallet = Array.isArray(walletData) ? walletData[0] : walletData;
     return NextResponse.json({
       referralCode: player.referral_code,
+      balance: Number(wallet?.balance || 0),
       referralsCount: count || 0,
       hasClaimedWelcomeBonus: Boolean(player.referred_by || player.referred_by_code),
       appliedReferralCode: player.referred_by_code || null,
