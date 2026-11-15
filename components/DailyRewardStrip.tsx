@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { playCoinSound, playClickSound, playSuccessSound } from '@/lib/sound';
 import confetti from 'canvas-confetti';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 
 interface DailyRewardStripProps {
   hasPlayedToday: boolean;
@@ -52,6 +53,7 @@ export function DailyRewardStrip({
   // Daily Free Racing Perks state
   const [freeNitroRemaining, setFreeNitroRemaining] = useState<number>(3);
   const [adNitroWatchedToday, setAdNitroWatchedToday] = useState<number>(0);
+  const [isWatchingNitroAd, setIsWatchingNitroAd] = useState(false);
 
   useEffect(() => {
     try {
@@ -112,21 +114,28 @@ export function DailyRewardStrip({
     }, 3500);
   };
 
-  // Watch Ad for Free Racing Nitro (Max 5 per day)
-  const handleWatchAdForNitro = () => {
-    if (adNitroWatchedToday >= 5) return;
+  // Grant this daily Nitro perk only after Adsgram confirms completion.
+  const handleWatchAdForNitro = async () => {
+    if (isWatchingNitroAd || adNitroWatchedToday >= 5) return;
     playClickSound();
-    const nextWatched = adNitroWatchedToday + 1;
-    setAdNitroWatchedToday(nextWatched);
-    const nextNitro = freeNitroRemaining + 1;
-    setFreeNitroRemaining(nextNitro);
-
-    if (typeof window !== 'undefined') {
-      const today = new Date().toISOString().split('T')[0];
-      localStorage.setItem(`streetlife_nitro_ads_${today}`, nextWatched.toString());
-      localStorage.setItem(`streetlife_nitro_${today}`, nextNitro.toString());
+    setIsWatchingNitroAd(true);
+    try {
+      await showAdsgramRewardedAd();
+      const nextWatched = adNitroWatchedToday + 1;
+      const nextNitro = freeNitroRemaining + 1;
+      setAdNitroWatchedToday(nextWatched);
+      setFreeNitroRemaining(nextNitro);
+      if (typeof window !== 'undefined') {
+        const today = new Date().toISOString().split('T')[0];
+        localStorage.setItem(`streetlife_nitro_ads_${today}`, nextWatched.toString());
+        localStorage.setItem(`streetlife_nitro_${today}`, nextNitro.toString());
+      }
+      playCoinSound();
+    } catch (error) {
+      console.warn('Daily Nitro Adsgram reward was not granted:', error);
+    } finally {
+      setIsWatchingNitroAd(false);
     }
-    playCoinSound();
   };
 
   return (
@@ -265,6 +274,7 @@ export function DailyRewardStrip({
             <span className="text-[9px] text-gray-500">{adNitroWatchedToday}/5 Ads</span>
             <button
               onClick={handleWatchAdForNitro}
+              disabled={isWatchingNitroAd || adNitroWatchedToday >= 5}
               disabled={adNitroWatchedToday >= 5}
               type="button"
               className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] font-bold hover:bg-cyan-500/30 active:scale-95 disabled:opacity-50"
