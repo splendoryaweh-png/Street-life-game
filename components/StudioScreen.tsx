@@ -385,16 +385,21 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       }
     }
 
-    // 2. If real microphone is blocked/unavailable, activate Studio Virtual Mic stream
+    // Never substitute a synthetic oscillator for a real vocal recording.
+    // If microphone access is unavailable, stop here and explain the issue.
     if (!stream) {
-      isVirtual = true;
-      const virtual = getVirtualMicStream();
-      if (virtual.stream) {
-        stream = virtual.stream;
-        virtualMicCleanupRef.current = virtual.cleanup;
-      }
+      setIsVirtualMic(false);
+      onToast('Microphone access is required to record your real voice. Allow microphone permission and try again.');
+      return;
     }
-    setIsVirtualMic(isVirtual);
+
+    if (typeof MediaRecorder === 'undefined') {
+      stream.getTracks().forEach((track) => track.stop());
+      setIsVirtualMic(false);
+      onToast('Audio recording is not supported by this browser. Try an updated browser or Telegram app.');
+      return;
+    }
+    setIsVirtualMic(false);
 
     let mimeType = 'audio/webm';
     if (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function') {
@@ -411,12 +416,11 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
         virtualMicCleanupRef.current();
         virtualMicCleanupRef.current = null;
       }
-      let blob: Blob;
-      if (recordedChunksRef.current.length > 0) {
-        blob = new Blob(recordedChunksRef.current, { type: mimeType });
-      } else {
-        blob = createSyntheticVocalWavBlob(recordSecondsRef.current || 3);
+      if (recordedChunksRef.current.length === 0) {
+        onToast('No microphone audio was captured. Please record again and check microphone permission.');
+        return;
       }
+      const blob = new Blob(recordedChunksRef.current, { type: mimeType });
       const url = URL.createObjectURL(blob);
       setRecordedBlobUrl(url);
       setRecordedBeatId(beat.id);
@@ -511,20 +515,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
         console.warn('Error stopping media recorder:', e);
       }
     } else {
-      // If mediaRecorder was null or failed to start, finalize directly with synthetic vocal blob
-      if (virtualMicCleanupRef.current) {
-        virtualMicCleanupRef.current();
-        virtualMicCleanupRef.current = null;
-      }
-      if (recordingBeatId) {
-        const blob = createSyntheticVocalWavBlob(recordSecondsRef.current || 3);
-        const url = URL.createObjectURL(blob);
-        setRecordedBlobUrl(url);
-        setRecordedBeatId(recordingBeatId);
-        setHasPreviewed(false);
-        setIsPreviewPlaying(false);
-        onToast('🎤 Vocal recording captured! Click PREVIEW to listen before posting.');
-      }
+      onToast('Recording could not be finalised. Please record again.');
     }
 
     setRecordingBeatId(null);
