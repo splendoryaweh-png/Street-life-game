@@ -49,6 +49,7 @@ import { playClickSound, playCoinSound, playSuccessSound } from '@/lib/sound';
 import { StudioBeats } from '@/src/components/StudioBeats';
 import { LongBeat } from '@/src/data/longBeatsData';
 import { showAdsgramRewardedAd } from '@/lib/adsgram';
+import { getTelegramInitData } from '@/lib/telegram';
 
 // Pure JavaScript PCM 16-bit WAV vocal synthesizer
 function writeWavString(view: DataView, offset: number, string: string) {
@@ -603,54 +604,75 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
     onToast('🎧 Playing mixed track (Beat + Vocals). Post button unlocked!');
   };
 
-  // POST FINAL SONG (Download + Open Telegram)
-  const handlePostSong = (beat: BeatDefinition) => {
+  // POST FINAL SONG: upload the actual recorded audio to the official Telegram group.
+  const handlePostSong = async (beat: BeatDefinition) => {
     if (!hasPreviewed) {
       onToast('⚠️ Listen first before posting! Click PREVIEW to verify your mix.');
       return;
     }
-
+    if (!recordedBlobUrl || recordedBeatId !== beat.id) {
+      onToast('⚠️ Your recording is not available. Please record again.');
+      return;
+    }
     const check = canPostSong();
     if (!check.allowed) {
       onToast(`⏳ Post cooldown active. Please wait ${check.remainingSeconds}s before posting again.`);
       return;
     }
 
-    playSuccessSound();
-
-    // 1. Trigger browser download of recorded audio file
-    if (recordedBlobUrl) {
-      const safeName = beat.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const filename = `street-life-stars-${safeName}-${Date.now()}.webm`;
-      const anchor = document.createElement('a');
-      anchor.href = recordedBlobUrl;
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
+    const initData = getTelegramInitData();
+    if (!initData) {
+      onToast('Open STREET LIFE from Telegram before sending your mix.');
+      return;
     }
 
-    // 2. Save song in persistent storage for Admin panel
-    const displayName = gameState.telegramUser?.first_name
-      ? `${gameState.telegramUser.first_name} ${gameState.telegramUser.last_name || ''}`.trim()
-      : 'Street Hustler';
+    try {
+      playClickSound();
+      const audioResponse = await fetch(recordedBlobUrl);
+      if (!audioResponse.ok) throw new Error('Could not read your recording.');
+      const audioBlob = await audioResponse.blob();
+      if (!audioBlob.size) throw new Error('The recording is empty.');
+      if (audioBlob.size > 20 * 1024 * 1024) {
+        throw new Error('Recording is too large. Please record a shorter mix (maximum 20 MB).');
+      }
 
-    savePostedSong({
-      beatId: beat.id,
-      beatName: beat.name,
-      producer: beat.producer,
-      userName: displayName,
-      userId: String(gameState.telegramUser?.id || gameState.deviceId),
-      durationSeconds: recordSeconds || 30,
-      audioBlobUrl: recordedBlobUrl || undefined,
-    });
+      const safeName = beat.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const extension = audioBlob.type.includes('mp4') ? 'm4a' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
+      const form = new FormData();
+      form.append('audio', audioBlob, `street-life-${safeName}-${Date.now()}.${extension}`);
+      form.append('beatName', beat.name);
+      form.append('producer', beat.producer || '');
+      form.append('durationSeconds', String(recordSeconds || 30));
 
-    onToast('🚀 Song downloaded! Opening Street Life Stars Telegram group...');
+      const response = await fetch('/api/studio/send-mix', {
+        method: 'POST',
+        headers: { 'x-telegram-init-data': initData },
+        body: form,
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Telegram could not receive your mix. Please try again.');
+      }
 
-    // 3. Open Telegram group in new tab
-    setTimeout(() => {
+      const displayName = gameState.telegramUser?.first_name
+        ? `${gameState.telegramUser.first_name} ${gameState.telegramUser.last_name || ''}`.trim()
+        : 'Street Hustler';
+      savePostedSong({
+        beatId: beat.id,
+        beatName: beat.name,
+        producer: beat.producer,
+        userName: displayName,
+        userId: String(gameState.telegramUser?.id || 'telegram-player'),
+        durationSeconds: recordSeconds || 30,
+      });
+
+      playSuccessSound();
+      onToast('✅ Your mix was successfully sent to the STREET LIFE group!');
       window.open(GROUP_TELEGRAM, '_blank', 'noopener,noreferrer');
-    }, 400);
+    } catch (error) {
+      console.error('STREET LIFE mix upload failed:', error);
+      onToast(error instanceof Error ? error.message : 'Mix upload failed. Please try again.');
+    }
   };
 
   // RENEW OR UPGRADE STUDIO RENT
