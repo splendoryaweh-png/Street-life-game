@@ -369,6 +369,20 @@ export function StudioBeats({
           await beatEl.play();
         } catch {}
       } else {
+        // The long-beat synthesizer runs in its own AudioContext. Route its
+        // stream into the same recording destination as the microphone so the
+        // exported file contains both beat and voice, not voice alone.
+        const engineDestination = longBeatEngine.getMediaStreamDestination();
+        if (!engineDestination) {
+          throw new Error('The beat audio recording output is unavailable.');
+        }
+        const engineSource = audioCtx.createMediaStreamSource(engineDestination.stream);
+        const beatGain = audioCtx.createGain();
+        beatGain.gain.value = beatVolume / 100;
+        beatGainNodeRef.current = beatGain;
+        engineSource.connect(beatGain);
+        beatGain.connect(dest);
+
         longBeatEngine.play(beat.id, 0);
         setIsPlaying(true);
       }
