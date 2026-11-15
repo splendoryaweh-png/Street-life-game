@@ -19,7 +19,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { playCoinSound, playSirenSound, playClickSound, playPickupSound, playSuccessSound } from '@/lib/sound';
-import { addGameCoins } from '@/lib/storage';
+import { addGameCoins, saveCoins } from '@/lib/storage';
 import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import {
   getTodayDailyClaim,
@@ -132,6 +132,8 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
   const isPlayingRef = useRef(true);
   const pvpTimerRef = useRef(60);
   const pvpRivalsRef = useRef<RivalCar[]>([]);
+  const nitroPurchaseRequestRef = useRef<string | null>(null);
+  const isPurchasingNitroRef = useRef(false);
 
   // Three.js scene refs
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -234,20 +236,65 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
     }
   }, [isWatchingNitroAd, nitroAdsWatched, onToast, playSfx]);
 
-  const handleBuyNitroBottle = useCallback(() => {
-    if (currentCoins < 50) {
-      onToast('Need at least 50 SC to buy a nitro bottle!');
+  const handleBuyNitroBottle = useCallback(async () => {
+    if (isPurchasingNitroRef.current) return;
+
+    const initData = typeof window !== 'undefined'
+      ? window.Telegram?.WebApp?.initData || ''
+      : '';
+    if (!initData) {
+      onToast('Open STREET LIFE inside Telegram to purchase Nitro.');
       playClickSound();
       return;
     }
-    addGameCoins(-50, '-50 SC - Bought Nitro Bottle', 'task_reward');
-    const res = buyRacingNitroWithCoins();
-    setDailyFreeNitro(res.remaining);
-    nitroRef.current = 100;
-    setNitroAvailable(100);
-    playSfx('pickup');
-    onToast('⚡ Refilled Nitro for 50 SC!');
-  }, [currentCoins, onToast, playSfx]);
+
+    // Reuse the same request ID after uncertain network failures to prevent double charges.
+    const requestId = nitroPurchaseRequestRef.current || crypto.randomUUID();
+    nitroPurchaseRequestRef.current = requestId;
+    isPurchasingNitroRef.current = true;
+    playClickSound();
+
+    try {
+      const response = await fetch('/api/shop/racing-nitro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData, requestId }),
+        cache: 'no-store',
+      });
+      const result = await response.json().catch(() => null);
+
+      if (response.status === 400 || response.status === 401 || response.status === 409) {
+        nitroPurchaseRequestRef.current = null;
+        onToast(result?.message || result?.error || 'Nitro purchase was not approved.');
+        return;
+      }
+
+      if (!response.ok || result?.ok !== true) {
+        onToast(result?.error || 'Purchase status is uncertain. Retry safely; the same request will be reused.');
+        return;
+      }
+
+      const balance = Number(result.balance);
+      if (!Number.isSafeInteger(balance) || balance < 0) {
+        onToast('Purchase was processed, but the balance response was invalid. Refresh before retrying.');
+        return;
+      }
+
+      saveCoins(balance);
+      const res = buyRacingNitroWithCoins();
+      setDailyFreeNitro(res.remaining);
+      nitroRef.current = 100;
+      setNitroAvailable(100);
+      nitroPurchaseRequestRef.current = null;
+      playSfx('pickup');
+      onToast('⚡ Refilled Nitro for 50 SC!');
+    } catch (error) {
+      console.error('Racing Nitro purchase failed:', error);
+      onToast('Connection failed. Retry the purchase; the same request will be reused.');
+    } finally {
+      isPurchasingNitroRef.current = false;
+    }
+  }, [onToast, playSfx]);
 
   // Finish or Game Over handler
   const handleEndRun = useCallback(
