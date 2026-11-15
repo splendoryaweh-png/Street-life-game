@@ -262,36 +262,8 @@ export default function StreetLifeApp() {
     showToast(`${title} will arrive in future updates!`);
   };
 
-  const handleApplyInvite = async (code: string) => {
-    const initData = getTelegramInitData();
-    if (!initData) {
-      showToast('Open STREET LIFE inside Telegram to claim a referral bonus.');
-      return;
-    }
-    try {
-      const response = await fetch('/api/referrals/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData, code }),
-      });
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        playClickSound();
-        showToast(result.message || result.error || 'Referral could not be applied.');
-        return;
-      }
-      saveReferralClaim({
-        inviteeBonus: result.inviteeBonus,
-        referralCode: result.referralCode || activeGameState.myReferralCode,
-        referralsCount: result.referralsCount ?? activeGameState.referralsCount,
-        appliedReferralCode: code.toUpperCase(),
-      });
-      playSuccessSound();
-      playCoinSound();
-      showToast(result.message);
-    } catch {
-      showToast('Referral service is temporarily unavailable. Please try again.');
-    }
+  const handleApplyInvite = async (_code: string) => {
+    showToast('Please use your friend’s full Telegram invitation link. A code alone cannot identify the phone wallet that must receive the inviter reward.');
   };
 
   return (
