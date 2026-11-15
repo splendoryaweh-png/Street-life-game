@@ -79,17 +79,20 @@ function getTaskDetails(body: any) {
     };
   }
 
-  if (type === 'video' && key === 'video_promo') {
+  if (type === 'video' && (key === 'video_promo' || key === 'video_promo_task')) {
     const platform = String(body.platform || '');
+    const allowedPlatforms = key === 'video_promo_task'
+      ? ['TikTok', 'YouTube', 'Facebook']
+      : ['TikTok', 'YouTube'];
 
-    if (!['TikTok', 'YouTube'].includes(platform)) {
+    if (!allowedPlatforms.includes(platform)) {
       throw new Error('Invalid video platform.');
     }
 
     return {
       key,
       type,
-      reward: 2000,
+      reward: key === 'video_promo_task' ? 200 : 2000,
       platform,
     };
   }
