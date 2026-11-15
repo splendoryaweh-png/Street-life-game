@@ -16,7 +16,7 @@ import {
   simulateReferralInvited,
   tickGameState,
 } from '@/lib/storage';
-import { initTelegramWebApp, BotNotification } from '@/lib/telegram';
+import { initTelegramWebApp, getTelegramInitData, BotNotification } from '@/lib/telegram';
 import { playCoinSound, playClickSound, playSuccessSound } from '@/lib/sound';
 import Link from 'next/link';
 import { Bot, X, Eye, EyeOff, Wallet, CheckSquare, Tv, Gift, Swords, Mic2, Gamepad2, Shield } from 'lucide-react';
@@ -189,18 +189,38 @@ export default function StreetLifeApp() {
     }, 2800);
   };
 
-  // Claim Daily Reward
-  const handleClaimDailyReward = (rewardAmount: number, bonusItem?: string) => {
-    playCoinSound();
-
-    const newTotal = gameState.streetCoin + rewardAmount;
-    const nextStreak = gameState.dailyStreak >= 7 ? 1 : gameState.dailyStreak + 1;
-
-    saveDailyClaim(newTotal, nextStreak);
-
-    showToast(
-      `Claimed +${rewardAmount} Street Coins ${bonusItem ? `& ${bonusItem}` : ''}! Total: ${newTotal.toLocaleString()} SC`
-    );
+  // Claim through Telegram-verified server; never trust the amount supplied by the browser.
+  const handleClaimDailyReward = async (_displayAmount: number, _displayPerk?: string): Promise<{ coins: number; perk: string }> => {
+    const initData = getTelegramInitData();
+    if (!initData) {
+      showToast('Open STREET LIFE inside Telegram to claim your secure daily reward.');
+      throw new Error('Telegram session is required.');
+    }
+    const response = await fetch('/api/daily-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-telegram-init-data': initData },
+      cache: 'no-store',
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) {
+      const message = result.error || 'Daily reward could not be claimed. Please try again.';
+      showToast(message);
+      throw new Error(message);
+    }
+    const reward = Number(result.reward);
+    const streak = Number(result.streak);
+    if (!Number.isSafeInteger(reward) || reward <= 0 || !Number.isInteger(streak) || streak < 1 || streak > 7) {
+      throw new Error('The server returned an invalid daily reward.');
+    }
+    if (!result.alreadyClaimed) {
+      const newTotal = gameState.streetCoin + reward;
+      saveDailyClaim(newTotal, streak);
+      playSuccessSound();
+      showToast(`Claimed +${reward} Street Coins ${result.perk ? `& ${result.perk}` : ''}! Total: ${newTotal.toLocaleString()} SC`);
+    } else {
+      showToast('You have already claimed today’s server-verified reward.');
+    }
+    return { coins: reward, perk: String(result.perk || '') };
   };
 
   // Simulate Playing 1 Game (Unlock daily reward)
