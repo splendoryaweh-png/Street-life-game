@@ -645,7 +645,6 @@ export default function StreetLifeApp() {
               hasClaimedWelcomeBonus={activeGameState.hasClaimedWelcomeBonus}
               appliedReferralCode={activeGameState.appliedReferralCode}
               onApplyInviteCode={handleApplyInvite}
-              onSimulateReferral={handleSimulateReferral}
               onToast={showToast}
             />
 
