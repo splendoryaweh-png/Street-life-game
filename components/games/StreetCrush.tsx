@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, RotateCcw, Volume2, VolumeX, Sparkles, Trophy, Tv, AlertCircle } from 'lucide-react';
 import { playCoinSound, playSuccessSound, playClickSound, playPickupSound, playSirenSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import { consumeCrushDailyFreeMoves, getTodayDailyClaim } from '@/lib/dailyFree';
 import confetti from 'canvas-confetti';
 
@@ -433,16 +434,22 @@ export function StreetCrush({ onBack, onToast }: StreetCrushProps) {
     }
   };
 
-  // Watch Ad for +5 Moves
-  const handleWatchAdMoves = () => {
+  // Grant extra moves only after Adsgram confirms a completed rewarded ad.
+  const handleWatchAdMoves = async () => {
+    if (adWatching) return;
     setAdWatching(true);
-    setTimeout(() => {
-      setAdWatching(false);
+    playClickSound();
+    try {
+      await showAdsgramRewardedAd();
       setMovesLeft((prev) => prev + 5);
       setGameState('playing');
       onToast('+5 Moves Added! Keep crushing!');
       playSfx('coin');
-    }, 1800);
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Ad not completed. No moves were added.');
+    } finally {
+      setAdWatching(false);
+    }
   };
 
   return (
