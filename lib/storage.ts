@@ -738,14 +738,15 @@ export function saveDailyClaim(newCoins: number, newStreak: number): void {
   const todayStr = new Date().toISOString().split('T')[0];
   const earned = Math.max(0, newCoins - currentSnapshot.streetCoin);
   const now = Date.now();
-  const newTx: CoinTransaction = {
-    id: `tx_${now}_${Math.random().toString(36).substring(2, 6)}`,
-    type: 'daily_reward',
-    description: `+${earned || 50} for daily claim`,
-    amount: earned || 50,
-    timestamp: now,
-  };
-  const updatedTransactions = [newTx, ...(currentSnapshot.transactions || [])].slice(0, 25);
+  const updatedTransactions = earned > 0
+    ? [{
+        id: `tx_${now}_${Math.random().toString(36).substring(2, 6)}`,
+        type: 'daily_reward' as const,
+        description: `+${earned} for daily claim`,
+        amount: earned,
+        timestamp: now,
+      }, ...(currentSnapshot.transactions || [])].slice(0, 25)
+    : (currentSnapshot.transactions || []);
   currentSnapshot = {
     ...currentSnapshot,
     streetCoin: newCoins,
