@@ -25,6 +25,7 @@ import {
 import { AdminWallet } from '@/src/wallet/AdminWallet';
 import { AdminWithdrawalsPanel } from '@/src/wallet/AdminWithdrawalsPanel';
 import { AdminTasksVerificationPanel } from '@/components/AdminTasksVerificationPanel';
+import { AdminLeadershipPanel } from '@/components/AdminLeadershipPanel';
 import { UserGameState, PostedSong, AdminLog } from '@/types/game';
 import {
   ADMIN_EMAIL,
@@ -62,7 +63,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
     getWithdrawalClickRecords()
   );
   const [isBanned, setIsBanned] = useState<boolean>(!!gameState.isBanned);
-  const [activeAdminTab, setActiveAdminTab] = useState<'general' | 'treasury' | 'withdrawals' | 'tasks'>('general');
+  const [activeAdminTab, setActiveAdminTab] = useState<'general' | 'treasury' | 'withdrawals' | 'tasks' | 'leadership'>('general');
   const [registeredPlayerCount, setRegisteredPlayerCount] = useState<number | null>(null);
   const [playerCountError, setPlayerCountError] = useState(false);
 
@@ -202,7 +203,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
       </div>
 
       {/* ADMIN TABS NAVIGATION */}
-      <div className="grid grid-cols-4 gap-1 p-1.5 rounded-2xl bg-[#14141c] border border-white/10 mb-5">
+      <div className="grid grid-cols-5 gap-1 p-1.5 rounded-2xl bg-[#14141c] border border-white/10 mb-5">
         <button
           onClick={() => {
             playClickSound();
@@ -265,9 +266,25 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
           <CheckCircle className="w-3 h-3" />
           <span>Tasks</span>
         </button>
+        <button
+          onClick={() => {
+            playClickSound();
+            setActiveAdminTab('leadership');
+          }}
+          type="button"
+          className={`py-2 px-1 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center transition-all cursor-pointer ${
+            activeAdminTab === 'leadership'
+              ? 'bg-gradient-to-r from-[#FFD700] to-amber-400 text-black shadow-md'
+              : 'text-[#FFD700] hover:text-white'
+          }`}
+        >
+          Leadership
+        </button>
       </div>
 
-      {activeAdminTab === 'treasury' ? (
+      {activeAdminTab === 'leadership' ? (
+        <AdminLeadershipPanel />
+      ) : activeAdminTab === 'treasury' ? (
         <AdminWallet onToast={onToast} />
       ) : activeAdminTab === 'withdrawals' ? (
         <AdminWithdrawalsPanel onToast={onToast} />
