@@ -208,8 +208,9 @@ export default function DailyFreePage() {
     setShowStreakModal(true);
   };
 
-  // Claim All Free Rewards
-  const handleClaimAll = () => {
+  // Claim All Free Rewards. The server decides the reward and enforces one claim
+  // per Telegram account per Africa/Lagos calendar day.
+  const handleClaimAll = async () => {
     if (!claimRecord) return;
     if (claimRecord.claimed_all_today && claimRecord.login_claimed) {
       showToast('⚠️ You have already claimed all today’s login rewards!');
@@ -217,45 +218,81 @@ export default function DailyFreePage() {
       return;
     }
 
-    playSuccessSound();
-    try {
-      confetti({
-        particleCount: 150,
-        spread: 90,
-        origin: { y: 0.4 },
-        colors: ['#FFD700', '#F59E0B', '#38BDF8', '#10B981', '#FFFFFF'],
-      });
-    } catch {}
-
-    const schedule = DAILY_LOGIN_SCHEDULE[(streak - 1) % 7] || DAILY_LOGIN_SCHEDULE[0];
-    let scReward = schedule.sc;
-
-    // Day 7 random jackpot box (500-2000 SC)
-    if (streak % 7 === 0) {
-      const jackpotBonus = 500 + Math.floor(Math.random() * 1500);
-      scReward = 1000 + jackpotBonus;
+    const initData = typeof window !== 'undefined'
+      ? (window as any).Telegram?.WebApp?.initData || ''
+      : '';
+    if (!initData) {
+      showToast('Open STREET LIFE inside Telegram to claim your secure daily reward.');
+      playClickSound();
+      return;
     }
 
-    addGameCoins(scReward, `+${scReward} SC - Daily Free Rewards All-In-One!`, 'daily_reward');
+    try {
+      const response = await fetch('/api/daily-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-telegram-init-data': initData,
+        },
+        cache: 'no-store',
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || 'Daily reward could not be claimed. Please try again.');
+      }
 
-    const updated = updateTodayDailyClaim(() => ({
-      login_claimed: true,
-      login_reward_sc: scReward,
-      login_perk: schedule.perk,
-      claimed_all_today: true,
-    }));
-    setClaimRecord(updated);
+      const scReward = Number(result.reward);
+      const serverStreak = Number(result.streak);
+      if (!Number.isSafeInteger(scReward) || scReward <= 0 ||
+          !Number.isInteger(serverStreak) || serverStreak < 1 || serverStreak > 7) {
+        throw new Error('The server returned an invalid daily reward.');
+      }
 
-    // Floating animation
-    triggerFloatingTokens([
-      { label: `+${scReward} SC`, icon: '🪙' },
-      { label: `+3 NITRO`, icon: '⚡' },
-      { label: `+3 SPINS`, icon: '🎰' },
-      { label: schedule.perk, icon: '🎁' },
-    ]);
+      if (result.alreadyClaimed) {
+        const updated = updateTodayDailyClaim(() => ({
+          login_claimed: true,
+          login_reward_sc: scReward,
+          login_perk: String(result.perk || ''),
+          claimed_all_today: true,
+        }));
+        setClaimRecord(updated);
+        setStreak(serverStreak);
+        showToast('You have already claimed today’s server-verified reward.');
+        refreshState();
+        return;
+      }
 
-    showToast(`🎉 Claimed All Free Daily Rewards! +${scReward} SC & Perks!`);
-    refreshState();
+      addGameCoins(scReward, `+${scReward} SC - Daily Free Rewards All-In-One!`, 'daily_reward');
+      const updated = updateTodayDailyClaim(() => ({
+        login_claimed: true,
+        login_reward_sc: scReward,
+        login_perk: String(result.perk || ''),
+        claimed_all_today: true,
+      }));
+      setClaimRecord(updated);
+      setStreak(serverStreak);
+      playSuccessSound();
+      try {
+        confetti({
+          particleCount: 150,
+          spread: 90,
+          origin: { y: 0.4 },
+          colors: ['#FFD700', '#F59E0B', '#38BDF8', '#10B981', '#FFFFFF'],
+        });
+      } catch {}
+
+      triggerFloatingTokens([
+        { label: `+${scReward} SC`, icon: '🪙' },
+        { label: '+3 NITRO', icon: '⚡' },
+        { label: '+3 SPINS', icon: '🎰' },
+        { label: String(result.perk || ''), icon: '🎁' },
+      ]);
+      showToast(`🎉 Claimed All Free Daily Rewards! +${scReward} SC & Perks!`);
+      refreshState();
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Daily reward could not be claimed.');
+      playClickSound();
+    }
   };
 
   // Claim Nitro only after a completed Adsgram rewarded advertisement.
