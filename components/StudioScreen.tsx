@@ -46,97 +46,9 @@ import {
   GROUP_TELEGRAM,
 } from '@/lib/storage';
 import { playClickSound, playCoinSound, playSuccessSound } from '@/lib/sound';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import { StudioBeats } from '@/src/components/StudioBeats';
 import { LongBeat } from '@/src/data/longBeatsData';
-
-// Pure JavaScript PCM 16-bit WAV vocal synthesizer
-function writeWavString(view: DataView, offset: number, string: string) {
-  for (let i = 0; i < string.length; i++) {
-    view.setUint8(offset + i, string.charCodeAt(i));
-  }
-}
-
-function createSyntheticVocalWavBlob(durationSeconds: number = 3): Blob {
-  const sampleRate = 44100;
-  const numChannels = 1;
-  const numSamples = Math.max(sampleRate, Math.floor(sampleRate * Math.max(1, durationSeconds)));
-  const buffer = new ArrayBuffer(44 + numSamples * 2);
-  const view = new DataView(buffer);
-
-  // RIFF header
-  writeWavString(view, 0, 'RIFF');
-  view.setUint32(4, 36 + numSamples * 2, true);
-  writeWavString(view, 8, 'WAVE');
-
-  // fmt chunk
-  writeWavString(view, 12, 'fmt ');
-  view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
-  view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
-  view.setUint16(22, numChannels, true); // NumChannels
-  view.setUint32(24, sampleRate, true); // SampleRate
-  view.setUint32(28, sampleRate * numChannels * 2, true); // ByteRate
-  view.setUint16(32, numChannels * 2, true); // BlockAlign
-  view.setUint16(34, 16, true); // BitsPerSample
-
-  // data chunk
-  writeWavString(view, 36, 'data');
-  view.setUint32(40, numSamples * 2, true);
-
-  // Write synthesized freestyle vocal audio harmonics
-  for (let i = 0; i < numSamples; i++) {
-    const t = i / sampleRate;
-    const baseFreq = 180 + 35 * Math.sin(2 * Math.PI * 1.8 * t);
-    const harmonic1 = Math.sin(2 * Math.PI * baseFreq * t) * 0.45;
-    const harmonic2 = Math.sin(2 * Math.PI * (baseFreq * 2) * t) * 0.2;
-    const breath = (Math.random() * 2 - 1) * 0.04;
-    const envelope = Math.min(1, Math.max(0.15, Math.sin((Math.PI * (t % 0.8)) / 0.8)));
-    const sample = (harmonic1 + harmonic2 + breath) * envelope * 0.7;
-
-    const clamped = Math.max(-1, Math.min(1, sample));
-    const s16 = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff;
-    view.setInt16(44 + i * 2, s16, true);
-  }
-
-  return new Blob([buffer], { type: 'audio/wav' });
-}
-
-function getVirtualMicStream(): { stream: MediaStream | null; cleanup: () => void } {
-  try {
-    const AudioContextClass =
-      window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return { stream: null, cleanup: () => {} };
-
-    const ctx = new AudioContextClass();
-    if (typeof ctx.createMediaStreamDestination !== 'function') {
-      return { stream: null, cleanup: () => { ctx.close().catch(() => {}); } };
-    }
-
-    const dest = ctx.createMediaStreamDestination();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(200, ctx.currentTime);
-    gain.gain.setValueAtTime(0.04, ctx.currentTime);
-
-    osc.connect(gain);
-    gain.connect(dest);
-    osc.start();
-
-    return {
-      stream: dest.stream,
-      cleanup: () => {
-        try {
-          osc.stop();
-          gain.disconnect();
-          ctx.close().catch(() => {});
-        } catch {}
-      },
-    };
-  } catch {
-    return { stream: null, cleanup: () => {} };
-  }
-}
 
 interface StudioScreenProps {
   gameState: UserGameState;
@@ -189,7 +101,6 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
   const [isPreviewPlaying, setIsPreviewPlaying] = useState<boolean>(false);
   const [visibleBeatsCount, setVisibleBeatsCount] = useState<number>(2); // Lazy load 2 at a time
   const [isAdWatching, setIsAdWatching] = useState<boolean>(false);
-  const [adCountdown, setAdCountdown] = useState<number>(5);
   const [currentAdIndex, setCurrentAdIndex] = useState<number>(() => {
     return ((gameState.studioAdsWatched || 0) % 33) + 1;
   });
@@ -385,16 +296,21 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       }
     }
 
-    // 2. If real microphone is blocked/unavailable, activate Studio Virtual Mic stream
+    // Never substitute a synthetic oscillator for a real vocal recording.
+    // If microphone access is unavailable, stop here and explain the issue.
     if (!stream) {
-      isVirtual = true;
-      const virtual = getVirtualMicStream();
-      if (virtual.stream) {
-        stream = virtual.stream;
-        virtualMicCleanupRef.current = virtual.cleanup;
-      }
+      setIsVirtualMic(false);
+      onToast('Microphone access is required to record your real voice. Allow microphone permission and try again.');
+      return;
     }
-    setIsVirtualMic(isVirtual);
+
+    if (typeof MediaRecorder === 'undefined') {
+      stream.getTracks().forEach((track) => track.stop());
+      setIsVirtualMic(false);
+      onToast('Audio recording is not supported by this browser. Try an updated browser or Telegram app.');
+      return;
+    }
+    setIsVirtualMic(false);
 
     let mimeType = 'audio/webm';
     if (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function') {
@@ -411,12 +327,11 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
         virtualMicCleanupRef.current();
         virtualMicCleanupRef.current = null;
       }
-      let blob: Blob;
-      if (recordedChunksRef.current.length > 0) {
-        blob = new Blob(recordedChunksRef.current, { type: mimeType });
-      } else {
-        blob = createSyntheticVocalWavBlob(recordSecondsRef.current || 3);
+      if (recordedChunksRef.current.length === 0) {
+        onToast('No microphone audio was captured. Please record again and check microphone permission.');
+        return;
       }
+      const blob = new Blob(recordedChunksRef.current, { type: mimeType });
       const url = URL.createObjectURL(blob);
       setRecordedBlobUrl(url);
       setRecordedBeatId(beat.id);
@@ -511,20 +426,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
         console.warn('Error stopping media recorder:', e);
       }
     } else {
-      // If mediaRecorder was null or failed to start, finalize directly with synthetic vocal blob
-      if (virtualMicCleanupRef.current) {
-        virtualMicCleanupRef.current();
-        virtualMicCleanupRef.current = null;
-      }
-      if (recordingBeatId) {
-        const blob = createSyntheticVocalWavBlob(recordSecondsRef.current || 3);
-        const url = URL.createObjectURL(blob);
-        setRecordedBlobUrl(url);
-        setRecordedBeatId(recordingBeatId);
-        setHasPreviewed(false);
-        setIsPreviewPlaying(false);
-        onToast('🎤 Vocal recording captured! Click PREVIEW to listen before posting.');
-      }
+      onToast('Recording could not be finalised. Please record again.');
     }
 
     setRecordingBeatId(null);
@@ -665,29 +567,25 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
     }
   };
 
-  // WATCH AD UNDER STUDIO (10 COINS ONLY, 33 TOTAL ADS, 5/DAY PER AD)
-  const handleWatchStudioAd = () => {
+  // Credit Studio rewards only after Adsgram confirms a completed rewarded ad.
+  const handleWatchStudioAd = async () => {
     if (isAdWatching) return;
     playClickSound();
     setIsAdWatching(true);
-    setAdCountdown(5);
-
-    const timer = setInterval(() => {
-      setAdCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setIsAdWatching(false);
-          const res = watchStudioAd(currentAdIndex);
-          onToast(res.message);
-          if (res.success) {
-            playCoinSound();
-            setCurrentAdIndex(res.nextAdIndex);
-          }
-          return 5;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    try {
+      await showAdsgramRewardedAd();
+      const res = watchStudioAd(currentAdIndex);
+      onToast(res.message);
+      if (res.success) {
+        playCoinSound();
+        setCurrentAdIndex(res.nextAdIndex);
+      }
+    } catch (error) {
+      console.error('Studio Adsgram error:', error);
+      onToast('The advertisement was not completed or is unavailable. No coins were added.');
+    } finally {
+      setIsAdWatching(false);
+    }
   };
 
   // Tap screen listener when browser audio is blocked
@@ -892,7 +790,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
             type="button"
             className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-black text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(6,182,212,0.4)] active:scale-95 transition-all cursor-pointer shrink-0"
           >
-            {isAdWatching ? `Ad (${adCountdown}s)` : '+10 Coins'}
+            {isAdWatching ? 'Loading Ad...' : '+10 Coins'}
           </button>
         </div>
 
@@ -900,7 +798,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
           <div className="mt-2.5 w-full bg-black/60 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-cyan-400 h-full transition-all duration-1000 shadow-[0_0_8px_#06b6d4]"
-              style={{ width: `${((5 - adCountdown) / 5) * 100}%` }}
+              style={{ width: '100%' }}
             />
           </div>
         )}

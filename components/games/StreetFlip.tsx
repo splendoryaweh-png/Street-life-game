@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, RotateCcw, Volume2, VolumeX, Clock, Trophy, Tv, AlertCircle } from 'lucide-react';
 import { playCoinSound, playSuccessSound, playClickSound, playSirenSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import { consumeFlipDailyFreeTime, getTodayDailyClaim } from '@/lib/dailyFree';
 import confetti from 'canvas-confetti';
 
@@ -244,16 +245,21 @@ export function StreetFlip({ onBack, onToast }: StreetFlipProps) {
     }
   };
 
-  // Watch Ad for +15 Sec
-  const handleWatchAdTime = () => {
+  const handleWatchAdTime = async () => {
+    if (adWatching) return;
     setAdWatching(true);
-    setTimeout(() => {
-      setAdWatching(false);
+    try {
+      await showAdsgramRewardedAd();
       setTimeLeft((prev) => prev + 15);
       setGameState('playing');
       onToast('+15 Seconds Added! Flip those cards!');
       playSfx('coin');
-    }, 1800);
+    } catch (error) {
+      console.error('Street Flip Adsgram error:', error);
+      onToast('The ad was not completed or is unavailable. No extra time was added.');
+    } finally {
+      setAdWatching(false);
+    }
   };
 
   return (

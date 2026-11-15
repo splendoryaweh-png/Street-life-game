@@ -36,7 +36,7 @@ import {
   buyRacingNitroWithCoins,
   claimShooterAdPowerup,
 } from '@/lib/dailyFree';
-import { getGameStateSnapshot, addGameCoins } from '@/lib/storage';
+import { getGameStateSnapshot, saveDailyClaim, saveCoins } from '@/lib/storage';
 import {
   playCoinSound,
   playSuccessSound,
@@ -45,6 +45,7 @@ import {
 } from '@/lib/sound';
 import confetti from 'canvas-confetti';
 import { TasksEarnCoinsModal } from '@/components/TasksEarnCoinsModal';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 
 interface FloatingToken {
   id: string;
@@ -153,6 +154,9 @@ export default function DailyFreePage() {
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
   const [dbExpanded, setDbExpanded] = useState(false);
   const [adWatchingType, setAdWatchingType] = useState<string | null>(null);
+  const [isClaimingLoginReward, setIsClaimingLoginReward] = useState(false);
+  const [isPurchasingNitro, setIsPurchasingNitro] = useState(false);
+  const [pendingNitroPurchaseId, setPendingNitroPurchaseId] = useState<string | null>(null);
 
   // 7-Day Modal & Preview State
   const [showStreakModal, setShowStreakModal] = useState(false);
@@ -207,115 +211,212 @@ export default function DailyFreePage() {
     setShowStreakModal(true);
   };
 
-  // Claim All Free Rewards
-  const handleClaimAll = () => {
-    if (!claimRecord) return;
-    if (claimRecord.claimed_all_today && claimRecord.login_claimed) {
-      showToast('⚠️ You have already claimed all today’s login rewards!');
+  // Claim All Free Rewards — the server decides eligibility, streak and coin amount.
+  const handleClaimAll = async () => {
+    if (!claimRecord || isClaimingLoginReward) return;
+    const initData = typeof window !== 'undefined'
+      ? window.Telegram?.WebApp?.initData || ''
+      : '';
+    if (!initData) {
+      showToast('Open STREET LIFE inside Telegram to claim your daily reward.');
       playClickSound();
       return;
     }
 
-    playSuccessSound();
+    setIsClaimingLoginReward(true);
+    playClickSound();
     try {
-      confetti({
-        particleCount: 150,
-        spread: 90,
-        origin: { y: 0.4 },
-        colors: ['#FFD700', '#F59E0B', '#38BDF8', '#10B981', '#FFFFFF'],
+      const response = await fetch('/api/rewards/daily-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData }),
+        cache: 'no-store',
       });
-    } catch {}
+      const result = await response.json().catch(() => null);
 
-    const schedule = DAILY_LOGIN_SCHEDULE[(streak - 1) % 7] || DAILY_LOGIN_SCHEDULE[0];
-    let scReward = schedule.sc;
+      if (!response.ok || result?.ok !== true) {
+        if (response.status === 409) {
+          const existingBalance = Number(result?.balance);
+          if (Number.isSafeInteger(existingBalance) && existingBalance >= 0) {
+            saveCoins(existingBalance);
+            setCurrentCoins(existingBalance);
+          }
+          updateTodayDailyClaim(() => ({
+            login_claimed: true,
+            login_reward_sc: Number(result?.reward_sc) || claimRecord.login_reward_sc,
+            login_perk: result?.perk || claimRecord.login_perk,
+            claimed_all_today: true,
+          }));
+          refreshState();
+          showToast(result?.message || 'You have already claimed today’s reward.');
+        } else {
+          showToast(result?.error || 'Daily reward could not be verified. No coins were added.');
+        }
+        return;
+      }
 
-    // Day 7 random jackpot box (500-2000 SC)
-    if (streak % 7 === 0) {
-      const jackpotBonus = 500 + Math.floor(Math.random() * 1500);
-      scReward = 1000 + jackpotBonus;
+      const scReward = Number(result.reward_sc);
+      const nextStreak = Number(result.streak_day);
+      const serverBalance = Number(result.balance);
+      if (!Number.isSafeInteger(scReward) || scReward <= 0 ||
+          !Number.isSafeInteger(nextStreak) || nextStreak < 1 || nextStreak > 7 ||
+          !Number.isSafeInteger(serverBalance) || serverBalance < 0) {
+        showToast('The server returned an invalid reward response. Please contact support.');
+        return;
+      }
+
+      // Synchronize the local game display with the database's authoritative balance.
+      saveDailyClaim(serverBalance, nextStreak);
+      const updated = updateTodayDailyClaim(() => ({
+        day_streak: nextStreak,
+        login_claimed: true,
+        login_reward_sc: scReward,
+        login_perk: String(result.perk || ''),
+        claimed_all_today: true,
+      }));
+      setClaimRecord(updated);
+      setCurrentCoins(serverBalance);
+      setStreak(nextStreak);
+
+      playSuccessSound();
+      try {
+        confetti({
+          particleCount: 150,
+          spread: 90,
+          origin: { y: 0.4 },
+          colors: ['#FFD700', '#F59E0B', '#38BDF8', '#10B981', '#FFFFFF'],
+        });
+      } catch {}
+
+      triggerFloatingTokens([
+        { label: `+${scReward} SC`, icon: '🪙' },
+        { label: '+3 NITRO', icon: '⚡' },
+        { label: '+3 SPINS', icon: '🎰' },
+        { label: String(result.perk || 'Daily perk'), icon: '🎁' },
+      ]);
+
+      showToast(`🎉 Claimed Daily Rewards! +${scReward} SC & Perks!`);
+    } catch (error) {
+      console.error('Daily login claim failed:', error);
+      showToast('Could not connect to the reward server. No coins were added.');
+    } finally {
+      setIsClaimingLoginReward(false);
     }
-
-    addGameCoins(scReward, `+${scReward} SC - Daily Free Rewards All-In-One!`, 'daily_reward');
-
-    const updated = updateTodayDailyClaim(() => ({
-      login_claimed: true,
-      login_reward_sc: scReward,
-      login_perk: schedule.perk,
-      claimed_all_today: true,
-    }));
-    setClaimRecord(updated);
-
-    // Floating animation
-    triggerFloatingTokens([
-      { label: `+${scReward} SC`, icon: '🪙' },
-      { label: `+3 NITRO`, icon: '⚡' },
-      { label: `+3 SPINS`, icon: '🎰' },
-      { label: schedule.perk, icon: '🎁' },
-    ]);
-
-    showToast(`🎉 Claimed All Free Daily Rewards! +${scReward} SC & Perks!`);
-    refreshState();
   };
 
-  // Watch Ad for Racing Nitro
-  const handleWatchAdForNitro = () => {
-    if (!claimRecord) return;
+    const handleWatchAdForNitro = async () => {
+    if (!claimRecord || adWatchingType) return;
     if (claimRecord.nitro_ad_claims_count >= 5) {
       showToast('Maximum 5 nitro ad bonuses reached today!');
       return;
     }
-
     setAdWatchingType('nitro');
     playClickSound();
-    setTimeout(() => {
+    try {
+      await showAdsgramRewardedAd();
       const res = claimRacingAdNitro();
-      setAdWatchingType(null);
       if (res.success) {
         playPickupSound();
         triggerFloatingTokens([{ label: '+1 NITRO', icon: '⚡' }]);
         showToast(`⚡ +1 Nitro granted! (${res.remaining} available)`);
-        refreshState();
+      } else {
+        showToast('Daily Nitro ad limit reached. No Nitro was granted.');
       }
-    }, 1500);
+      refreshState();
+    } catch (error) {
+      console.error('Daily Nitro Adsgram error:', error);
+      showToast('The ad was not completed or is unavailable. No Nitro was granted.');
+    } finally {
+      setAdWatchingType(null);
+    }
   };
 
   // Buy Nitro with Coins
-  const handleBuyNitro = () => {
-    if (currentCoins < 50) {
-      showToast('Need at least 50 SC to buy a nitro bottle!');
+  const handleBuyNitro = async () => {
+    if (isPurchasingNitro) return;
+
+    const initData = typeof window !== 'undefined'
+      ? window.Telegram?.WebApp?.initData || ''
+      : '';
+    if (!initData) {
+      showToast('Open STREET LIFE inside Telegram to purchase Nitro.');
       playClickSound();
       return;
     }
 
-    addGameCoins(-50, '-50 SC - Purchased Nitro Bottle', 'task_reward');
-    buyRacingNitroWithCoins();
-    playPickupSound();
-    triggerFloatingTokens([{ label: '+1 NITRO', icon: '⚡' }]);
-    showToast('⚡ Purchased 1 Nitro for 50 SC!');
-    refreshState();
+    // Keep the same id after uncertain network failures so a retry cannot double-charge.
+    const requestId = pendingNitroPurchaseId || crypto.randomUUID();
+    setPendingNitroPurchaseId(requestId);
+    setIsPurchasingNitro(true);
+    playClickSound();
+
+    try {
+      const response = await fetch('/api/shop/racing-nitro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData, requestId }),
+        cache: 'no-store',
+      });
+      const result = await response.json().catch(() => null);
+
+      if (response.status === 409 || response.status === 400 || response.status === 401) {
+        setPendingNitroPurchaseId(null);
+        showToast(result?.message || result?.error || 'Nitro purchase was not approved.');
+        return;
+      }
+
+      if (!response.ok || result?.ok !== true) {
+        showToast(result?.error || 'Purchase status is uncertain. Retry safely; the same request will be reused.');
+        return;
+      }
+
+      const balance = Number(result.balance);
+      if (!Number.isSafeInteger(balance) || balance < 0) {
+        showToast('Purchase was processed, but the balance response was invalid. Please refresh before retrying.');
+        return;
+      }
+
+      saveCoins(balance);
+      buyRacingNitroWithCoins();
+      setPendingNitroPurchaseId(null);
+      playPickupSound();
+      triggerFloatingTokens([{ label: '+1 NITRO', icon: '⚡' }]);
+      showToast('⚡ Purchased 1 Nitro for 50 SC!');
+      refreshState();
+    } catch (error) {
+      console.error('Racing Nitro purchase failed:', error);
+      showToast('Connection failed. Retry the purchase; it will reuse the same request safely.');
+    } finally {
+      setIsPurchasingNitro(false);
+    }
   };
 
-  // Watch Ad for Shooter Powerup
-  const handleWatchAdForShooter = () => {
-    if (!claimRecord) return;
+    const handleWatchAdForShooter = async () => {
+    if (!claimRecord || adWatchingType) return;
     if (claimRecord.shooter_ad_powerups_count >= 3) {
       showToast('Maximum 3 shooter power-up ads reached today!');
       return;
     }
-
     setAdWatchingType('shooter');
     playClickSound();
-    setTimeout(() => {
+    try {
+      await showAdsgramRewardedAd();
       const res = claimShooterAdPowerup();
-      setAdWatchingType(null);
       if (res.success) {
         playPickupSound();
         const pLabel = res.powerup === 'double_bullet' ? 'Double Bullet' : 'Energy Pack';
         triggerFloatingTokens([{ label: `+1 ${pLabel}`, icon: '🎯' }]);
         showToast(`🎯 +1 Free Power-up (${pLabel}) Activated!`);
-        refreshState();
+      } else {
+        showToast('Daily power-up ad limit reached. No power-up was granted.');
       }
-    }, 1500);
+      refreshState();
+    } catch (error) {
+      console.error('Daily shooter Adsgram error:', error);
+      showToast('The ad was not completed or is unavailable. No power-up was granted.');
+    } finally {
+      setAdWatchingType(null);
+    }
   };
 
   // Simulate Push Notification
@@ -478,7 +579,7 @@ export default function DailyFreePage() {
           <div className="mt-4">
             <button
               onClick={handleClaimAll}
-              disabled={claimRecord?.claimed_all_today && claimRecord?.login_claimed}
+              disabled={isClaimingLoginReward}
               type="button"
               className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
                 claimRecord?.claimed_all_today && claimRecord?.login_claimed
@@ -617,11 +718,12 @@ export default function DailyFreePage() {
 
             <button
               onClick={handleBuyNitro}
+              disabled={isPurchasingNitro}
               type="button"
               className="py-2.5 px-3 rounded-xl bg-black/50 border border-white/15 text-[10px] font-black text-gray-200 hover:text-white flex items-center justify-center gap-1.5 active:scale-95 transition-all"
             >
               <Coins className="w-3.5 h-3.5 text-[#FFD700]" />
-              Buy Nitro (50 SC)
+              {isPurchasingNitro ? 'Processing...' : 'Buy Nitro (50 SC)'}
             </button>
           </div>
         </div>

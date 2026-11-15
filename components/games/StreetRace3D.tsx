@@ -19,7 +19,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { playCoinSound, playSirenSound, playClickSound, playPickupSound, playSuccessSound } from '@/lib/sound';
-import { addGameCoins } from '@/lib/storage';
+import { addGameCoins, saveCoins } from '@/lib/storage';
 import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import {
   getTodayDailyClaim,
@@ -96,6 +96,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
 
   // PVP specific state: Position, 60s Timer, Fail status
   const [pvpRank, setPvpRank] = useState<number>(1);
+  const pvpRankRef = useRef(1);
   const [pvpTimeRemaining, setPvpTimeRemaining] = useState<number>(60);
   const [pvpFailReason, setPvpFailReason] = useState<string | null>(null);
   const [adWatching, setAdWatching] = useState<boolean>(false);
@@ -131,6 +132,8 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
   const isPlayingRef = useRef(true);
   const pvpTimerRef = useRef(60);
   const pvpRivalsRef = useRef<RivalCar[]>([]);
+  const nitroPurchaseRequestRef = useRef<string | null>(null);
+  const isPurchasingNitroRef = useRef(false);
 
   // Three.js scene refs
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -175,6 +178,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
     setNitroAvailable(100);
     nitroRef.current = 100;
     targetXRef.current = 0;
+    pvpRankRef.current = 1;
     setPvpRank(1);
     pvpTimerRef.current = 60;
     setPvpTimeRemaining(60);
@@ -232,20 +236,65 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
     }
   }, [isWatchingNitroAd, nitroAdsWatched, onToast, playSfx]);
 
-  const handleBuyNitroBottle = useCallback(() => {
-    if (currentCoins < 50) {
-      onToast('Need at least 50 SC to buy a nitro bottle!');
+  const handleBuyNitroBottle = useCallback(async () => {
+    if (isPurchasingNitroRef.current) return;
+
+    const initData = typeof window !== 'undefined'
+      ? window.Telegram?.WebApp?.initData || ''
+      : '';
+    if (!initData) {
+      onToast('Open STREET LIFE inside Telegram to purchase Nitro.');
       playClickSound();
       return;
     }
-    addGameCoins(-50, '-50 SC - Bought Nitro Bottle', 'task_reward');
-    const res = buyRacingNitroWithCoins();
-    setDailyFreeNitro(res.remaining);
-    nitroRef.current = 100;
-    setNitroAvailable(100);
-    playSfx('pickup');
-    onToast('⚡ Refilled Nitro for 50 SC!');
-  }, [currentCoins, onToast, playSfx]);
+
+    // Reuse the same request ID after uncertain network failures to prevent double charges.
+    const requestId = nitroPurchaseRequestRef.current || crypto.randomUUID();
+    nitroPurchaseRequestRef.current = requestId;
+    isPurchasingNitroRef.current = true;
+    playClickSound();
+
+    try {
+      const response = await fetch('/api/shop/racing-nitro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData, requestId }),
+        cache: 'no-store',
+      });
+      const result = await response.json().catch(() => null);
+
+      if (response.status === 400 || response.status === 401 || response.status === 409) {
+        nitroPurchaseRequestRef.current = null;
+        onToast(result?.message || result?.error || 'Nitro purchase was not approved.');
+        return;
+      }
+
+      if (!response.ok || result?.ok !== true) {
+        onToast(result?.error || 'Purchase status is uncertain. Retry safely; the same request will be reused.');
+        return;
+      }
+
+      const balance = Number(result.balance);
+      if (!Number.isSafeInteger(balance) || balance < 0) {
+        onToast('Purchase was processed, but the balance response was invalid. Refresh before retrying.');
+        return;
+      }
+
+      saveCoins(balance);
+      const res = buyRacingNitroWithCoins();
+      setDailyFreeNitro(res.remaining);
+      nitroRef.current = 100;
+      setNitroAvailable(100);
+      nitroPurchaseRequestRef.current = null;
+      playSfx('pickup');
+      onToast('⚡ Refilled Nitro for 50 SC!');
+    } catch (error) {
+      console.error('Racing Nitro purchase failed:', error);
+      onToast('Connection failed. Retry the purchase; the same request will be reused.');
+    } finally {
+      isPurchasingNitroRef.current = false;
+    }
+  }, [onToast, playSfx]);
 
   // Finish or Game Over handler
   const handleEndRun = useCallback(
@@ -342,6 +391,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
         setDistanceMeters(0);
         pvpTimerRef.current = 60;
         setPvpTimeRemaining(60);
+        pvpRankRef.current = 1;
         setPvpRank(1);
         setPvpFailReason(null);
         if (playerCarRef.current) {
@@ -688,7 +738,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
         pvpTimerRef.current -= delta;
         setPvpTimeRemaining(Math.max(0, Math.ceil(pvpTimerRef.current)));
         if (pvpTimerRef.current <= 0) {
-          handleEndRun(false, pvpRank, 'Time Expired (60s limit reached)');
+          handleEndRun(false, pvpRankRef.current, 'Time Expired (60s limit reached)');
           return;
         }
       }
@@ -734,6 +784,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
         rivals.forEach((r) => {
           if (r.distance > distanceRef.current) currentRank++;
         });
+        pvpRankRef.current = currentRank;
         setPvpRank(currentRank);
         // If not finish top 3 = FAIL, if 1..3 = WIN
         const isWin = currentRank <= 3;
@@ -806,7 +857,7 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
             playSfx('crash');
             t.mesh.position.z += 25;
             if (healthRef.current <= 0) {
-              handleEndRun(false, pvpRank, 'Vehicle Wrecked');
+              handleEndRun(false, pvpRankRef.current, 'Vehicle Wrecked');
             }
           }
         }
@@ -909,13 +960,48 @@ export function StreetRace3D({ onBack, onToast, currentCoins = 0 }: StreetRace3D
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
+      if (animFrameIdRef.current !== null) {
+        cancelAnimationFrame(animFrameIdRef.current);
+        animFrameIdRef.current = null;
+      }
       if (renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+
+      // Release Three.js GPU resources whenever the race scene is rebuilt
+      // or the player leaves the game (important on memory-limited phones).
+      scene.traverse((object) => {
+        const mesh = object as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        mesh.geometry?.dispose();
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : mesh.material
+            ? [mesh.material]
+            : [];
+        materials.forEach((material) => {
+          Object.values(material).forEach((value) => {
+            if (value instanceof THREE.Texture) value.dispose();
+          });
+          material.dispose();
+        });
+      });
+
       renderer.dispose();
+      scene.clear();
+      if (sceneRef.current === scene) sceneRef.current = null;
+      if (cameraRef.current === camera) cameraRef.current = null;
+      if (rendererRef.current === renderer) rendererRef.current = null;
+      if (playerCarRef.current) playerCarRef.current = null;
+      exhaustFlamesRef.current = [];
+      roadSegmentsRef.current = [];
+      trafficListRef.current = [];
+      coinsListRef.current = [];
+      nitroListRef.current = [];
+      fuelListRef.current = [];
+      pvpRivalsRef.current = [];
     };
-  }, [handleEndRun, onToast, playSfx, pvpRank, selectedMode]);
+  }, [handleEndRun, onToast, playSfx, selectedMode]);
 
   // -------------------------------------------------------------------------
   // MODE SELECTION SCREEN (Card 1: SOLO RACE | Card 2: PVP RACE | Card 3: MULTIPLAYER)

@@ -97,7 +97,7 @@ export const TELEGRAM_OFFICIAL_CHANNELS = {
 };
 
 // ============================================================================
-// SIMULATED TELEGRAM API: USER CHAT BOOST VALIDATION
+// TELEGRAM BOOST VERIFICATION — FAIL CLOSED UNTIL SERVER BOT API IS CONFIGURED
 // ============================================================================
 
 export interface TelegramChatBoost {
@@ -106,12 +106,7 @@ export interface TelegramChatBoost {
   expiration_date: number;
   source: {
     source: 'premium' | 'gift' | 'giveaway';
-    user: {
-      id: number | string;
-      is_bot: boolean;
-      first_name: string;
-      username?: string;
-    };
+    user: { id: number | string; is_bot: boolean; first_name: string; username?: string };
   };
 }
 
@@ -130,167 +125,42 @@ export interface TelegramBoostValidationResult {
   statusMessage: string;
 }
 
-const DEFAULT_ACTIVE_BOOSTERS: Record<
-  string,
-  { mainChannel?: boolean; paymentProof?: boolean }
-> = {
-  '10293847': { mainChannel: true, paymentProof: true },
-  '@ton_whale_vip': { mainChannel: true, paymentProof: true },
-  'ton_whale_vip': { mainChannel: true, paymentProof: true },
-  '11223344': { mainChannel: true, paymentProof: false },
-  '@street_boss_og': { mainChannel: true, paymentProof: false },
-  'street_boss_og': { mainChannel: true, paymentProof: false },
-  'SL-DEV-001': { mainChannel: true, paymentProof: true },
-  '@streetlife737': { mainChannel: true, paymentProof: true },
-  'streetlife737': { mainChannel: true, paymentProof: true },
-};
-
+/**
+ * Never trust browser storage, seeded usernames, or fabricated boost objects as proof.
+ * Until a server-side Telegram Bot API verifier is configured, this safely reports
+ * that verification is unavailable rather than granting a boost reward.
+ */
 export async function validateTelegramChannelBoost(
   userIdOrUsername: string | number,
   channelIdentifier: string
 ): Promise<TelegramBoostValidationResult> {
-  const cleanUser = String(userIdOrUsername).trim().toLowerCase();
-  const cleanChannel = channelIdentifier.trim().toLowerCase();
-
-  let targetChannel = TELEGRAM_OFFICIAL_CHANNELS.mainChannel;
-
-  if (
-    cleanChannel.includes('proof') ||
-    cleanChannel.includes('payment') ||
-    cleanChannel.includes('100249102938')
-  ) {
-    targetChannel = TELEGRAM_OFFICIAL_CHANNELS.paymentProof;
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 600));
-
-  let dynamicBoosters: Record<
-    string,
-    { mainChannel?: boolean; paymentProof?: boolean }
-  > = {};
-
-  if (typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('streetLife_channel_boosters');
-      if (stored) dynamicBoosters = JSON.parse(stored);
-    } catch {}
-  }
-
-  const isMain = targetChannel === TELEGRAM_OFFICIAL_CHANNELS.mainChannel;
-  const userKey = cleanUser.replace(/^@/, '');
-
-  const seeded =
-    DEFAULT_ACTIVE_BOOSTERS[cleanUser] ||
-    DEFAULT_ACTIVE_BOOSTERS[userKey];
-
-  const dynamic =
-    dynamicBoosters[cleanUser] ||
-    dynamicBoosters[userKey];
-
-  const hasBoosted = Boolean(
-    (isMain && (seeded?.mainChannel || dynamic?.mainChannel)) ||
-    (!isMain && (seeded?.paymentProof || dynamic?.paymentProof))
-  );
-
-  const now = Date.now();
-  const oneMonthMs = 30 * 24 * 60 * 60 * 1000;
-
-  if (hasBoosted) {
-    const boostData: TelegramChatBoost = {
-      boost_id: `bst_${Math.random().toString(36).substring(2, 8)}`,
-      add_date: Math.floor(
-        (now - 1000 * 60 * 60 * 24 * 3) / 1000
-      ),
-      expiration_date: Math.floor(
-        (now + oneMonthMs) / 1000
-      ),
-      source: {
-        source: 'premium',
-        user: {
-          id: cleanUser,
-          is_bot: false,
-          first_name: cleanUser.startsWith('@')
-            ? cleanUser.slice(1)
-            : cleanUser,
-          username: cleanUser.startsWith('@')
-            ? cleanUser.slice(1)
-            : undefined,
-        },
-      },
-    };
-
-    return {
-      hasBoosted: true,
-      userId: String(userIdOrUsername),
-      username: cleanUser.startsWith('@')
-        ? cleanUser
-        : `@${cleanUser}`,
-      channelName: targetChannel.name,
-      channelUrl: targetChannel.url,
-      channelId: targetChannel.id,
-      boostCount: 1,
-      boosts: [boostData],
-      verificationTimestamp: now,
-      apiMethod: 'getUserChatBoosts',
-      statusCode: 200,
-      statusMessage: `Active boost verified for ${targetChannel.name} (Telegram Bot API: 200 OK)`,
-    };
-  }
+  const cleanChannel = String(channelIdentifier || '').toLowerCase();
+  const targetChannel =
+    cleanChannel.includes('proof') || cleanChannel.includes('payment') || cleanChannel.includes('100249102938')
+      ? TELEGRAM_OFFICIAL_CHANNELS.paymentProof
+      : TELEGRAM_OFFICIAL_CHANNELS.mainChannel;
 
   return {
     hasBoosted: false,
     userId: String(userIdOrUsername),
-    username: cleanUser.startsWith('@')
-      ? cleanUser
-      : `@${cleanUser}`,
     channelName: targetChannel.name,
     channelUrl: targetChannel.url,
     channelId: targetChannel.id,
     boostCount: 0,
     boosts: [],
-    verificationTimestamp: now,
+    verificationTimestamp: Date.now(),
     apiMethod: 'getUserChatBoosts',
-    statusCode: 404,
-    statusMessage: `No active boost found on ${targetChannel.name} for user ${userIdOrUsername}`,
+    statusCode: 400,
+    statusMessage: 'Live Telegram boost verification is not configured. No reward can be approved from this check.',
   };
 }
 
-// ============================================================================
-// RECORD A SIMULATED USER BOOST
-// ============================================================================
-
+/** Browser-side boost claims are disabled; only a trusted server verifier may record them. */
 export function recordSimulatedUserBoost(
-  userIdOrUsername: string | number,
-  channelType: 'main' | 'proof'
+  _userIdOrUsername: string | number,
+  _channelType: 'main' | 'proof'
 ): void {
-  if (typeof window === 'undefined') return;
-
-  const key = String(userIdOrUsername)
-    .trim()
-    .toLowerCase()
-    .replace(/^@/, '');
-
-  try {
-    const raw =
-      localStorage.getItem('streetLife_channel_boosters') || '{}';
-
-    const data = JSON.parse(raw);
-
-    if (!data[key]) data[key] = {};
-
-    if (channelType === 'main') {
-      data[key].mainChannel = true;
-    } else {
-      data[key].paymentProof = true;
-    }
-
-    localStorage.setItem(
-      'streetLife_channel_boosters',
-      JSON.stringify(data)
-    );
-  } catch (err) {
-    console.error('Error saving user boost:', err);
-  }
+  console.warn('Simulated Telegram boost recording is disabled.');
 }
 
 // ============================================================================

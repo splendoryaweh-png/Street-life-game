@@ -14,6 +14,7 @@ import {
 import { longBeatEngine } from '../audio/longBeatEngine';
 import { UserGameState } from '@/types/game';
 import { playClickSound, playCoinSound, playSuccessSound } from '@/lib/sound';
+import { getTelegramInitData } from '@/lib/telegram';
 
 function getTodayDateString(): string {
   const d = new Date();
@@ -160,6 +161,8 @@ export function StudioBeats({
   const [dailyRecordCount, setDailyRecordCount] = useState(() => getStoredDailyRecordCount());
   const [showDailyLimitModal, setShowDailyLimitModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPostingMix, setIsPostingMix] = useState(false);
+  const isPostingMixRef = useRef(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
@@ -369,6 +372,20 @@ export function StudioBeats({
           await beatEl.play();
         } catch {}
       } else {
+        // The long-beat synthesizer runs in its own AudioContext. Route its
+        // stream into the same recording destination as the microphone so the
+        // exported file contains both beat and voice, not voice alone.
+        const engineDestination = longBeatEngine.getMediaStreamDestination();
+        if (!engineDestination) {
+          throw new Error('The beat audio recording output is unavailable.');
+        }
+        const engineSource = audioCtx.createMediaStreamSource(engineDestination.stream);
+        const beatGain = audioCtx.createGain();
+        beatGain.gain.value = beatVolume / 100;
+        beatGainNodeRef.current = beatGain;
+        engineSource.connect(beatGain);
+        beatGain.connect(dest);
+
         longBeatEngine.play(beat.id, 0);
         setIsPlaying(true);
       }
@@ -595,8 +612,8 @@ export function StudioBeats({
 
   const handlePreview = () => handlePreviewBeat(currentBeat);
 
-  const handlePostBeat = (beat: LongBeat) => {
-    playClickSound();
+  const handlePostBeat = async (beat: LongBeat) => {
+    if (isPostingMixRef.current) return;
 
     const beatRec =
       recordingsByBeat[beat.id] ||
@@ -615,31 +632,59 @@ export function StudioBeats({
       return;
     }
 
-    try {
-      const a = document.createElement('a');
-      a.href = beatRec.url;
-      a.download =
-        `StreetLife-MIXED-${beat.name.replace(/\s+/g,'_')}-${Date.now()}.${beatRec.url.includes('mp4') ? 'mp4' : 'webm'}`;
-
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-
-      setTimeout(() => {
-        try { document.body.removeChild(a); } catch {}
-      }, 1000);
-
-    } catch (e) {
-      window.open(beatRec.url, '_blank');
+    if (beatRec.isVideo) {
+      toast('Video freestyle posting is not available yet. Your video is still saved for preview.');
+      return;
     }
 
-    setTimeout(() => {
-      window.open('https://t.me/Streetlifestars', '_blank');
-    }, 1500);
+    const initData = getTelegramInitData();
+    if (!initData) {
+      toast('Open STREET LIFE inside Telegram before posting your mix.');
+      return;
+    }
 
-    playSuccessSound();
+    isPostingMixRef.current = true;
+    setIsPostingMix(true);
+    playClickSound();
+
+    try {
+      const extension = beatRec.blob.type.includes('mp4') ? 'm4a' : 'webm';
+      const file = new File(
+        [beatRec.blob],
+        `StreetLife-${beat.name.replace(/\s+/g, '_')}-${Date.now()}.${extension}`,
+        { type: beatRec.blob.type || 'audio/webm' }
+      );
+      const form = new FormData();
+      form.append('initData', initData);
+      form.append('beatName', beat.name);
+      form.append('durationSec', String(beatRec.durationSec));
+      form.append('file', file);
+
+      const response = await fetch('/api/studio/post-mix', {
+        method: 'POST',
+        body: form,
+        cache: 'no-store'
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || result?.ok !== true) {
+        throw new Error(
+          typeof result?.error === 'string'
+            ? result.error
+            : 'Telegram could not send your mix. Please try again.'
+        );
+      }
+
+      toast('✅ Your mix was sent to the STREET LIFE group!');
+      playSuccessSound();
+    } catch (error) {
+      console.error('Studio group post failed:', error);
+      toast(error instanceof Error ? error.message : 'Could not send your mix. Please try again.');
+    } finally {
+      isPostingMixRef.current = false;
+      setIsPostingMix(false);
+    }
   };
-
   const handlePost = () => handlePostBeat(currentBeat);
 
   const handlePlayRecentRecording = async (rec: SavedStudioRecording) => {
@@ -1004,11 +1049,11 @@ export function StudioBeats({
 
             <button
               onClick={handlePost}
-              disabled={!recordedBlob && !recordingsByBeat[currentBeat.id]}
+              disabled={isPostingMix || (!recordedBlob && !recordingsByBeat[currentBeat.id])}
               className="py-2.5 px-2 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-black"
             >
               <Share2 className="w-3.5 h-3.5"/>
-              <span>Post Mix</span>
+              <span>{isPostingMix ? 'Sending...' : 'Send to Group'}</span>
             </button>
           </div>
         </div>
@@ -1100,10 +1145,11 @@ export function StudioBeats({
                 </button>
 
                 <button
-                  onClick={()=>handlePostBeat(beat)}
-                  className="py-2 px-1 rounded-xl text-xs font-black uppercase bg-emerald-500/20 text-emerald-300"
+                  onClick={()=>void handlePostBeat(beat)}
+                  disabled={isPostingMix}
+                  className="py-2 px-1 rounded-xl text-xs font-black uppercase bg-emerald-500/20 text-emerald-300 disabled:opacity-50"
                 >
-                  Post Mix
+                  {isPostingMix ? 'Sending...' : 'Send to Group'}
                 </button>
               </div>
             </div>

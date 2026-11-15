@@ -40,7 +40,6 @@ import {
   BotNotification,
   TelegramBoostValidationResult,
 } from '@/lib/telegram';
-import { addGameCoins } from '@/lib/storage';
 
 interface SubmissionItem {
   id: string;
@@ -70,155 +69,7 @@ interface SubmissionItem {
   approvedAt?: number;
 }
 
-const INITIAL_SUBMISSIONS: SubmissionItem[] = [
-  // Status Posts
-  {
-    id: 'sub_stat_1',
-    type: 'status_post',
-    username: '@ton_hustler99',
-    telegramId: '98421034',
-    date: '2026-10-15',
-    time: '14:22',
-    timestamp: Date.now() - 1000 * 60 * 12,
-    status: 'pending',
-    reward: 50,
-    dailyPostCount: 1,
-    screenshotUrl: 'https://picsum.photos/seed/status1/600/900',
-  },
-  {
-    id: 'sub_stat_2',
-    type: 'status_post',
-    username: '@ghetto_king_sl',
-    telegramId: '87123901',
-    date: '2026-10-15',
-    time: '13:45',
-    timestamp: Date.now() - 1000 * 60 * 45,
-    status: 'pending',
-    reward: 100,
-    dailyPostCount: 2,
-    screenshotUrl: 'https://picsum.photos/seed/status2/600/900',
-  },
-  {
-    id: 'sub_stat_3',
-    type: 'status_post',
-    username: '@spammer_fake_bot',
-    telegramId: '44910281',
-    date: '2026-10-15',
-    time: '12:10',
-    timestamp: Date.now() - 1000 * 60 * 120,
-    status: 'pending',
-    reward: 0,
-    dailyPostCount: 3, // Over daily limit!
-    screenshotUrl: 'https://picsum.photos/seed/status3/600/900',
-  },
-  // Video Promos
-  {
-    id: 'sub_vid_1',
-    type: 'video_promo',
-    username: '@crypto_dan_ton',
-    telegramId: '66182903',
-    date: '2026-10-15',
-    time: '11:30',
-    timestamp: Date.now() - 1000 * 60 * 90,
-    status: 'pending',
-    reward: 200,
-    videoLink: 'https://www.tiktok.com/@streetlife737/video/7348912389123',
-    platform: 'TikTok',
-    views: 4820,
-    likes: 620,
-  },
-  {
-    id: 'sub_vid_2',
-    type: 'video_promo',
-    username: '@short_reels_guy',
-    telegramId: '77291043',
-    date: '2026-10-15',
-    time: '10:15',
-    timestamp: Date.now() - 1000 * 60 * 160,
-    status: 'pending',
-    reward: 200,
-    videoLink: 'https://youtube.com/@streetlife22/shorts/a98f12k',
-    platform: 'YouTube',
-    views: 340, // Under 1000!
-    likes: 24, // Under 100!
-  },
-  {
-    id: 'sub_vid_3',
-    type: 'video_promo',
-    username: '@insta_model_hustle',
-    telegramId: '33910291',
-    date: '2026-10-15',
-    time: '09:05',
-    timestamp: Date.now() - 1000 * 60 * 220,
-    status: 'pending',
-    reward: 200,
-    videoLink: 'https://www.instagram.com/reel/C89fksj29/',
-    platform: 'Instagram', // Disallowed!
-    views: 8900,
-    likes: 1200,
-  },
-  // Boosts
-  {
-    id: 'sub_bst_1',
-    type: 'boost',
-    username: '@ton_whale_vip',
-    telegramId: '10293847',
-    date: '2026-10-15',
-    time: '14:05',
-    timestamp: Date.now() - 1000 * 60 * 25,
-    status: 'pending',
-    reward: 5000,
-    channel: 'Main Channel',
-    channelUrl: 'https://t.me/Streethustlegame2',
-    isBoostVerified: true,
-  },
-  {
-    id: 'sub_bst_2',
-    type: 'boost',
-    username: '@fake_booster_404',
-    telegramId: '55667788',
-    date: '2026-10-15',
-    time: '13:10',
-    timestamp: Date.now() - 1000 * 60 * 70,
-    status: 'pending',
-    reward: 5000,
-    channel: 'Payment Proof',
-    channelUrl: 'https://t.me/Streethustlepaymentproof',
-    isBoostVerified: false,
-  },
-  // Previous approved history
-  {
-    id: 'sub_appr_1',
-    type: 'status_post',
-    username: '@street_boss_og',
-    telegramId: '11223344',
-    date: '2026-10-15',
-    time: '08:20',
-    timestamp: Date.now() - 1000 * 60 * 300,
-    status: 'approved',
-    reward: 50,
-    dailyPostCount: 1,
-    screenshotUrl: 'https://picsum.photos/seed/status4/600/900',
-    approvedAt: Date.now() - 1000 * 60 * 250,
-  },
-  {
-    id: 'sub_appr_2',
-    type: 'video_promo',
-    username: '@ton_creator_pro',
-    telegramId: '22334455',
-    date: '2026-10-15',
-    time: '07:15',
-    timestamp: Date.now() - 1000 * 60 * 380,
-    status: 'approved',
-    reward: 200,
-    videoLink: 'https://youtube.com/@streetlife22/watch?v=sl737pro',
-    platform: 'YouTube',
-    views: 14500,
-    likes: 1820,
-    approvedAt: Date.now() - 1000 * 60 * 320,
-  },
-];
-
+const INITIAL_SUBMISSIONS: SubmissionItem[] = [];
 type AdminTab = 'Status Posts' | 'Video Promos' | 'Boosts' | 'All Pending' | 'Approved' | 'Rejected';
 
 export default function AdminTasksPage() {
@@ -246,16 +97,7 @@ export default function AdminTasksPage() {
   // Client hydration sync
   useEffect(() => {
     try {
-      if (sessionStorage.getItem('streetLife_admin_auth') === 'true') {
-        setIsAuthenticated(true);
-      }
-      const stored = localStorage.getItem('streetLife_admin_submissions');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSubmissions(parsed);
-        }
-      }
+      // Admin identity is never restored from browser storage.
       setBotNotifications(getBotNotifications());
     } catch {}
   }, []);
@@ -263,9 +105,7 @@ export default function AdminTasksPage() {
   // Persist submissions on update
   const saveSubmissions = (newSubs: SubmissionItem[]) => {
     setSubmissions(newSubs);
-    try {
-      localStorage.setItem('streetLife_admin_submissions', JSON.stringify(newSubs));
-    } catch {}
+    // Submissions are server-authoritative; do not persist admin decisions locally.
   };
 
   const showToast = (msg: string) => {
@@ -302,98 +142,40 @@ export default function AdminTasksPage() {
     }
   };
 
-  // Auth Handler
-  const handleLogin = (e?: React.FormEvent) => {
+  // Admin access is granted only by the server after validating Telegram initData.
+  const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const clean = authInput.trim().toLowerCase();
-    // Authorized credentials
-    if (
-      clean === '@streetlife737' ||
-      clean === 'streetlife737' ||
-      clean === 'eqadmin_streetlife_ton_737' ||
-      clean === '7370'
-    ) {
+    const initData = typeof window !== 'undefined'
+      ? (window as any).Telegram?.WebApp?.initData || ''
+      : '';
+    if (!initData) {
+      setAuthError('Open this admin page inside the official STREET LIFE Telegram Mini App.');
+      return;
+    }
+    try {
+      const response = await fetch('/api/admin/tasks', {
+        method: 'GET',
+        headers: { 'x-telegram-init-data': initData },
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error('Server rejected this Telegram account. Check admin ID configuration.');
       setIsAuthenticated(true);
       setAuthError('');
-      sessionStorage.setItem('streetLife_admin_auth', 'true');
-      showToast('Admin Access Granted. Welcome @streetlife737!');
-    } else {
-      setAuthError('Access Denied. Only @streetlife737 or authorized admin wallet can access.');
+      showToast('Server-verified admin access granted.');
+    } catch (error) {
+      setIsAuthenticated(false);
+      setAuthError(error instanceof Error ? error.message : 'Admin verification failed.');
     }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    sessionStorage.removeItem('streetLife_admin_auth');
     setAuthInput('');
   };
 
-  // Approve Submission
-  const handleApprove = (item: SubmissionItem) => {
-    // Check 2 per day limit for status posts
-    if (item.type === 'status_post' && (item.dailyPostCount || 1) > 2) {
-      showToast('Action Blocked: User has exceeded the daily limit of 2 status posts!');
-      return;
-    }
-
-    // Instagram check
-    if (item.type === 'video_promo' && item.platform === 'Instagram') {
-      showToast('Action Blocked: Instagram is NOT allowed for promo rewards!');
-      return;
-    }
-
-    const updated = submissions.map((sub) => {
-      if (sub.id === item.id) {
-        return {
-          ...sub,
-          status: 'approved' as const,
-          approvedAt: Date.now(),
-        };
-      }
-      return sub;
-    });
-
-    saveSubmissions(updated);
-    addGameCoins(
-      item.reward,
-      `+${item.reward} SC - Admin Approved ${item.type.replace('_', ' ').toUpperCase()}`,
-      'task_reward'
-    );
-
-    try {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ['#FFD700', '#10B981', '#FFFFFF'],
-      });
-    } catch {}
-
-    // Send Automated Bot Notification
-    sendAutomatedBotNotification({
-      recipientId: item.telegramId,
-      recipientUsername: item.username,
-      type:
-        item.type === 'boost'
-          ? 'boost_verified'
-          : item.type === 'status_post'
-          ? 'status_post_approved'
-          : 'video_promo_approved',
-      title: `${
-        item.type === 'status_post'
-          ? 'Status Post'
-          : item.type === 'video_promo'
-          ? 'Video Promo'
-          : 'Channel Boost'
-      } Approved!`,
-      message: `Your task submission has been verified by the admin. +${item.reward} SC credited!`,
-      reward: item.reward,
-    }).then(() => {
-      setBotNotifications(getBotNotifications());
-    });
-
-    const rewardText = `+${item.reward} SC`;
-    showToast(`Approved ${item.username} (${rewardText}) • 🤖 Telegram bot notification dispatched!`);
+  // This legacy page has no server-backed submission adapter. Never approve or credit from browser state.
+  const handleApprove = (_item: SubmissionItem) => {
+    showToast('Approval is disabled here. Use the server-backed Admin Tasks Verification panel.');
   };
 
   // Reject Submission
@@ -430,74 +212,9 @@ export default function AdminTasksPage() {
     setRejectReason('Fake screenshot');
   };
 
-  // Bulk Approve Verified
+  // Bulk approval from client-side/demo data is deliberately disabled.
   const handleBulkApprove = () => {
-    let approvedCount = 0;
-    const approvedItems: SubmissionItem[] = [];
-
-    const updated = submissions.map((sub) => {
-      if (sub.status === 'pending') {
-        if (sub.type === 'boost' && sub.isBoostVerified) {
-          approvedCount++;
-          const approved = { ...sub, status: 'approved' as const, approvedAt: Date.now() };
-          approvedItems.push(approved);
-          return approved;
-        }
-        if (
-          sub.type === 'video_promo' &&
-          (sub.views || 0) >= 1000 &&
-          (sub.likes || 0) >= 100 &&
-          sub.platform !== 'Instagram'
-        ) {
-          approvedCount++;
-          const approved = { ...sub, status: 'approved' as const, approvedAt: Date.now() };
-          approvedItems.push(approved);
-          return approved;
-        }
-        if (sub.type === 'status_post' && (sub.dailyPostCount || 1) <= 2) {
-          approvedCount++;
-          const approved = { ...sub, status: 'approved' as const, approvedAt: Date.now() };
-          approvedItems.push(approved);
-          return approved;
-        }
-      }
-      return sub;
-    });
-
-    saveSubmissions(updated);
-    approvedItems.forEach((item) => {
-      addGameCoins(
-        item.reward,
-        `+${item.reward} SC - Admin Bulk Approved ${item.type.replace('_', ' ').toUpperCase()}`,
-        'task_reward'
-      );
-    });
-
-    // Dispatch automated bot notifications for all bulk approved items
-    approvedItems.forEach((item) => {
-      sendAutomatedBotNotification({
-        recipientId: item.telegramId,
-        recipientUsername: item.username,
-        type:
-          item.type === 'boost'
-            ? 'boost_verified'
-            : item.type === 'status_post'
-            ? 'status_post_approved'
-            : 'video_promo_approved',
-        title: `${
-          item.type === 'status_post'
-            ? 'Status Post'
-            : item.type === 'video_promo'
-            ? 'Video Promo'
-            : 'Channel Boost'
-        } Approved!`,
-        message: `Your task submission has been verified by the admin. +${item.reward} SC credited!`,
-        reward: item.reward,
-      });
-    });
-
-    setBotNotifications(getBotNotifications());
-    showToast(`Bulk Approved ${approvedCount} verified submissions • Automated notifications sent!`);
+    showToast('Bulk approval is disabled here. Use the server-backed Admin Tasks Verification panel.');
   };
 
   // Export CSV

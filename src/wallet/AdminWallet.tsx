@@ -23,7 +23,7 @@ import {
   Send,
   Info,
 } from 'lucide-react';
-import { playClickSound, playSuccessSound, playCoinSound } from '@/lib/sound';
+import { playClickSound } from '@/lib/sound';
 
 export const UNLOCK_DATE = new Date('2026-12-20T00:00:00Z').getTime();
 
@@ -53,107 +53,18 @@ const STORAGE_LOCKED_WITHDRAWALS = 'streetlife_locked_withdrawals';
 // STORAGE FUNCTIONS
 // ============================================================================
 
+/**
+ * No live TON Connect or server treasury integration is configured yet.
+ * Browser storage must never be represented as a real treasury or payout balance.
+ */
 export function getAdminWallet(): AdminWalletState {
-  if (typeof window === 'undefined') {
-    return {
-      address: '',
-      type: 'telegram',
-      connected: false,
-      balance: 0,
-    };
-  }
-  try {
-    const raw = localStorage.getItem(STORAGE_ADMIN_WALLET);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed.connected === 'boolean') {
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.error('Error reading admin wallet:', e);
-  }
-  return {
-    address: '',
-    type: 'telegram',
-    connected: false,
-    balance: 0,
-  };
+  return { address: '', type: 'telegram', connected: false, balance: 0 };
 }
-
-export function saveAdminWallet(wallet: AdminWalletState): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(STORAGE_ADMIN_WALLET, JSON.stringify(wallet));
-    window.dispatchEvent(new CustomEvent('streetlife_admin_wallet_changed', { detail: wallet }));
-  } catch (e) {
-    console.error('Error saving admin wallet:', e);
-  }
-}
-
-/**
- * Deduct amount from Admin Funding Wallet.
- * Returns true if balance >= amountTON and deduction succeeded.
- */
-export function deductFromAdminWallet(amountTON: number): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    const current = getAdminWallet();
-    if (!current.connected) return false;
-    if (current.balance < amountTON) return false;
-
-    const updated: AdminWalletState = {
-      ...current,
-      balance: Math.max(0, Number((current.balance - amountTON).toFixed(4))),
-    };
-    saveAdminWallet(updated);
-    return true;
-  } catch (e) {
-    console.error('Error deducting from admin wallet:', e);
-    return false;
-  }
-}
-
-/**
- * Refund amount back to Admin Funding Wallet (e.g. cancelled withdrawal or adjusted down)
- */
-export function refundToAdminWallet(amountTON: number): void {
-  if (typeof window === 'undefined' || amountTON <= 0) return;
-  try {
-    const current = getAdminWallet();
-    const updated: AdminWalletState = {
-      ...current,
-      balance: Number((current.balance + amountTON).toFixed(4)),
-    };
-    saveAdminWallet(updated);
-  } catch (e) {
-    console.error('Error refunding to admin wallet:', e);
-  }
-}
-
-export function getLockedWithdrawals(): LockedWithdrawal[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_LOCKED_WITHDRAWALS);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch (e) {
-    console.error('Error reading locked withdrawals:', e);
-  }
-  return [];
-}
-
-export function saveLockedWithdrawals(list: LockedWithdrawal[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(STORAGE_LOCKED_WITHDRAWALS, JSON.stringify(list));
-    window.dispatchEvent(new CustomEvent('streetlife_locked_withdrawals_changed', { detail: list }));
-  } catch (e) {
-    console.error('Error saving locked withdrawals:', e);
-  }
-}
+export function saveAdminWallet(_wallet: AdminWalletState): void {}
+export function deductFromAdminWallet(_amountTON: number): boolean { return false; }
+export function refundToAdminWallet(_amountTON: number): void {}
+export function getLockedWithdrawals(): LockedWithdrawal[] { return []; }
+export function saveLockedWithdrawals(_list: LockedWithdrawal[]): void {}
 
 // ============================================================================
 // ADMIN WALLET COMPONENT (400+ lines full code)
@@ -226,29 +137,9 @@ export function AdminWallet({ onToast }: AdminWalletProps) {
     };
   }, [withdrawals]);
 
-  // Connect Simulation (interface for future @tonconnect/sdk)
-  const handleConnectSimulate = (walletType: 'telegram' | 'tonkeeper') => {
-    playClickSound();
-    playSuccessSound();
-
-    // TODO: Replace with real @tonconnect/sdk when ready
-    // e.g. const connector = new TonConnect(); await connector.connectWallet(...)
-    const prefix = walletType === 'telegram' ? 'EQD-tg-admin-' : 'EQB-tonk-admin-';
-    const randomHex = Math.random().toString(16).substring(2, 10) + Math.random().toString(16).substring(2, 10);
-    const simulatedAddress = `${prefix}${randomHex}`;
-
-    const newWalletState: AdminWalletState = {
-      address: simulatedAddress,
-      type: walletType,
-      connected: true,
-      balance: wallet.balance > 0 ? wallet.balance : 1000, // Default 1,000 TON treasury
-      connectedAt: Date.now(),
-    };
-
-    saveAdminWallet(newWalletState);
-    setWallet(newWalletState);
+  const handleConnectSimulate = (_walletType: 'telegram' | 'tonkeeper') => {
+    toast('Real TON Connect is not integrated yet. No treasury wallet has been connected.');
     setIsConnectModalOpen(false);
-    toast(`✅ Admin Funding Wallet Connected (${walletType === 'telegram' ? 'Telegram @wallet' : 'Tonkeeper'})`);
   };
 
   const handleDisconnect = () => {
@@ -264,33 +155,14 @@ export function AdminWallet({ onToast }: AdminWalletProps) {
     toast('🔌 Admin Funding Wallet Disconnected');
   };
 
-  const handleAddFunds = (amount: number = 100) => {
-    playCoinSound();
-    const updated: AdminWalletState = {
-      ...wallet,
-      balance: Number((wallet.balance + amount).toFixed(2)),
-    };
-    saveAdminWallet(updated);
-    setWallet(updated);
-    toast(`💰 Added +${amount} TON to Admin Treasury! New Balance: ${updated.balance} TON`);
+  const handleAddFunds = (_amount: number = 100) => {
+    toast('Manual treasury funding is disabled. Connect a real wallet and server ledger first.');
   };
 
   const handleSaveCustomBalance = () => {
-    playClickSound();
-    const num = parseFloat(customBalanceInput);
-    if (isNaN(num) || num < 0) {
-      toast('❌ Please enter a valid non-negative number');
-      return;
-    }
-    const updated: AdminWalletState = {
-      ...wallet,
-      balance: Number(num.toFixed(4)),
-    };
-    saveAdminWallet(updated);
-    setWallet(updated);
     setIsEditingBalance(false);
     setCustomBalanceInput('');
-    toast(`✅ Admin Treasury Balance updated to ${updated.balance} TON`);
+    toast('Manual balance editing is disabled. Treasury balances must come from a connected wallet.');
   };
 
   const copyAddress = () => {

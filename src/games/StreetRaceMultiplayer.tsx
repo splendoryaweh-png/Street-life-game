@@ -41,6 +41,7 @@ export const StreetRaceMultiplayer: React.FC<{ onBack: () => void; onToast: (msg
   // ROUND STEERING
   const [wheelRot, setWheelRot] = useState(0);
   const wheelRef = useRef<HTMLDivElement>(null);
+  const wheelReturnIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const dragging = useRef(false);
   const startAngle = useRef(0);
   const startRot = useRef(0);
@@ -66,15 +67,34 @@ export const StreetRaceMultiplayer: React.FC<{ onBack: () => void; onToast: (msg
   };
   const wheelEnd = () => {
     dragging.current = false;
-    const id = setInterval(() => {
-      setWheelRot(p => {
-        if(Math.abs(p) < 3){ clearInterval(id); steeringInputRef.current = 0; return 0; }
-        const n = p * 0.8;
-        steeringInputRef.current = n / 45;
-        return n;
+    if (wheelReturnIntervalRef.current !== null) {
+      clearInterval(wheelReturnIntervalRef.current);
+    }
+    wheelReturnIntervalRef.current = setInterval(() => {
+      setWheelRot((p) => {
+        if (Math.abs(p) < 3) {
+          if (wheelReturnIntervalRef.current !== null) {
+            clearInterval(wheelReturnIntervalRef.current);
+            wheelReturnIntervalRef.current = null;
+          }
+          steeringInputRef.current = 0;
+          return 0;
+        }
+        const next = p * 0.8;
+        steeringInputRef.current = next / 45;
+        return next;
       });
     }, 16);
   };
+
+  useEffect(() => {
+    return () => {
+      if (wheelReturnIntervalRef.current !== null) {
+        clearInterval(wheelReturnIntervalRef.current);
+        wheelReturnIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   const handleStartRace = (code:string, host:boolean, car:RaceCarSkin) => {
     setRoomCode(code); setMyCarSkin(car); setInRace(true);

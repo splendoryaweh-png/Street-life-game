@@ -64,7 +64,7 @@ export const DAILY_LOGIN_SCHEDULE = [
 ];
 
 /**
- * Read the simulated DB table `daily_claims`
+ * Read the local display cache. This is not an authoritative database or anti-abuse boundary.
  */
 export function getDailyClaimsTable(): DailyClaimsDbRecord[] {
   if (typeof window === 'undefined') return [];
@@ -84,7 +84,7 @@ export function saveDailyClaimsTable(table: DailyClaimsDbRecord[]): void {
 }
 
 /**
- * Get or initialize today's daily claim record
+ * Get or initialize today's local display record. Server-side identity and limits are still required for production rewards.
  */
 export function getTodayDailyClaim(currentStreak = 1): DailyClaimsDbRecord {
   const today = getTodayDateString();
@@ -115,7 +115,7 @@ export function getTodayDailyClaim(currentStreak = 1): DailyClaimsDbRecord {
       crush_free_moves_remaining: 1,
       flip_free_time_remaining: 1,
       claimed_all_today: false,
-      ip_address: '197.210.65.12', // Simulated Lagos ISP IP
+      ip_address: '', // IP addresses must be captured and evaluated server-side; never fabricate a client value.
       device_id: deviceId,
       created_at: Date.now(),
       updated_at: Date.now(),

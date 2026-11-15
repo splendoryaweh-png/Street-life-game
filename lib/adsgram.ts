@@ -85,6 +85,12 @@ function loadAdsgramSDK(): Promise<AdsgramSDK> {
       cleanup();
 
       if (error) {
+        // Remove a failed/timed-out tag so a later user retry can load a
+        // fresh script. A connected tag whose load event already fired would
+        // otherwise leave the retry waiting for an event that cannot fire again.
+        if (script?.isConnected) {
+          script.remove();
+        }
         reject(error);
         return;
       }

@@ -3,12 +3,9 @@
 import React, { useState } from 'react';
 import { UserGameState, CryptoCurrency, WithdrawalRecord } from '@/types/game';
 import {
-  requestWithdrawal,
-  convertStreetCoins,
   DEFAULT_WITHDRAWALS,
-  recordWithdrawalClick,
 } from '@/lib/storage';
-import { playCoinSound, playClickSound, playSuccessSound } from '@/lib/sound';
+import { playClickSound } from '@/lib/sound';
 import {
   Wallet,
   ArrowRightLeft,
@@ -117,7 +114,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
   const [withdrawCurrency, setWithdrawCurrency] = useState<CryptoCurrency>('TON');
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [destinationMemo, setDestinationMemo] = useState<string>('');
-  const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState<boolean>(false);
+  const isSubmittingWithdraw = false;
   const [withdrawalSuccessModal, setWithdrawalSuccessModal] = useState<WithdrawalRecord | null>(null);
   const [withdrawalLockPopup, setWithdrawalLockPopup] = useState<{
     show: boolean;
@@ -158,32 +155,9 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
         ))
       : 0;
 
-  // Execute Conversion
+  // Live crypto conversion is not integrated. Never deduct coins for a simulated payout.
   const handleExecuteConversion = () => {
-    if (parsedConvertCoins <= 0) {
-      onToast('Please enter an amount of Street Coins to convert');
-      return;
-    }
-    if (parsedConvertCoins > currentCoins) {
-      onToast(`Insufficient coins! You have ${currentCoins.toLocaleString()} coins.`);
-      return;
-    }
-
-    playCoinSound();
-    playSuccessSound();
-
-    const res = convertStreetCoins(parsedConvertCoins, targetCurrency);
-    if (res.success && res.record) {
-      setConversionSuccessModal({
-        show: true,
-        fromCoins: res.record.fromCoins,
-        toAmount: res.record.toAmount,
-        currency: targetCurrency,
-      });
-      onToast(`Converted ${parsedConvertCoins.toLocaleString()} coins into ${res.record.toAmount} ${targetCurrency}!`);
-    } else {
-      onToast(res.message);
-    }
+    onToast('Live crypto conversion is not available yet. Your Street Coins have not been deducted.');
   };
 
   // Withdraw calculation
@@ -196,74 +170,9 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
         ))
       : 0;
 
-  // Execute Withdrawal
+  // Withdrawals remain disabled until a secure server ledger and real payout provider are connected.
   const handleExecuteWithdrawal = () => {
-    // 2. ADMIN PANEL ALERT - RECORD EVERY CLICK:
-    const currentUserIdentifier =
-      gameState.userEmail ||
-      (gameState.telegramUser?.username ? `@${gameState.telegramUser.username}` : undefined) ||
-      gameState.deviceId ||
-      'anonymous';
-    const currentUsername =
-      gameState.telegramUser?.username ||
-      (gameState.telegramUser?.first_name ? `${gameState.telegramUser.first_name}` : 'Hustler');
-
-    recordWithdrawalClick({
-      userId: currentUserIdentifier,
-      username: currentUsername,
-      coins: gameState.streetCoin || 0,
-      status: isWithdrawalLocked ? 'Clicked - Waiting for Nov 30' : 'Submitted',
-    });
-
-    // 1. WITHDRAWAL DATE LOCK - INSIDE EXISTING BANK PAGE:
-    const today = new Date();
-    if (today < WITHDRAWAL_OPEN_DATE) {
-      playClickSound();
-      setWithdrawalLockPopup({
-        show: true,
-        title: "🔒 Withdrawal Available December 20th",
-        message: "Keep stacking your coins! Your coins are safe. Withdrawal opens Nov 30, 2026.",
-      });
-      return; // Stop withdrawal
-    }
-
-    if (parsedWithdrawCoins < 100000) {
-      onToast('Minimum withdrawal is 100,000 Street Coins');
-      return;
-    }
-    if (parsedWithdrawCoins > currentCoins) {
-      onToast(`Insufficient balance! You have ${currentCoins.toLocaleString()} coins.`);
-      return;
-    }
-    if (!walletAddress.trim()) {
-      onToast('Please enter recipient wallet address or Telegram handle');
-      return;
-    }
-
-    setIsSubmittingWithdraw(true);
-    playClickSound();
-
-    setTimeout(() => {
-      setIsSubmittingWithdraw(false);
-      const res = requestWithdrawal(
-        parsedWithdrawCoins,
-        withdrawCurrency,
-        selectedWithdrawCurrencyInfo.networkName,
-        walletAddress.trim(),
-        destinationMemo.trim() || undefined
-      );
-
-      if (res.success && res.record) {
-        playSuccessSound();
-        playCoinSound();
-        setWithdrawalSuccessModal(res.record);
-        onToast(res.message);
-        setWalletAddress('');
-        setDestinationMemo('');
-      } else {
-        onToast(res.message);
-      }
-    }, 400);
+    onToast('Withdrawals are not live yet. No coins were deducted and no payout was submitted.');
   };
 
   const filteredHistory = withdrawalsList.filter((item) => {
@@ -303,7 +212,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
               </span>
             </h1>
             <p className="text-[11px] text-[#9CA3AF] font-medium">
-              Vault balance, live converter & instant payout gateway
+              Balance overview • conversion and withdrawals coming soon
             </p>
           </div>
         </div>
@@ -981,7 +890,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
                 </div>
                 <div className="flex justify-between">
                   <span>Status on Submit</span>
-                  <span className="font-bold text-amber-400">Instant Execution</span>
+                  <span className="font-bold text-amber-400">Not yet available</span>
                 </div>
               </div>
             </div>

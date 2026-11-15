@@ -10,13 +10,11 @@ import {
   SERVER_GAME_STATE_SNAPSHOT,
   getLeaderboard,
   saveDailyClaim,
-  saveHasPlayedToday,
-  resetDailyTestState,
   applyInviteCode,
   simulateReferralInvited,
   tickGameState,
 } from '@/lib/storage';
-import { initTelegramWebApp, BotNotification } from '@/lib/telegram';
+import { initTelegramWebApp, getTelegramInitData, BotNotification } from '@/lib/telegram';
 import { playCoinSound, playClickSound, playSuccessSound } from '@/lib/sound';
 import Link from 'next/link';
 import { Bot, X, Eye, EyeOff, Wallet, CheckSquare, Tv, Gift, Swords, Mic2, Gamepad2, Shield } from 'lucide-react';
@@ -67,6 +65,8 @@ export default function StreetLifeApp() {
   const [activeTab, setActiveTab] = useState<NavTab>('HOME');
   const [leaderboard] = useState<LeaderboardEntry[]>(() => getLeaderboard());
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isStreetLifeAdmin, setIsStreetLifeAdmin] = useState<boolean>(false);
+  const [isClaimingDailyReward, setIsClaimingDailyReward] = useState(false);
 
   // Reactive Game State Store (streetLife_save_v2)
   const gameState: UserGameState = useSyncExternalStore(
@@ -86,8 +86,7 @@ export default function StreetLifeApp() {
   const activeGameState = isMounted ? gameState : SERVER_GAME_STATE_SNAPSHOT;
   const activeTelegramUser = isMounted ? telegramUser : null;
 
-  // Admin access is tied to the verified Telegram numeric ID, never a username or email.
-  const isStreetLifeAdmin = String(activeTelegramUser?.id ?? '') === '7184752443';
+  // Admin access is granted only by the server after Telegram initData signature validation.
 
   // Modals
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -153,6 +152,32 @@ export default function StreetLifeApp() {
 
     initTelegramWebApp();
 
+    // Never authorize admin UI from initDataUnsafe or a client-supplied Telegram ID.
+    const verifyAdminAccess = async () => {
+      const initData = getTelegramInitData();
+      if (!initData) {
+        setIsStreetLifeAdmin(false);
+        return;
+      }
+      try {
+        const response = await fetch('/api/auth/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initData }),
+          cache: 'no-store',
+        });
+        if (!response.ok) {
+          setIsStreetLifeAdmin(false);
+          return;
+        }
+        const result = await response.json();
+        setIsStreetLifeAdmin(result?.isAdmin === true);
+      } catch {
+        setIsStreetLifeAdmin(false);
+      }
+    };
+    void verifyAdminAccess();
+
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 600);
@@ -189,32 +214,58 @@ export default function StreetLifeApp() {
     }, 2800);
   };
 
-  // Claim Daily Reward
-  const handleClaimDailyReward = (rewardAmount: number, bonusItem?: string) => {
-    playCoinSound();
+  // Daily reward amounts and streaks are determined by the authenticated server.
+  const handleClaimDailyReward = async (_rewardAmount: number, _bonusItem?: string) => {
+    if (isClaimingDailyReward) return;
+    const initData = getTelegramInitData();
+    if (!initData) {
+      showToast('Open STREET LIFE inside Telegram to claim your daily reward.');
+      return;
+    }
 
-    const newTotal = gameState.streetCoin + rewardAmount;
-    const nextStreak = gameState.dailyStreak >= 7 ? 1 : gameState.dailyStreak + 1;
+    setIsClaimingDailyReward(true);
+    try {
+      const response = await fetch('/api/rewards/daily-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData }),
+        cache: 'no-store',
+      });
+      const result = await response.json().catch(() => null);
 
-    saveDailyClaim(newTotal, nextStreak);
+      if (response.status === 409) {
+        const balance = Number(result?.balance);
+        if (Number.isSafeInteger(balance) && balance >= 0) {
+          saveDailyClaim(balance, Number(result?.streak_day) || gameState.dailyStreak || 1);
+        }
+        showToast(result?.message || 'Today’s reward has already been claimed.');
+        return;
+      }
 
-    showToast(
-      `Claimed +${rewardAmount} Street Coins ${bonusItem ? `& ${bonusItem}` : ''}! Total: ${newTotal.toLocaleString()} SC`
-    );
-  };
+      if (!response.ok || result?.ok !== true) {
+        showToast(result?.error || 'Daily reward could not be verified. No coins were added.');
+        return;
+      }
 
-  // Simulate Playing 1 Game (Unlock daily reward)
-  const handleSimulatePlayGame = () => {
-    playCoinSound();
-    saveHasPlayedToday(true);
-    showToast('Game completed! Daily Reward is now unlocked 🔓');
-  };
+      const reward = Number(result.reward_sc);
+      const balance = Number(result.balance);
+      const streak = Number(result.streak_day);
+      if (!Number.isSafeInteger(reward) || reward <= 0 ||
+          !Number.isSafeInteger(balance) || balance < 0 ||
+          !Number.isSafeInteger(streak) || streak < 1 || streak > 7) {
+        showToast('The reward server returned an invalid result. Please contact support.');
+        return;
+      }
 
-  // Reset test lock
-  const handleResetTestLock = () => {
-    playClickSound();
-    resetDailyTestState();
-    showToast('Daily Reward locked again for testing 🔒');
+      saveDailyClaim(balance, streak);
+      playCoinSound();
+      showToast(`Claimed +${reward} Street Coins! Total: ${balance.toLocaleString()} SC`);
+    } catch (error) {
+      console.error('Daily reward claim failed:', error);
+      showToast('Could not connect to the reward server. No coins were added.');
+    } finally {
+      setIsClaimingDailyReward(false);
+    }
   };
 
   const handleComingSoonGame = (title: string) => {
@@ -583,8 +634,6 @@ export default function StreetLifeApp() {
               dailyStreak={activeGameState.dailyStreak}
               lastClaimDate={activeGameState.lastClaimDate}
               onClaim={handleClaimDailyReward}
-              onSimulatePlayGame={handleSimulatePlayGame}
-              onResetTestLock={handleResetTestLock}
             />
 
             {/* SYNDICATE REFERRALS (Kept on HOME tab) */}
