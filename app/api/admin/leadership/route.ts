@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
     let searchResults: any[] = [];
     if (q) {
-      const numeric = /^\\d+$/.test(q);
+      const numeric = /^\d+$/.test(q);
       let query = supabase.from('players')
         .select('telegram_id,username,first_name,last_name,photo_url')
         .limit(20);
