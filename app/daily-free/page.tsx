@@ -36,7 +36,7 @@ import {
   buyRacingNitroWithCoins,
   claimShooterAdPowerup,
 } from '@/lib/dailyFree';
-import { getGameStateSnapshot, addGameCoins } from '@/lib/storage';
+import { getGameStateSnapshot, addGameCoins, saveDailyClaim } from '@/lib/storage';
 import {
   playCoinSound,
   playSuccessSound,
@@ -154,6 +154,7 @@ export default function DailyFreePage() {
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
   const [dbExpanded, setDbExpanded] = useState(false);
   const [adWatchingType, setAdWatchingType] = useState<string | null>(null);
+  const [isClaimingLoginReward, setIsClaimingLoginReward] = useState(false);
 
   // 7-Day Modal & Preview State
   const [showStreakModal, setShowStreakModal] = useState(false);
@@ -208,57 +209,101 @@ export default function DailyFreePage() {
     setShowStreakModal(true);
   };
 
-  // Claim All Free Rewards
-  const handleClaimAll = () => {
-    if (!claimRecord) return;
+  // Claim All Free Rewards — the server decides eligibility, streak and coin amount.
+  const handleClaimAll = async () => {
+    if (!claimRecord || isClaimingLoginReward) return;
     if (claimRecord.claimed_all_today && claimRecord.login_claimed) {
       showToast('⚠️ You have already claimed all today’s login rewards!');
       playClickSound();
       return;
     }
 
-    playSuccessSound();
-    try {
-      confetti({
-        particleCount: 150,
-        spread: 90,
-        origin: { y: 0.4 },
-        colors: ['#FFD700', '#F59E0B', '#38BDF8', '#10B981', '#FFFFFF'],
-      });
-    } catch {}
-
-    const schedule = DAILY_LOGIN_SCHEDULE[(streak - 1) % 7] || DAILY_LOGIN_SCHEDULE[0];
-    let scReward = schedule.sc;
-
-    // Day 7 random jackpot box (500-2000 SC)
-    if (streak % 7 === 0) {
-      const jackpotBonus = 500 + Math.floor(Math.random() * 1500);
-      scReward = 1000 + jackpotBonus;
+    const initData = typeof window !== 'undefined'
+      ? window.Telegram?.WebApp?.initData || ''
+      : '';
+    if (!initData) {
+      showToast('Open STREET LIFE inside Telegram to claim your daily reward.');
+      playClickSound();
+      return;
     }
 
-    addGameCoins(scReward, `+${scReward} SC - Daily Free Rewards All-In-One!`, 'daily_reward');
+    setIsClaimingLoginReward(true);
+    playClickSound();
+    try {
+      const response = await fetch('/api/rewards/daily-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData }),
+        cache: 'no-store',
+      });
+      const result = await response.json().catch(() => null);
 
-    const updated = updateTodayDailyClaim(() => ({
-      login_claimed: true,
-      login_reward_sc: scReward,
-      login_perk: schedule.perk,
-      claimed_all_today: true,
-    }));
-    setClaimRecord(updated);
+      if (!response.ok || result?.ok !== true) {
+        if (response.status === 409) {
+          updateTodayDailyClaim(() => ({
+            login_claimed: true,
+            login_reward_sc: Number(result?.reward_sc) || claimRecord.login_reward_sc,
+            login_perk: result?.perk || claimRecord.login_perk,
+            claimed_all_today: true,
+          }));
+          refreshState();
+          showToast(result?.message || 'You have already claimed today’s reward.');
+        } else {
+          showToast(result?.error || 'Daily reward could not be verified. No coins were added.');
+        }
+        return;
+      }
 
-    // Floating animation
-    triggerFloatingTokens([
-      { label: `+${scReward} SC`, icon: '🪙' },
-      { label: `+3 NITRO`, icon: '⚡' },
-      { label: `+3 SPINS`, icon: '🎰' },
-      { label: schedule.perk, icon: '🎁' },
-    ]);
+      const scReward = Number(result.reward_sc);
+      const nextStreak = Number(result.streak_day);
+      const serverBalance = Number(result.balance);
+      if (!Number.isSafeInteger(scReward) || scReward <= 0 ||
+          !Number.isSafeInteger(nextStreak) || nextStreak < 1 || nextStreak > 7 ||
+          !Number.isSafeInteger(serverBalance) || serverBalance < 0) {
+        showToast('The server returned an invalid reward response. Please contact support.');
+        return;
+      }
 
-    showToast(`🎉 Claimed All Free Daily Rewards! +${scReward} SC & Perks!`);
-    refreshState();
+      // Synchronize the local game display with the database's authoritative balance.
+      saveDailyClaim(serverBalance, nextStreak);
+      const updated = updateTodayDailyClaim(() => ({
+        day_streak: nextStreak,
+        login_claimed: true,
+        login_reward_sc: scReward,
+        login_perk: String(result.perk || ''),
+        claimed_all_today: true,
+      }));
+      setClaimRecord(updated);
+      setCurrentCoins(serverBalance);
+      setStreak(nextStreak);
+
+      playSuccessSound();
+      try {
+        confetti({
+          particleCount: 150,
+          spread: 90,
+          origin: { y: 0.4 },
+          colors: ['#FFD700', '#F59E0B', '#38BDF8', '#10B981', '#FFFFFF'],
+        });
+      } catch {}
+
+      triggerFloatingTokens([
+        { label: `+${scReward} SC`, icon: '🪙' },
+        { label: '+3 NITRO', icon: '⚡' },
+        { label: '+3 SPINS', icon: '🎰' },
+        { label: String(result.perk || 'Daily perk'), icon: '🎁' },
+      ]);
+
+      showToast(`🎉 Claimed Daily Rewards! +${scReward} SC & Perks!`);
+    } catch (error) {
+      console.error('Daily login claim failed:', error);
+      showToast('Could not connect to the reward server. No coins were added.');
+    } finally {
+      setIsClaimingLoginReward(false);
+    }
   };
 
-  const handleWatchAdForNitro = async () => {
+    const handleWatchAdForNitro = async () => {
     if (!claimRecord || adWatchingType) return;
     if (claimRecord.nitro_ad_claims_count >= 5) {
       showToast('Maximum 5 nitro ad bonuses reached today!');
@@ -489,7 +534,7 @@ export default function DailyFreePage() {
           <div className="mt-4">
             <button
               onClick={handleClaimAll}
-              disabled={claimRecord?.claimed_all_today && claimRecord?.login_claimed}
+              disabled={isClaimingLoginReward || (claimRecord?.claimed_all_today && claimRecord?.login_claimed)}
               type="button"
               className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
                 claimRecord?.claimed_all_today && claimRecord?.login_claimed
