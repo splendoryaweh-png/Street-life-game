@@ -28,6 +28,76 @@ const SOCIAL_TASKS: Record<
   task_sub_youtube: { reward: 50, platform: 'YouTube' },
 };
 
+const TELEGRAM_MEMBERSHIP_TASKS: Record<string, string> = {
+  task_join_channel: '@Streethustlegame2',
+  task_join_group: '@Streethustlechatroom',
+  task_payment_proof: '@Streethustlepaymentproof',
+  task_stars_group: '@Streetlifestars',
+  social_main_channel: '@Streethustlegame2',
+  social_chat_group: '@Streethustlechatroom',
+  social_payment_proof: '@Streethustlepaymentproof',
+};
+
+async function verifyTelegramMembership(
+  telegramUserId: number,
+  taskKey: string
+): Promise<{ verified: boolean; reason?: string }> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = TELEGRAM_MEMBERSHIP_TASKS[taskKey];
+
+  if (!botToken || !chatId) {
+    throw new Error('Telegram membership verification is not configured for this task.');
+  }
+
+  const response = await fetch(
+    `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${encodeURIComponent(chatId)}&user_id=${telegramUserId}`,
+    { cache: 'no-store' }
+  );
+  const result = await response.json().catch(() => null);
+
+  if (!response.ok || !result?.ok || !result?.result) {
+    console.error('Telegram getChatMember failed:', {
+      taskKey,
+      httpStatus: response.status,
+      errorCode: result?.error_code,
+      description: result?.description,
+    });
+    throw new Error('Telegram could not verify membership right now. Please try again later.');
+  }
+
+  const member = result.result;
+  const isMember =
+    member.status === 'creator' ||
+    member.status === 'administrator' ||
+    member.status === 'member' ||
+    (member.status === 'restricted' && member.is_member === true);
+
+  return isMember
+    ? { verified: true }
+    : { verified: false, reason: 'Join the required Telegram channel or group before claiming this reward.' };
+}
+
+async function ensurePlayerRecord(supabase: ReturnType<typeof createSupabaseServiceClient>, user: { id: number; username?: string; first_name?: string; last_name?: string; photo_url?: string }) {
+  const { error } = await supabase
+    .from('players')
+    .upsert(
+      {
+        telegram_id: String(user.id),
+        username: user.username || null,
+        first_name: user.first_name || null,
+        last_name: user.last_name || null,
+        photo_url: user.photo_url || null,
+        coins: 1000,
+      },
+      { onConflict: 'telegram_id', ignoreDuplicates: true }
+    );
+
+  if (error) {
+    console.error('Task player ensure error:', error);
+    throw new Error('Could not prepare the player account for task rewards.');
+  }
+}
+
 function getInitData(request: Request, body?: any): string {
   if (typeof body?.initData === 'string') {
     return body.initData;
@@ -210,6 +280,20 @@ export async function POST(request: Request) {
     const proof = validateProof(body, task.type);
 
     const supabase = createSupabaseServiceClient();
+    await ensurePlayerRecord(supabase, user);
+
+    const isTelegramMembershipTask =
+      task.type === 'social' && Boolean(TELEGRAM_MEMBERSHIP_TASKS[task.key]);
+
+    if (isTelegramMembershipTask) {
+      const membership = await verifyTelegramMembership(user.id, task.key);
+      if (!membership.verified) {
+        return NextResponse.json(
+          { error: membership.reason || 'Telegram membership could not be verified.' },
+          { status: 403 }
+        );
+      }
+    }
 
     // Prevent duplicate pending or already-approved submissions.
     const { data: existing, error: lookupError } = await supabase
@@ -264,6 +348,57 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Could not save your task submission.' },
         { status: 500 }
+      );
+    }
+
+    if (isTelegramMembershipTask) {
+      const { data: approvalData, error: approvalError } = await supabase.rpc(
+        'approve_streetlife_task',
+        {
+          p_submission_id: data.id,
+          p_admin_telegram_id: 'TELEGRAM_BOT_API',
+        }
+      );
+
+      if (approvalError) {
+        console.error('Automatic Telegram task approval error:', approvalError);
+        return NextResponse.json(
+          {
+            ok: true,
+            status: 'pending',
+            autoVerified: false,
+            message: 'Telegram membership was verified, but automatic reward credit is temporarily unavailable. Your submission has been sent for admin review.',
+            submission: data,
+          },
+          { status: 201 }
+        );
+      }
+
+      const approval = Array.isArray(approvalData) ? approvalData[0] : approvalData;
+      if (approval?.success) {
+        return NextResponse.json(
+          {
+            ok: true,
+            status: 'approved',
+            autoVerified: true,
+            credited: approval.credited,
+            message: `Telegram membership verified! ${approval.credited} SC credited.`,
+            submission: { ...data, status: 'approved' },
+          },
+          { status: 201 }
+        );
+      }
+
+      console.error('Automatic Telegram task approval was not successful:', approval);
+      return NextResponse.json(
+        {
+          ok: true,
+          status: 'pending',
+          autoVerified: false,
+          message: approval?.message || 'Membership verified, but the reward needs admin review.',
+          submission: data,
+        },
+        { status: 201 }
       );
     }
 
