@@ -218,7 +218,7 @@ export default function StreetLifeApp() {
     }
     const response = await fetch('/api/daily-login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-telegram-init-data': initData },
+      headers: { 'Content-Type': 'application/json', 'x-telegram-init-data': initData, 'x-streetlife-device-id': generateDeviceId() },
       cache: 'no-store',
     });
     const result = await response.json().catch(() => ({}));
@@ -233,7 +233,8 @@ export default function StreetLifeApp() {
       throw new Error('The server returned an invalid daily reward.');
     }
     if (!result.alreadyClaimed) {
-      const newTotal = gameState.streetCoin + reward;
+      const newTotal = Number(result.balance);
+      if (!Number.isSafeInteger(newTotal) || newTotal < 0) throw new Error('The server returned an invalid wallet balance.');
       saveDailyClaim(newTotal, streak);
       playSuccessSound();
       showToast(`Claimed +${reward} Street Coins ${result.perk ? `& ${result.perk}` : ''}! Total: ${newTotal.toLocaleString()} SC`);
