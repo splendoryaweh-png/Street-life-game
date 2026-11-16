@@ -72,6 +72,7 @@ export function GangChat({
   const [showInputEmojiPicker, setShowInputEmojiPicker] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const channelRef = useRef<any>(null);
@@ -95,9 +96,8 @@ export function GangChat({
 
   // Connect to room BroadcastChannel
   useEffect(() => {
-    if (!roomCode) return;
-
-    if (!supabase) return;
+    if (!roomCode || !supabase) { setConnectionStatus('disconnected'); return; }
+    setConnectionStatus('connecting');
     const channelName = `gangstar_chat_${roomCode}`;
     const channel = supabase.channel(channelName, { config: { broadcast: { self: false } } });
     channelRef.current = channel;
@@ -140,18 +140,28 @@ export function GangChat({
         );
       }
     });
-    channel.subscribe();
+    channel.subscribe((status: string) => {
+      if (status === 'SUBSCRIBED') setConnectionStatus('connected');
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        setConnectionStatus('disconnected');
+        onToast?.('Gang Chat disconnected. Please check your connection.');
+      }
+    });
 
     return () => {
       if (supabase) void supabase.removeChannel(channel);
     };
-  }, [roomCode, playerId]);
+  }, [roomCode, playerId, onToast]);
 
   // Send a text message
-  const handleSendMessage = (e?: React.FormEvent) => {
+  const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const trimmed = inputText.trim();
     if (!trimmed) return;
+    if (connectionStatus !== 'connected' || !channelRef.current) {
+      onToast?.('Gang Chat is connecting. Please try again in a moment.');
+      return;
+    }
 
     const newMsg: ChatMessage = {
       id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -163,14 +173,12 @@ export function GangChat({
       reactions: {},
     };
 
-    setMessages((prev) => [...prev, newMsg]);
+    const result = await channelRef.current.send({ type: 'broadcast', event: 'chat', payload: { type: 'NEW_CHAT_MESSAGE', payload: newMsg } });
+    if (result !== 'ok') { onToast?.('Message was not delivered. Please try again.'); return; }
+    setMessages((prev) => [...prev.slice(-99), newMsg]);
     setInputText('');
     setShowInputEmojiPicker(false);
     playClickSound();
-
-    if (channelRef.current) {
-      void channelRef.current.send({ type: 'broadcast', event: 'chat', payload: { type: 'NEW_CHAT_MESSAGE', payload: newMsg } });
-    }
   };
 
   // Toggle reaction on a message
