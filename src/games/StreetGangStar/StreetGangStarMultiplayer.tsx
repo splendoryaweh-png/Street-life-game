@@ -65,8 +65,11 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     playClickSound();
     if (!supabase) { onToast('Online matchmaking is unavailable: the live game connection is not configured.'); return; }
     const directory = supabase.channel('gangstar_public_rooms', { config: { presence: { key: myPlayerId } } });
-    directory.subscribe(async (status: string) => {
-      if (status !== 'SUBSCRIBED') return;
+    let subscribed = false;
+    let resolved = false;
+    const resolveMatch = async () => {
+      if (!subscribed || resolved) return;
+      resolved = true;
       const activeRooms = Object.values(directory.presenceState()).flat() as Array<{ roomCode?: string; playerId?: string }>;
       const availableRoom = activeRooms.find((entry) => entry.roomCode && entry.playerId !== myPlayerId);
       await supabase.removeChannel(directory);
@@ -81,6 +84,11 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         connectToRoom(newCode, true);
         onToast('No open district was found, so a new public district has been created. Share its code to invite players.');
       }
+    };
+    directory.on('presence', { event: 'sync' }, () => { void resolveMatch(); });
+    directory.subscribe((status: string) => {
+      if (status === 'SUBSCRIBED') { subscribed = true; void resolveMatch(); }
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') onToast('Public matchmaking could not connect. Please try again.');
     });
   };
   const joinWithCode = (e: React.FormEvent) => {
