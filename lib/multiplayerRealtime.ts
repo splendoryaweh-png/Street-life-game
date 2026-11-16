@@ -43,6 +43,9 @@ export function createRealtimeBroadcastChannel(name: string): RealtimeBroadcastC
     inFlight.push(task);
     void task.catch((error: unknown) => {
       console.warn('[Multiplayer] Realtime send failed:', error);
+    }).finally(() => {
+      const index = inFlight.indexOf(task);
+      if (index >= 0) inFlight.splice(index, 1);
     });
   };
 
