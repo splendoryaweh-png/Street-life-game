@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Swords, Shield, Heart, Skull, Crosshair, Trophy, Coins, Crown, Zap, Volume2, VolumeX, Flame, Clock, Sparkles, Users, Bus, ArrowLeft, RotateCcw, Target, Radio, Share2, Check, AlertCircle, Award } from 'lucide-react';
 import { TurfWarLobby, TurfRole, TurfLobbyPlayer } from './TurfWarLobby';
+import { GangChat } from './StreetGangStar/GangChat';
 import { playShootSound, playPunchSound, playCoinSound, playSuccessSound, playClickSound, playSirenSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
 import { createRealtimeBroadcastChannel, RealtimeBroadcastChannel } from '@/lib/multiplayerRealtime';
@@ -452,6 +453,7 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
           </div>
         </div>
       )}
+      {(inGame && roomCode) && <GangChat roomCode={roomCode} playerId={myPlayerId.current} playerName={me?.name || 'Street Hustler'} playerTeam={myRole === 'attacker' ? 'blue' : 'red'} onToast={onToast} />}
     </div>
   );
 };
