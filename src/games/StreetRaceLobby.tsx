@@ -247,7 +247,7 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
     playClickSound();
 
     const channelName = `streetrace_lobby_${roomCode.toUpperCase().trim()}`;
-    const channel = new BroadcastChannel(channelName);
+    const channel = createRealtimeBroadcastChannel(channelName);
     channel.postMessage({
       type: 'READY_TOGGLE',
       playerId: myId,
@@ -260,7 +260,7 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
   const handleLaunchRace = () => {
     playSuccessSound();
     const channelName = `streetrace_lobby_${roomCode.toUpperCase().trim()}`;
-    const channel = new BroadcastChannel(channelName);
+    const channel = createRealtimeBroadcastChannel(channelName);
     channel.postMessage({
       type: 'START_RACE_SIGNAL',
       players,
