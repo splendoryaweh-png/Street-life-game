@@ -156,6 +156,7 @@ export default function StreetLifeApp() {
           if (profileResponse.ok && profile.ok) {
             setServerReferralCode(String(profile.referralCode || ''));
             setServerReferralsCount(Number(profile.referralsCount || 0));
+            saveReferralProfile({ referralCode: String(profile.referralCode || ''), referralsCount: Number(profile.referralsCount || 0), hasClaimedWelcomeBonus: Boolean(profile.hasClaimedWelcomeBonus), appliedReferralCode: profile.appliedReferralCode || null });
           }
           if (launchReferralCode) {
             const claimResponse = await fetch('/api/referrals', {
@@ -180,6 +181,7 @@ export default function StreetLifeApp() {
             if (refreshed.ok && refreshedProfile.ok) {
               setServerReferralCode(String(refreshedProfile.referralCode || ''));
               setServerReferralsCount(Number(refreshedProfile.referralsCount || 0));
+              saveReferralProfile({ referralCode: String(refreshedProfile.referralCode || ''), referralsCount: Number(refreshedProfile.referralsCount || 0), hasClaimedWelcomeBonus: Boolean(refreshedProfile.hasClaimedWelcomeBonus), appliedReferralCode: refreshedProfile.appliedReferralCode || null });
             }
           }
         } catch (error) {
@@ -292,6 +294,7 @@ export default function StreetLifeApp() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Referral could not be claimed.');
       saveCoins(activeGameState.streetCoin + Number(result.inviteeReward || 520));
+      saveReferralProfile({ referralCode: serverReferralCode || activeGameState.myReferralCode, referralsCount: serverReferralsCount, hasClaimedWelcomeBonus: true, appliedReferralCode: code });
       playSuccessSound();
       playCoinSound();
       showToast(result.message);
