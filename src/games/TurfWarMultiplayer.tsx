@@ -70,6 +70,15 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
   const MAP_HEIGHT = 6000;
   const ENEMY_SHOOT_DISTANCE = 110; // CORRECTED AS YOU TALK
 
+  useEffect(() => () => {
+    const channel = broadcastChannelRef.current;
+    if (channel) {
+      channel.postMessage({ type: 'PLAYER_LEAVE', playerId: myPlayerId.current });
+      channel.close();
+      broadcastChannelRef.current = null;
+    }
+  }, []);
+
   const initMyPlayer = useCallback((role: TurfRole, name = 'You') => {
     const isAttacker = role === 'attacker';
     const myState: PlayerState = {
@@ -136,7 +145,8 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
     const channelName = `turfwar_${code}`; const channel = createRealtimeBroadcastChannel(channelName); broadcastChannelRef.current = channel;
     channel.onmessage = (event) => {
       const data = event.data; if (!data) return;
-      if (data.type === 'PLAYER_SYNC') {
+      if (data.type === 'PLAYER_LEAVE') { playersRef.current.delete(data.playerId); }
+      else if (data.type === 'PLAYER_SYNC') {
         const p = playersRef.current.get(data.id);
         if (p && !p.isMe) { p.x = data.x; p.y = data.y; p.angle = data.angle; p.hp = data.hp; p.armor = data.armor; p.kills = data.kills; p.isFiring = data.isFiring; p.isAlive = data.isAlive; (p as any).inTankId = data.inTankId; }
       } else if (data.type === 'BULLET_SPAWN') { if (data.playerId !== myPlayerId.current) { bulletsRef.current.push(data.bullet); } }
