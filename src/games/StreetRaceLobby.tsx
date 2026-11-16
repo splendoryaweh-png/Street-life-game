@@ -235,11 +235,12 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
   // Quick Match discovers an actual host room across devices.
   const handleQuickMatch = () => {
     playClickSound();
-    if (!supabase) {
+    const client = supabase;
+    if (!client) {
       onToast('Online matchmaking is unavailable. Create a room and share its code.');
       return;
     }
-    const directory = supabase.channel('streetrace_public_rooms', {
+    const directory = client.channel('streetrace_public_rooms', {
       config: { presence: { key: myId } },
     });
     let subscribed = false;
@@ -255,7 +256,7 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
       const available = hosts.find((host) =>
         members.filter((member) => member.roomCode === host.roomCode).length < 4
       );
-      await supabase.removeChannel(directory);
+      await client.removeChannel(directory);
       if (available?.roomCode) {
         setRoomCode(available.roomCode);
         setIsHost(false);
@@ -278,7 +279,7 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         if (!resolved) {
           resolved = true;
-          void supabase.removeChannel(directory);
+          void client.removeChannel(directory);
           onToast('Could not connect to race matchmaking. Please try again.');
         }
       }
