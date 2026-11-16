@@ -453,7 +453,7 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
 
   return (
     <ShakingTasksContext.Provider value={shakingTaskIds}>
-      <div className="w-full min-h-[calc(100dvh-5rem)] flex-1 overflow-y-auto pb-40 pt-4 px-4 overscroll-contain select-none flex flex-col space-y-4 animate-fadeIn">
+      <div className="w-full min-h-[calc(100dvh-5rem)] pb-40 pt-4 px-4 select-none flex flex-col space-y-4 animate-fadeIn">
       {/* HEADER */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2.5">
