@@ -76,8 +76,8 @@ export function getRoomChannel(code: string): RealtimeBroadcastChannel | null {
   if (!normalizedCode) return null;
   if (!activeChannels.has(normalizedCode)) {
     const channel = createRealtimeBroadcastChannel(`room_${normalizedCode}`);
-    channel.onmessage = (event: MessageEvent<MultiplayerMessage>) => {
-      const incoming = event.data;
+    channel.onmessage = (event) => {
+      const incoming = event.data as MultiplayerMessage;
       if (incoming?.type === 'room_state' && incoming.data?.code === normalizedCode) {
         const rooms = getAllRooms().filter((entry) => entry.code !== normalizedCode);
         saveAllRooms([...rooms, incoming.data as Room]);
