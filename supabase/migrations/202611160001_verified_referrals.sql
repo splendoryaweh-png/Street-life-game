@@ -1,7 +1,54 @@
+-- Repair blank and duplicate legacy codes before enforcing case-insensitive uniqueness.
+do $$
+declare
+  r record;
+  v_code text;
+begin
+  for r in
+    select telegram_id
+    from (
+      select telegram_id,
+        row_number() over (partition by upper(trim(referral_code)) order by telegram_id) as duplicate_number
+      from public.players
+      where referral_code is not null and length(trim(referral_code)) > 0
+    ) ranked
+    where duplicate_number > 1
+    order by telegram_id
+  loop
+    loop
+      v_code := 'SL' || upper(substr(md5(random()::text || clock_timestamp()::text || r.telegram_id::text), 1, 7));
+      exit when not exists (
+        select 1 from public.players
+        where upper(trim(coalesce(referral_code, ''))) = v_code
+      );
+    end loop;
+    update public.players set referral_code = v_code, updated_at = now()
+    where telegram_id = r.telegram_id;
+  end loop;
+
+  for r in
+    select telegram_id from public.players
+    where referral_code is null or length(trim(referral_code)) = 0
+    order by telegram_id
+  loop
+    loop
+      v_code := 'SL' || upper(substr(md5(random()::text || clock_timestamp()::text || r.telegram_id::text), 1, 7));
+      exit when not exists (
+        select 1 from public.players
+        where upper(trim(coalesce(referral_code, ''))) = v_code
+      );
+    end loop;
+    update public.players set referral_code = v_code, updated_at = now()
+    where telegram_id = r.telegram_id
+      and (referral_code is null or length(trim(referral_code)) = 0);
+  end loop;
+end;
+$$;
+
 -- Verified, one-time STREET LIFE referral rewards.
 -- Existing coin balances are incremented, never reset.
 create unique index if not exists players_referral_code_unique
-  on public.players (upper(referral_code))
+  on public.players (upper(trim(referral_code)))
   where referral_code is not null and length(trim(referral_code)) > 0;
 
 create table if not exists public.streetlife_referral_claims (
