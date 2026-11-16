@@ -63,8 +63,9 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   };
   const joinRandomCity = () => {
     playClickSound();
-    if (!supabase) { onToast('Online matchmaking is unavailable: the live game connection is not configured.'); return; }
-    const directory = supabase.channel('gangstar_public_rooms', { config: { presence: { key: myPlayerId } } });
+    const client = supabase;
+    if (!client) { onToast('Online matchmaking is unavailable: the live game connection is not configured.'); return; }
+    const directory = client.channel('gangstar_public_rooms', { config: { presence: { key: myPlayerId } } });
     let subscribed = false;
     let presenceSynced = false;
     let resolved = false;
@@ -73,7 +74,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       resolved = true;
       const activeRooms = Object.values(directory.presenceState()).flat() as Array<{ roomCode?: string; playerId?: string; isHost?: boolean }>;
       const availableRoom = activeRooms.find((entry) => entry.roomCode && entry.isHost && activeRooms.filter((player) => player.roomCode === entry.roomCode).length < 20);
-      await supabase.removeChannel(directory);
+      await client.removeChannel(directory);
       if (availableRoom?.roomCode) {
         setIsHost(false);
         setRoomCode(availableRoom.roomCode);
@@ -98,10 +99,11 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   };
 
   const connectToRoom = (code: string, hostStatus: boolean) => {
-    if (!supabase) { onToast('Online multiplayer is unavailable: the live game connection is not configured.'); return; }
-    if (channelRef.current) { void supabase.removeChannel(channelRef.current); channelRef.current = null; }
+    const client = supabase;
+    if (!client) { onToast('Online multiplayer is unavailable: the live game connection is not configured.'); return; }
+    if (channelRef.current) { void client.removeChannel(channelRef.current); channelRef.current = null; }
     const channelName = `gangstar_${code}`;
-    const channel = supabase.channel(channelName, { config: { broadcast: { self: false }, presence: { key: myPlayerId } } });
+    const channel = client.channel(channelName, { config: { broadcast: { self: false }, presence: { key: myPlayerId } } });
     channelRef.current = channel;
     const newCity = getRandomCityByCountry(initialCountry, code); setCityData(newCity);
     if (hostStatus) {
@@ -131,7 +133,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     channel.subscribe(async (status: string) => {
       if (status === 'SUBSCRIBED') {
         await channel.track({ playerId: myPlayerId, playerName: myPlayerName, joinedAt: Date.now() });
-        const directory = supabase.channel('gangstar_public_rooms', { config: { presence: { key: myPlayerId } } });
+        const directory = client.channel('gangstar_public_rooms', { config: { presence: { key: myPlayerId } } });
         directoryChannelRef.current = directory;
         directory.subscribe(async (directoryStatus: string) => {
           if (directoryStatus === 'SUBSCRIBED') await directory.track({ roomCode: code, playerId: myPlayerId, playerName: myPlayerName, isHost: hostStatus, createdAt: Date.now() });
