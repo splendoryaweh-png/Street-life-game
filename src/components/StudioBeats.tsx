@@ -302,8 +302,13 @@ export function StudioBeats({
       try {
         micStream = await navigator.mediaDevices.getUserMedia(
           isVideoFreestyle
-            ? { audio: true, video: { facingMode: 'user' } }
-            : { audio: true }
+            ? {
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                video: { facingMode: 'user' }
+              }
+            : {
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+              }
         );
       } catch (e) {
         console.warn('mic denied', e);
