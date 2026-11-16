@@ -119,7 +119,8 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
     enemiesRef.current = newEnemies; setWaveEnemiesRemaining(newEnemies.length); waveSpawningRef.current = false;
   }, []);
 
-  const handleStartMatch = (code: string, host: boolean, role: TurfRole, players: TurfLobbyPlayer[]) => {
+  const handleStartMatch = (code: string, host: boolean, role: TurfRole, players: TurfLobbyPlayer[], playerId: string) => {
+    myPlayerId.current = playerId;
     setRoomCode(code); setIsHost(host); setMyRole(role); setLobbyPlayers(players); setInGame(true);
     initMyPlayer(role); initTanks();
     players.forEach((p) => {
