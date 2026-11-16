@@ -8,6 +8,7 @@ import { getGangStarText, GangStarTextKey } from './language';
 import { WEAPONS, WeaponType, CityCar, Civilian, Gangster, LaserBeam, SparkParticle } from './StreetGangStar';
 import { GangChat } from './GangChat';
 import { StreetJoystick } from './StreetJoystick';
+import { supabase } from '@/lib/supabase';
 
 export interface RemotePlayer { id: string; name: string; x: number; y: number; targetX: number; targetY: number; facingAngle: number; health: number; maxHealth: number; team: 'blue' | 'red'; gun: WeaponType; avatarColor: string; isCover: boolean; inCarId: string | null; jumpOffset?: number; lastReaction?: { emoji: string; until: number }; lastSeen: number; hitCount?: number; }
 export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert'; senderId: string; payload: any; }
@@ -38,7 +39,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [hudInCar, setHudInCar] = useState<boolean>(false);
   const [hudIsNearCar, setHudIsNearCar] = useState<boolean>(false);
   const [activePlayerCount, setActivePlayerCount] = useState<number>(1);
-  const channelRef = useRef<BroadcastChannel | null>(null);
+  const channelRef = useRef<any>(null);
 
   const gameStateRef = useRef({
     player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: 1900, y: 1800, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false, hitCount: 0 },
@@ -55,14 +56,13 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   }, [soundEnabled]);
 
   const createRoom = () => {
-    playClickSound(); const code = `STREET${Math.floor(100 + Math.random() * 900)}`; setRoomCode(code); setIsHost(true);
+    playClickSound(); const code = `STREET${Math.floor(100000 + Math.random() * 900000)}`; setRoomCode(code); setIsHost(true);
     try { const saved = JSON.parse(localStorage.getItem('gangstar_rooms') || '[]'); saved.push({ code, status: 'playing', createdAt: Date.now() }); localStorage.setItem('gangstar_rooms', JSON.stringify(saved.slice(-10))); } catch {}
     connectToRoom(code, true);
   };
   const joinRandomCity = () => {
-    playClickSound(); let targetCode = ''; try { const saved = JSON.parse(localStorage.getItem('gangstar_rooms') || '[]'); const active = saved.filter((r: any) => Date.now() - r.createdAt < 30 * 60 * 1000); if (active.length > 0) { targetCode = active[Math.floor(Math.random() * active.length)].code; } } catch {}
-    if (!targetCode) { targetCode = `STREET${Math.floor(100 + Math.random() * 900)}`; setIsHost(true); } else { setIsHost(false); }
-    setRoomCode(targetCode); connectToRoom(targetCode, isHost);
+    playClickSound(); const targetCode = `STREET${Math.floor(100000 + Math.random() * 900000)}`; setIsHost(true);
+    setRoomCode(targetCode); connectToRoom(targetCode, true); onToast('New public district created. Share the room code so other players can join.');
   };
   const joinWithCode = (e: React.FormEvent) => {
     e.preventDefault(); const cleaned = customRoomInput.toUpperCase().trim(); if (!cleaned) { onToast('Please enter a valid room code!'); return; }
@@ -70,8 +70,11 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   };
 
   const connectToRoom = (code: string, hostStatus: boolean) => {
-    if (channelRef.current) { channelRef.current.close(); }
-    const channelName = `gangstar_${code}`; const channel = new BroadcastChannel(channelName); channelRef.current = channel;
+    if (!supabase) { onToast('Online multiplayer is unavailable: the live game connection is not configured.'); return; }
+    if (channelRef.current) { void supabase.removeChannel(channelRef.current); channelRef.current = null; }
+    const channelName = `gangstar_${code}`;
+    const channel = supabase.channel(channelName, { config: { broadcast: { self: false }, presence: { key: myPlayerId } } });
+    channelRef.current = channel;
     const newCity = getRandomCityByCountry(initialCountry, code); setCityData(newCity);
     if (hostStatus) {
       const s = gameStateRef.current; const cars: any[] = []; const colors = ['#38BDF8', '#F97316', '#A855F7', '#EF4444', '#10B981', '#E2E8F0', '#FACC15'];
@@ -79,8 +82,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       const civs: Civilian[] = []; const civColors = ['#94A3B8', '#CBD5E1', '#E2E8F0', '#F1F5F9', '#64748B'];
       for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length] }); } s.civilians = civs;
     }
-    channel.onmessage = (event: MessageEvent<MultiplayerMessage>) => {
-      const msg = event.data; if (!msg || msg.senderId === myPlayerId) return; const s = gameStateRef.current;
+    channel.on('broadcast', { event: 'game' }, ({ payload }: { payload: MultiplayerMessage }) => {
+      const msg = payload; if (!msg || msg.senderId === myPlayerId) return; const s = gameStateRef.current;
       if (msg.type === 'player_sync') {
         const payload = msg.payload; const existing = s.remotePlayers.get(msg.senderId);
         if (existing) { existing.name = payload.name; existing.targetX = payload.x; existing.targetY = payload.y; existing.facingAngle = payload.facingAngle; existing.health = payload.health; existing.team = payload.team; existing.gun = payload.gun; existing.avatarColor = payload.avatarColor; existing.isCover = payload.isCover; existing.inCarId = payload.inCarId; existing.jumpOffset = payload.jumpOffset || 0; existing.lastSeen = Date.now(); }
@@ -91,13 +94,31 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       } else if (msg.type === 'reaction') {
         const rem = s.remotePlayers.get(msg.senderId); if (rem) { rem.lastReaction = { emoji: msg.payload.emoji, until: Date.now() + 2000 }; }
       } else if (msg.type === 'host_sync' && !isHost) { s.cars = msg.payload.cars || s.cars; s.civilians = msg.payload.civilians || s.civilians; s.gangsters = msg.payload.gangsters || s.gangsters; }
-    };
-    setInLobby(false); gameStateRef.current.isRunning = true; playSuccessSound(); onToast(`Connected to District Lobby: ${code}!`);
+    });
+    channel.on('presence', { event: 'sync' }, () => {
+      const presence = channel.presenceState();
+      const count = Object.values(presence).reduce((total: number, entries: any) => total + entries.length, 0);
+      setActivePlayerCount(Math.max(1, count));
+    });
+    channel.subscribe(async (status: string) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({ playerId: myPlayerId, playerName: myPlayerName, joinedAt: Date.now() });
+        setInLobby(false); gameStateRef.current.isRunning = true; playSuccessSound(); onToast(`Connected online to District ${code}! Share this code with friends.`);
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        onToast('Could not connect to the online district. Please try again.');
+      }
+    });
+  };
+
+  const broadcastGameMessage = (message: MultiplayerMessage) => {
+    if (channelRef.current) {
+      void channelRef.current.send({ type: 'broadcast', event: 'game', payload: message });
+    }
   };
 
   const handleSendReaction = (emoji: string) => {
     playClickSound(); const s = gameStateRef.current; s.myReaction = { emoji, until: Date.now() + 2000 };
-    if (channelRef.current) { channelRef.current.postMessage({ type: 'reaction', senderId: myPlayerId, payload: { emoji } }); }
+    broadcastGameMessage({ type: 'reaction', senderId: myPlayerId, payload: { emoji } });
   };
   const handleReload = useCallback(() => {
     const s = gameStateRef.current; if (s.player.isReloading) return; const wDef = WEAPONS[s.player.gun]; if (s.player.ammo >= wDef.maxAmmo) return;
@@ -126,7 +147,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     spreadAngles.forEach((ang) => {
       const beamLength = 480; const endX = startX + Math.cos(ang) * beamLength; const endY = startY + Math.sin(ang) * beamLength;
       s.lasers.push({ id: `laser_${now}_${Math.random()}`, x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, life: 7, maxLife: 7, isPlayer: true, damage: wDef.damage });
-      if (channelRef.current) { channelRef.current.postMessage({ type: 'laser_fire', senderId: myPlayerId, payload: { x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, damage: wDef.damage, team: myTeam } }); }
+      broadcastGameMessage({ type: 'laser_fire', senderId: myPlayerId, payload: { x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, damage: wDef.damage, team: myTeam } });
     });
   }, [handleReload, myPlayerId, myTeam, playSfx]);
 
@@ -148,10 +169,10 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     const loop = () => {
       const s = gameStateRef.current; const p = s.player; const now = Date.now();
       if (s.keys.mouseLeft) { shootPlayerLaser(); }
-      if (now - s.lastBroadcastTime >= 100 && channelRef.current) {
+      if (now - s.lastBroadcastTime >= 150 && channelRef.current) {
         s.lastBroadcastTime = now;
-        channelRef.current.postMessage({ type: 'player_sync', senderId: myPlayerId, payload: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, team: myTeam, gun: p.gun, avatarColor: '#FFD700', isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset } });
-        if (isHost) { channelRef.current.postMessage({ type: 'host_sync', senderId: myPlayerId, payload: { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters } }); }
+        broadcastGameMessage({ type: 'player_sync', senderId: myPlayerId, payload: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, team: myTeam, gun: p.gun, avatarColor: '#FFD700', isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset } });
+        if (isHost && now % 600 < 150) { broadcastGameMessage({ type: 'host_sync', senderId: myPlayerId, payload: { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters } }); }
       }
       s.remotePlayers.forEach((rem, remId) => { rem.x += (rem.targetX - rem.x) * 0.25; rem.y += (rem.targetY - rem.y) * 0.25; if (now - rem.lastSeen > 8000) { s.remotePlayers.delete(remId); setActivePlayerCount(s.remotePlayers.size + 1); } });
       if (isHost && now - s.lastSpawnTime >= 5000) {
@@ -286,6 +307,13 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     animId = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', handleResize); canvas.removeEventListener('mousemove', onMouseMove); canvas.removeEventListener('mousedown', onMouseDown); window.removeEventListener('mouseup', onMouseUp); };
   }, [inLobby, cityData, myPlayerId, myPlayerName, myTeam, isHost, shootPlayerLaser, playSfx, onToast, t]);
+
+  useEffect(() => () => {
+    if (channelRef.current && supabase) {
+      void supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+  }, []);
 
   if (inLobby) {
     return (
