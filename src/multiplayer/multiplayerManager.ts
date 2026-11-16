@@ -1,7 +1,8 @@
+import { createRealtimeBroadcastChannel, RealtimeBroadcastChannel } from '@/lib/multiplayerRealtime';
+
 /**
  * Street Life Multiplayer Manager
- * Peer-to-Peer synchronization engine using BroadcastChannel & LocalStorage persistence.
- * Enables zero-backend real-time multi-tab / multi-client room matching and gameplay.
+ * Cross-device multiplayer transport using Supabase Realtime with local room-state caching.
  */
 
 export type GameType = 'dice' | 'race' | 'war';
@@ -63,42 +64,27 @@ const STORAGE_ROOMS_KEY = 'street_life_multiplayer_rooms_v1';
 const STORAGE_LAST_ROOM_KEY = 'last_room';
 
 // In-memory BroadcastChannel registry to reuse connections per room
-const activeChannels: Map<string, BroadcastChannel> = new Map();
+const activeChannels: Map<string, RealtimeBroadcastChannel> = new Map();
 const channelListeners: Map<string, Set<(msg: MultiplayerMessage) => void>> = new Map();
 
 /**
- * Get or create a singleton BroadcastChannel for a room code
+ * Get or create a singleton Supabase Realtime channel for a room code
  */
-export function getRoomChannel(code: string): BroadcastChannel | null {
-  if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') {
-    return null;
-  }
-
+export function getRoomChannel(code: string): RealtimeBroadcastChannel | null {
+  if (typeof window === 'undefined') return null;
   const normalizedCode = code.toUpperCase().trim();
-  const channelName = `room_${normalizedCode}`;
-
+  if (!normalizedCode) return null;
   if (!activeChannels.has(normalizedCode)) {
-    try {
-      const channel = new BroadcastChannel(channelName);
-      channel.onmessage = (event: MessageEvent<MultiplayerMessage>) => {
-        const listeners = channelListeners.get(normalizedCode);
-        if (listeners) {
-          listeners.forEach((callback) => {
-            try {
-              callback(event.data);
-            } catch (err) {
-              console.warn('[MultiplayerManager] listener error:', err);
-            }
-          });
-        }
-      };
-      activeChannels.set(normalizedCode, channel);
-    } catch (e) {
-      console.warn('[MultiplayerManager] Failed to create BroadcastChannel:', e);
-      return null;
-    }
+    const channel = createRealtimeBroadcastChannel(`room_${normalizedCode}`);
+    channel.onmessage = (event: MessageEvent<MultiplayerMessage>) => {
+      const listeners = channelListeners.get(normalizedCode);
+      if (listeners) listeners.forEach((callback) => {
+        try { callback(event.data); }
+        catch (err) { console.warn('[MultiplayerManager] listener error:', err); }
+      });
+    };
+    activeChannels.set(normalizedCode, channel);
   }
-
   return activeChannels.get(normalizedCode) || null;
 }
 
@@ -327,7 +313,7 @@ export function leaveRoom(code: string, playerId: string): void {
 }
 
 /**
- * Send a generic peer-to-peer update message via the room BroadcastChannel
+ * Send a generic peer-to-peer update message via the room Realtime channel
  */
 export function sendUpdate<T = any>(code: string, playerId: string, data: T): void {
   const normalized = code.toUpperCase().trim();
