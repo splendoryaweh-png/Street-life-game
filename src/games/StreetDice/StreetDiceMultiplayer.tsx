@@ -521,7 +521,27 @@ export function StreetDiceMultiplayer({
       } else if (type === 'update') {
         const action = data?.action;
 
-        if (action === 'start_game') {
+        if (action === 'player_joined' && isHost) {
+          const joiningPlayer = data.player as PlayerInRoom | undefined;
+          if (!joiningPlayer) return;
+          const current = getRoom(roomCode);
+          const alreadyJoined = current?.players.some((p) => p.id === joiningPlayer.id);
+          if (!alreadyJoined && (current?.players.length || players.length) >= 4) {
+            sendUpdate(roomCode, myId, { action: 'join_rejected', playerId: joiningPlayer.id, reason: 'Room is full.' });
+            return;
+          }
+          const updated = updateRoom(roomCode, (prev) => ({
+            ...prev,
+            players: prev.players.some((p) => p.id === joiningPlayer.id)
+              ? prev.players
+              : [...prev.players, joiningPlayer],
+          }));
+          if (updated) setPlayers(updated.players);
+        } else if (action === 'join_rejected' && data.playerId === myId) {
+          setRoomCode(null);
+          setPhase('lobby');
+          onToast(data.reason || 'The host could not admit you to this room.');
+        } else if (action === 'start_game') {
           setTokens(data.initialTokens || {});
           setTurnIndex(data.turnIndex || 0);
           setPhase('playing');
@@ -556,7 +576,7 @@ export function StreetDiceMultiplayer({
     return () => {
       unsubscribe();
     };
-  }, [roomCode, phase, players, onToast]);
+  }, [roomCode, phase, players, isHost, myId, onToast]);
 
   // Leave room cleanly
   const handleLeaveRoom = () => {
