@@ -4,6 +4,7 @@ import { Swords, Shield, Heart, Skull, Crosshair, Trophy, Coins, Crown, Zap, Vol
 import { TurfWarLobby, TurfRole, TurfLobbyPlayer } from './TurfWarLobby';
 import { playShootSound, playPunchSound, playCoinSound, playSuccessSound, playClickSound, playSirenSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { createRealtimeBroadcastChannel, RealtimeBroadcastChannel } from '@/lib/multiplayerRealtime';
 import confetti from 'canvas-confetti';
 
 export interface TurfWarMultiplayerProps { onBack: () => void; onToast: (msg: string) => void; currentCoins: number; initialRoomCode?: string; }
@@ -35,7 +36,7 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
   const [nearTankPrompt, setNearTankPrompt] = useState<string | null>(null);
   const myPlayerId = useRef<string>('p_' + Math.random().toString(36).substring(2, 8));
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+  const broadcastChannelRef = useRef<RealtimeBroadcastChannel | null>(null);
   const playersRef = useRef<Map<string, PlayerState>>(new Map());
   const enemiesRef = useRef<Enemy[]>([]);
   const tanksRef = useRef<Tank[]>([]);
@@ -131,7 +132,7 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
       }
     });
     if (host) { spawnUnlimitedWave(1); }
-    const channelName = `turfwar_${code}`; const channel = new BroadcastChannel(channelName); broadcastChannelRef.current = channel;
+    const channelName = `turfwar_${code}`; const channel = createRealtimeBroadcastChannel(channelName); broadcastChannelRef.current = channel;
     channel.onmessage = (event) => {
       const data = event.data; if (!data) return;
       if (data.type === 'PLAYER_SYNC') {
