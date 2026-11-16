@@ -73,7 +73,7 @@ export const STUDIO_LEVELS = [
     "shortName": "Level 3",
     "unlockedCount": 6,
     "description": "Unlocks one additional Long Beat.",
-    "upgradeCost": 50000,
+    "upgradeCost": 100000,
     "badge": "PRO",
     "color": "from-purple-500 to-violet-700"
   },
@@ -83,7 +83,7 @@ export const STUDIO_LEVELS = [
     "shortName": "Level 4",
     "unlockedCount": 7,
     "description": "Unlocks one additional Long Beat.",
-    "upgradeCost": 75000,
+    "upgradeCost": 200000,
     "badge": "HITMAKER",
     "color": "from-rose-500 to-pink-700"
   },
@@ -93,7 +93,7 @@ export const STUDIO_LEVELS = [
     "shortName": "Level 5",
     "unlockedCount": 8,
     "description": "Unlocks one additional Long Beat.",
-    "upgradeCost": 100000,
+    "upgradeCost": 250000,
     "badge": "PREMIUM",
     "color": "from-fuchsia-500 to-purple-700"
   },
@@ -103,7 +103,7 @@ export const STUDIO_LEVELS = [
     "shortName": "Level 6",
     "unlockedCount": 9,
     "description": "Unlocks one additional Long Beat.",
-    "upgradeCost": 150000,
+    "upgradeCost": 300000,
     "badge": "ELITE",
     "color": "from-indigo-500 to-violet-700"
   },
@@ -113,7 +113,7 @@ export const STUDIO_LEVELS = [
     "shortName": "Level 7",
     "unlockedCount": 10,
     "description": "Unlocks one additional Long Beat.",
-    "upgradeCost": 200000,
+    "upgradeCost": 350000,
     "badge": "PLATINUM",
     "color": "from-slate-400 to-slate-700"
   },
@@ -123,7 +123,7 @@ export const STUDIO_LEVELS = [
     "shortName": "Level 8",
     "unlockedCount": 11,
     "description": "Unlocks one additional Long Beat.",
-    "upgradeCost": 250000,
+    "upgradeCost": 375000,
     "badge": "DIAMOND",
     "color": "from-cyan-300 to-blue-600"
   },
@@ -133,7 +133,7 @@ export const STUDIO_LEVELS = [
     "shortName": "Level 9",
     "unlockedCount": 12,
     "description": "Unlocks one additional Long Beat.",
-    "upgradeCost": 300000,
+    "upgradeCost": 400000,
     "badge": "EMPIRE",
     "color": "from-amber-500 to-orange-700"
   },
@@ -143,7 +143,7 @@ export const STUDIO_LEVELS = [
     "shortName": "Level 10",
     "unlockedCount": 13,
     "description": "Unlocks one additional Long Beat.",
-    "upgradeCost": 425000,
+    "upgradeCost": 450000,
     "badge": "LEGEND",
     "color": "from-rose-500 to-amber-500"
   },
