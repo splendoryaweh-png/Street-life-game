@@ -581,8 +581,7 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
 
   return (
     <div
-      className="w-full min-h-[calc(100dvh-5rem)] flex-1 overflow-y-auto pb-40 pt-4 px-4 overscroll-contain select-none"
-      style={{ WebkitOverflowScrolling: 'touch' }}
+      className="w-full min-h-[calc(100dvh-5rem)] pb-40 pt-4 px-4 select-none"
     >
       {/* TAP SCREEN TO ALLOW SOUND BANNER (When browser blocks autoplay) */}
       {audioUnlockNotice && (
