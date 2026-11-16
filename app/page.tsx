@@ -13,6 +13,8 @@ import {
   saveHasPlayedToday,
   resetDailyTestState,
   tickGameState,
+  saveCoins,
+  saveReferralProfile,
 } from '@/lib/storage';
 import { initTelegramWebApp, getTelegramInitData, BotNotification } from '@/lib/telegram';
 import { playCoinSound, playClickSound, playSuccessSound } from '@/lib/sound';
