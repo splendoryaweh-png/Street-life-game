@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createRealtimeBroadcastChannel, RealtimeBroadcastChannel } from '@/lib/multiplayerRealtime';
+import { supabase } from '@/lib/supabase';
 import {
   Swords,
   Shield,
@@ -109,6 +110,7 @@ export function TurfWarLobby({
   const [players, setPlayers] = useState<TurfLobbyPlayer[]>([]);
   const [copied, setCopied] = useState<boolean>(false);
   const channelRef = useRef<RealtimeBroadcastChannel | null>(null);
+  const directoryChannelRef = useRef<any>(null);
 
   // Auto join if initialRoomCode provided
   useEffect(() => {
@@ -118,7 +120,31 @@ export function TurfWarLobby({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRoomCode]);
 
-  // Connect BroadcastChannel for Lobby Sync
+  // Publish room presence to a shared directory so random matchmaking works across devices.
+  useEffect(() => {
+    if (!inRoom || !roomCode || !supabase) return;
+    const directory = supabase.channel('turfwar_public_rooms', {
+      config: { presence: { key: myId } },
+    });
+    directoryChannelRef.current = directory;
+    directory.subscribe(async (status: string) => {
+      if (status === 'SUBSCRIBED') {
+        await directory.track({
+          roomCode,
+          playerId: myId,
+          playerName: myName,
+          isHost,
+          joinedAt: Date.now(),
+        });
+      }
+    });
+    return () => {
+      if (directoryChannelRef.current === directory) directoryChannelRef.current = null;
+      if (supabase) void supabase.removeChannel(directory);
+    };
+  }, [inRoom, roomCode, myId, myName, isHost]);
+
+  // Connect Supabase Realtime for Lobby Sync
   useEffect(() => {
     if (!roomCode || !inRoom) return;
 
@@ -252,23 +278,49 @@ export function TurfWarLobby({
     onToast(`Joined room ${clean}! Connecting...`);
   };
 
-  // Random Join
+  // Random Join uses shared Supabase Presence, not this device's localStorage.
   const handleRandomJoin = () => {
     playClickSound();
-    let foundCode = '';
-    try {
-      const active = JSON.parse(localStorage.getItem('turf_public_rooms') || '[]');
-      const valid = active.filter((r: any) => Date.now() - r.createdAt < 30 * 60 * 1000);
-      if (valid.length > 0) {
-        foundCode = valid[Math.floor(Math.random() * valid.length)].code;
-      }
-    } catch {}
-
-    if (foundCode) {
-      joinRoomWithCode(foundCode, false);
-    } else {
-      handleCreateRoom();
+    if (!supabase) {
+      onToast('Online matchmaking is unavailable. Please try joining with a room code.');
+      return;
     }
+    const directory = supabase.channel('turfwar_public_rooms', {
+      config: { presence: { key: myId } },
+    });
+    let subscribed = false;
+    let presenceSynced = false;
+    let resolved = false;
+    const resolveMatch = async () => {
+      if (!subscribed || !presenceSynced || resolved) return;
+      resolved = true;
+      const members = Object.values(directory.presenceState()).flat() as Array<{
+        roomCode?: string; playerId?: string; isHost?: boolean;
+      }>;
+      const hosts = members.filter((entry) => entry.roomCode && entry.isHost);
+      const available = hosts.find((host) =>
+        members.filter((member) => member.roomCode === host.roomCode).length < 4
+      );
+      await supabase.removeChannel(directory);
+      if (available?.roomCode) joinRoomWithCode(available.roomCode, false);
+      else handleCreateRoom();
+    };
+    directory.on('presence', { event: 'sync' }, () => {
+      presenceSynced = true;
+      void resolveMatch();
+    });
+    directory.subscribe((status: string) => {
+      if (status === 'SUBSCRIBED') {
+        subscribed = true;
+        void resolveMatch();
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        if (!resolved) {
+          resolved = true;
+          void supabase.removeChannel(directory);
+          onToast('Could not connect to online matchmaking. Please try again.');
+        }
+      }
+    });
   };
 
   // Ready Toggle
