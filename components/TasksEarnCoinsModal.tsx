@@ -323,7 +323,7 @@ export function TasksEarnCoinsModal({ isOpen, onClose, onToast }: Props) {
                 {imagePicker(
                   'Upload screenshot proof',
                   proofs[key] || [],
-                  (value) => setProofs((old) => ({ ...old, [key]: value }))
+                  (value) => setProofs((old) => ({ ...old, [key]: typeof value === 'function' ? value(old[key] || []) : value }))
                 )}
               </>
             )}
