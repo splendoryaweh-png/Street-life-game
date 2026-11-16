@@ -16,6 +16,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { playClickSound, playPickupSound, playSuccessSound } from '@/lib/sound';
+import { supabase } from '@/lib/supabase';
 
 export interface ChatMessage {
   id: string;
@@ -73,7 +74,7 @@ export function GangChat({
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const channelRef = useRef<BroadcastChannel | null>(null);
+  const channelRef = useRef<any>(null);
 
   // Auto-scroll to bottom of chat
   const scrollToBottom = useCallback(() => {
@@ -92,12 +93,12 @@ export function GangChat({
   useEffect(() => {
     if (!roomCode) return;
 
+    if (!supabase) return;
     const channelName = `gangstar_chat_${roomCode}`;
-    const channel = new BroadcastChannel(channelName);
+    const channel = supabase.channel(channelName, { config: { broadcast: { self: false } } });
     channelRef.current = channel;
 
-    channel.onmessage = (event: MessageEvent) => {
-      const data = event.data;
+    channel.on('broadcast', { event: 'chat' }, ({ payload: data }: { payload: any }) => {
       if (!data) return;
 
       if (data.type === 'NEW_CHAT_MESSAGE') {
@@ -134,10 +135,11 @@ export function GangChat({
           })
         );
       }
-    };
+    });
+    channel.subscribe();
 
     return () => {
-      channel.close();
+      if (supabase) void supabase.removeChannel(channel);
     };
   }, [roomCode, playerId, isOpen, soundEnabled]);
 
@@ -163,10 +165,7 @@ export function GangChat({
     playClickSound();
 
     if (channelRef.current) {
-      channelRef.current.postMessage({
-        type: 'NEW_CHAT_MESSAGE',
-        payload: newMsg,
-      });
+      void channelRef.current.send({ type: 'broadcast', event: 'chat', payload: { type: 'NEW_CHAT_MESSAGE', payload: newMsg } });
     }
   };
 
@@ -197,14 +196,7 @@ export function GangChat({
     );
 
     if (channelRef.current) {
-      channelRef.current.postMessage({
-        type: 'ADD_CHAT_REACTION',
-        payload: {
-          messageId,
-          emoji,
-          reactorName: playerName,
-        },
-      });
+      void channelRef.current.send({ type: 'broadcast', event: 'chat', payload: { type: 'ADD_CHAT_REACTION', payload: { messageId, emoji, reactorName: playerName } } });
     }
   };
 
