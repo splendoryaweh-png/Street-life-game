@@ -77,6 +77,11 @@ export function getRoomChannel(code: string): RealtimeBroadcastChannel | null {
   if (!activeChannels.has(normalizedCode)) {
     const channel = createRealtimeBroadcastChannel(`room_${normalizedCode}`);
     channel.onmessage = (event: MessageEvent<MultiplayerMessage>) => {
+      const incoming = event.data;
+      if (incoming?.type === 'room_state' && incoming.data?.code === normalizedCode) {
+        const rooms = getAllRooms().filter((entry) => entry.code !== normalizedCode);
+        saveAllRooms([...rooms, incoming.data as Room]);
+      }
       const listeners = channelListeners.get(normalizedCode);
       if (listeners) listeners.forEach((callback) => {
         try { callback(event.data); }
@@ -225,7 +230,26 @@ export function createRoom(
 export function joinRoom(code: string, player: PlayerInRoom): boolean {
   const normalized = code.toUpperCase().trim();
   const room = getRoom(normalized);
-  if (!room) return false;
+
+  // A remote room is not present in this device's local cache. Create a
+  // temporary local snapshot and ask the host to admit this player over Realtime.
+  if (!room) {
+    const now = Date.now();
+    const provisional: Room = {
+      code: normalized,
+      gameType: 'dice',
+      hostId: '',
+      players: [player],
+      status: 'waiting',
+      mode: 'Street Ludo Gang',
+      createdAt: now,
+      updatedAt: now,
+    };
+    saveAllRooms([...getAllRooms().filter((entry) => entry.code !== normalized), provisional]);
+    sendUpdate(normalized, player.id, { action: 'player_joined', player });
+    saveRejoin(normalized, player.id);
+    return true;
+  }
 
   // Max player constraints
   const maxPlayers = room.gameType === 'war' ? 6 : 4;
