@@ -1051,11 +1051,11 @@ export function StudioBeats({
               >
                 <option value="clean">Clean Voice — Starter</option>
                 <option value="warm" disabled={studioLevel < 1}>Warm Studio {studioLevel < 1 ? '🔒 Level 1' : '✓'}</option>
-                <option value="bright" disabled={studioLevel < 2}>Bright Vocal {studioLevel < 2 ? '🔒 Level 2' : '✓'}</option>
-                <option value="radio" disabled={studioLevel < 3}>Radio Effect {studioLevel < 3 ? '🔒 Level 3' : '✓'}</option>
-                <option value="deep" disabled={studioLevel < 4}>Deep Vocal {studioLevel < 4 ? '🔒 Level 4' : '✓'}</option>
-                <option value="echo" disabled={studioLevel < 3}>Studio Echo {studioLevel < 3 ? '🔒 Level 3' : '✓'}</option>
-                <option value="reverb" disabled={studioLevel < 4}>Studio Reverb {studioLevel < 4 ? '🔒 Level 4' : '✓'}</option>
+                <option value="bright" disabled={studioLevel < 3}>Bright Vocal {studioLevel < 3 ? '🔒 Level 3' : '✓'}</option>
+                <option value="radio" disabled={studioLevel < 4}>Radio Effect {studioLevel < 4 ? '🔒 Level 4' : '✓'}</option>
+                <option value="deep" disabled={studioLevel < 5}>Deep Vocal {studioLevel < 5 ? '🔒 Level 5' : '✓'}</option>
+                <option value="echo" disabled={studioLevel < 7}>Studio Echo {studioLevel < 7 ? '🔒 Level 7' : '✓'}</option>
+                <option value="reverb" disabled={studioLevel < 9}>Studio Reverb {studioLevel < 9 ? '🔒 Level 9' : '✓'}</option>
               </select>
             </div>
 
