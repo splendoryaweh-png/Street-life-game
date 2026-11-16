@@ -8,11 +8,13 @@ import { addGameCoins } from '@/lib/storage';
 import { createRealtimeBroadcastChannel, RealtimeBroadcastChannel } from '@/lib/multiplayerRealtime';
 import confetti from 'canvas-confetti';
 
+export interface StreetRaceMultiplayerProps { onBack: () => void; onToast: (msg: string) => void; currentCoins: number; initialRoomCode?: string; }
+
 interface RacerState { id: string; name: string; carSkin: RaceCarSkin; y: number; laneOffset: number; speed: number; nitro: number; isNitro: boolean; isBraking: boolean; isCrashed: boolean; crashTimer: number; isFinished: boolean; rank: number; isMe: boolean; }
 interface OvertakeAlert { id: string; text: string; }
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; color: string; size: number; }
 
-export const StreetRaceMultiplayer: React.FC<{ onBack: () => void; onToast: (msg: string) => void; currentCoins: number; initialRoomCode?: string; }> = ({ onBack, onToast, currentCoins, initialRoomCode }) => {
+export const StreetRaceMultiplayer: React.FC<StreetRaceMultiplayerProps> = ({ onBack, onToast, currentCoins, initialRoomCode }) => {
   const [inRace, setInRace] = useState(false);
   const [roomCode, setRoomCode] = useState(initialRoomCode || '');
   const [myCarSkin, setMyCarSkin] = useState<RaceCarSkin>(RACE_CARS[0]);
