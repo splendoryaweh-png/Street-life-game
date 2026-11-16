@@ -147,7 +147,8 @@ export function StudioBeats({
   // Independent volume controls. Both start at 50%.
   const [beatVolume, setBeatVolume] = useState(50);
   const [voiceVolume, setVoiceVolume] = useState(50);
-  const [voiceEffect, setVoiceEffect] = useState<'clean' | 'warm' | 'bright' | 'radio' | 'deep'>('clean');
+  const [voiceEffect, setVoiceEffect] = useState<'clean' | 'warm' | 'bright' | 'radio' | 'deep' | 'echo' | 'reverb'>('clean');
+  const [noiseReductionEnabled, setNoiseReductionEnabled] = useState(true);
 
   const beatGainNodeRef = useRef<GainNode | null>(null);
   const micGainNodeRef = useRef<GainNode | null>(null);
@@ -313,11 +314,11 @@ export function StudioBeats({
         micStream = await navigator.mediaDevices.getUserMedia(
           isVideoFreestyle
             ? {
-                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
                 video: { facingMode: 'user' }
               }
             : {
-                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true }
               }
         );
       } catch (e) {
@@ -397,6 +398,39 @@ export function StudioBeats({
       voiceCompressor.connect(voiceTone);
       voiceTone.connect(micGain);
       micGain.connect(dest);
+
+      // Optional creative voice effects are added after the tone filter.
+      // The dry voice remains present so effects never make speech disappear.
+      if (voiceEffect === 'echo') {
+        const delay = audioCtx.createDelay(0.8);
+        delay.delayTime.setValueAtTime(0.24, audioCtx.currentTime);
+        const feedback = audioCtx.createGain();
+        feedback.gain.setValueAtTime(0.22, audioCtx.currentTime);
+        const wet = audioCtx.createGain();
+        wet.gain.setValueAtTime(0.28, audioCtx.currentTime);
+        micGain.connect(delay);
+        delay.connect(wet);
+        wet.connect(dest);
+        delay.connect(feedback);
+        feedback.connect(delay);
+      } else if (voiceEffect === 'reverb') {
+        const convolver = audioCtx.createConvolver();
+        const impulseLength = Math.floor(audioCtx.sampleRate * 1.6);
+        const impulse = audioCtx.createBuffer(2, impulseLength, audioCtx.sampleRate);
+        for (let channel = 0; channel < impulse.numberOfChannels; channel++) {
+          const samples = impulse.getChannelData(channel);
+          for (let i = 0; i < impulseLength; i++) {
+            const decay = Math.pow(1 - i / impulseLength, 2.6);
+            samples[i] = (Math.random() * 2 - 1) * decay;
+          }
+        }
+        convolver.buffer = impulse;
+        const wet = audioCtx.createGain();
+        wet.gain.setValueAtTime(0.24, audioCtx.currentTime);
+        micGain.connect(convolver);
+        convolver.connect(wet);
+        wet.connect(dest);
+      }
 
       const beatUrl =
         (beat as any).fileUrl ||
@@ -1016,7 +1050,26 @@ export function StudioBeats({
                 <option value="bright" disabled={studioLevel < 2}>Bright Vocal {studioLevel < 2 ? '🔒 Level 2' : '✓'}</option>
                 <option value="radio" disabled={studioLevel < 3}>Radio Effect {studioLevel < 3 ? '🔒 Level 3' : '✓'}</option>
                 <option value="deep" disabled={studioLevel < 4}>Deep Vocal {studioLevel < 4 ? '🔒 Level 4' : '✓'}</option>
+                <option value="echo" disabled={studioLevel < 3}>Studio Echo {studioLevel < 3 ? '🔒 Level 3' : '✓'}</option>
+                <option value="reverb" disabled={studioLevel < 4}>Studio Reverb {studioLevel < 4 ? '🔒 Level 4' : '✓'}</option>
               </select>
+            </div>
+
+            <div className="border-t border-white/10 pt-3">
+              <label className="flex items-center justify-between gap-3 text-xs font-bold text-white">
+                <span className="flex items-center gap-2">
+                  <Volume2 className="w-4 h-4 text-emerald-400"/>
+                  NOISE REDUCTION
+                </span>
+                <input
+                  type="checkbox"
+                  checked={noiseReductionEnabled}
+                  onChange={(e) => setNoiseReductionEnabled(e.target.checked)}
+                  className="h-5 w-5 accent-emerald-400"
+                  aria-label="Noise reduction"
+                />
+              </label>
+              <p className="text-[10px] text-gray-500 mt-1">Reduces background noise picked up by supported phone microphones</p>
             </div>
 
             <div className="border-t border-white/10 pt-3">
