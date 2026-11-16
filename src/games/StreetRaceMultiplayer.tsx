@@ -5,6 +5,7 @@ import { StreetRaceLobby, RaceCarSkin, RaceLobbyPlayer, RACE_CARS } from './Stre
 import { HIGHWAY_LENGTH, generateHighwayMarkers, generateHighwayObstacles, renderHighwayScenery, renderRoadSegments, renderObstaclesOnRoad, renderPlayerCarBehind, renderOpponentCar, HighwayObstacle, HighwayMarker } from './StreetRaceHighway';
 import { playCoinSound, playSuccessSound, playPunchSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { createRealtimeBroadcastChannel, RealtimeBroadcastChannel } from '@/lib/multiplayerRealtime';
 import confetti from 'canvas-confetti';
 
 interface RacerState { id: string; name: string; carSkin: RaceCarSkin; y: number; laneOffset: number; speed: number; nitro: number; isNitro: boolean; isBraking: boolean; isCrashed: boolean; crashTimer: number; isFinished: boolean; rank: number; isMe: boolean; }
@@ -16,6 +17,8 @@ export const StreetRaceMultiplayer: React.FC<{ onBack: () => void; onToast: (msg
   const [roomCode, setRoomCode] = useState(initialRoomCode || '');
   const [myCarSkin, setMyCarSkin] = useState<RaceCarSkin>(RACE_CARS[0]);
   const myRacerId = useRef('racer_' + Math.random().toString(36).substring(2, 6));
+  const raceChannelRef = useRef<RealtimeBroadcastChannel | null>(null);
+  const lastRaceSyncRef = useRef(0);
   const [raceTime, setRaceTime] = useState(0);
   const [distanceKm, setDistanceKm] = useState(0);
   const [speedKmh, setSpeedKmh] = useState(0);
@@ -76,14 +79,52 @@ export const StreetRaceMultiplayer: React.FC<{ onBack: () => void; onToast: (msg
     }, 16);
   };
 
-  const handleStartRace = (code:string, host:boolean, car:RaceCarSkin) => {
+  const handleStartRace = (code:string, host:boolean, car:RaceCarSkin, lobbyPlayers:RaceLobbyPlayer[] = [], playerId?: string) => {
+    const stablePlayerId = playerId || myRacerId.current;
+    myRacerId.current = stablePlayerId;
     setRoomCode(code); setMyCarSkin(car); setInRace(true);
     obstaclesRef.current = generateHighwayObstacles();
-    racersRef.current.set(myRacerId.current, { id: myRacerId.current, name: 'You', carSkin: car, y:0, laneOffset:0, speed:0, nitro:100, isNitro:false, isBraking:false, isCrashed:false, crashTimer:0, isFinished:false, rank:1, isMe:true });
+    racersRef.current.clear();
+    const roster = lobbyPlayers.length ? lobbyPlayers : [{
+      id: stablePlayerId, name: 'You', carSkin: car, avatar: '🏎️', isHost: host, ready: true, ping: 20,
+    }];
+    roster.slice(0, 4).forEach((player, index) => {
+      racersRef.current.set(player.id, {
+        id: player.id, name: player.id === stablePlayerId ? 'You' : player.name,
+        carSkin: player.carSkin || RACE_CARS[index % RACE_CARS.length],
+        y: -index * 35, laneOffset: index % 2 === 0 ? -0.35 : 0.35, speed: 0, nitro: 100,
+        isNitro: false, isBraking: false, isCrashed: false, crashTimer: 0,
+        isFinished: false, rank: index + 1, isMe: player.id === stablePlayerId,
+      });
+    });
     const botNames = ['Shadow Viper','Neon Phantom','Apex Striker'];
-    for(let b=1;b<4;b++){ const botId=`bot_${b}`; const skin=RACE_CARS[b%RACE_CARS.length]; racersRef.current.set(botId,{ id:botId, name:botNames[b-1], carSkin:skin, y:b*40, laneOffset:b===1?-0.6:0.6, speed:0, nitro:100, isNitro:false, isBraking:false, isCrashed:false, crashTimer:0, isFinished:false, rank:b+1, isMe:false }); }
+    let botIndex = 0;
+    while (racersRef.current.size < 4) {
+      const skin = RACE_CARS[(racersRef.current.size) % RACE_CARS.length];
+      const botId = `bot_${code}_${botIndex}`;
+      racersRef.current.set(botId, { id: botId, name: botNames[botIndex] || `Street Bot ${botIndex + 1}`, carSkin: skin, y: -(racersRef.current.size * 35), laneOffset: botIndex % 2 ? 0.6 : -0.6, speed: 0, nitro: 100, isNitro: false, isBraking: false, isCrashed: false, crashTimer: 0, isFinished: false, rank: racersRef.current.size + 1, isMe: false });
+      botIndex++;
+    }
     onToast('7KM Race Started! Hold GAS!');
   };
+
+  useEffect(() => {
+    if (!inRace || !roomCode) return;
+    const channel = createRealtimeBroadcastChannel(`streetrace_game_${roomCode.toUpperCase()}`);
+    raceChannelRef.current = channel;
+    channel.onmessage = (event) => {
+      const data = event.data;
+      if (data?.type === 'RACER_SYNC' && data.racer?.id !== myRacerId.current) {
+        const remote = data.racer as RacerState;
+        const existing = racersRef.current.get(remote.id);
+        racersRef.current.set(remote.id, { ...existing, ...remote, isMe: false });
+      }
+    };
+    return () => {
+      channel.close();
+      if (raceChannelRef.current === channel) raceChannelRef.current = null;
+    };
+  }, [inRace, roomCode]);
 
   useEffect(() => {
     const kd = (e:KeyboardEvent)=>{ keysRef.current[e.key.toLowerCase()]=true; if(e.key===' '||e.key==='Shift') isNitroRef.current=true; };
@@ -159,7 +200,11 @@ export const StreetRaceMultiplayer: React.FC<{ onBack: () => void; onToast: (msg
           }
         }
       }
-      // BOTS
+      if (me && raceChannelRef.current && Date.now() - lastRaceSyncRef.current >= 100) {
+        lastRaceSyncRef.current = Date.now();
+        raceChannelRef.current.postMessage({ type: 'RACER_SYNC', racer: { ...me, isMe: false } });
+      }
+      // BOTS (only the locally generated bot racers are simulated here)
       racersRef.current.forEach(r=>{ if(r.isMe||r.isFinished) return; const target=130+Math.sin(r.y*0.001)*20; if(r.speed<target) r.speed+=0.6; else r.speed-=0.4; r.y+=(r.speed/3.6)*12*0.016; r.laneOffset+=Math.sin(Date.now()*0.001+r.y*0.01)*0.005; if(r.y>=HIGHWAY_LENGTH) r.isFinished=true; });
       const sorted=Array.from(racersRef.current.values()).sort((a,b)=>b.y-a.y); sorted.forEach((r,i)=>{ r.rank=i+1; if(r.isMe) setMyRank(i+1); });
 
