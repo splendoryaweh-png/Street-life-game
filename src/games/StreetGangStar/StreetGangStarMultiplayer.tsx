@@ -71,8 +71,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     const resolveMatch = async () => {
       if (!subscribed || !presenceSynced || resolved) return;
       resolved = true;
-      const activeRooms = Object.values(directory.presenceState()).flat() as Array<{ roomCode?: string; playerId?: string }>;
-      const availableRoom = activeRooms.find((entry) => entry.roomCode && entry.playerId !== myPlayerId);
+      const activeRooms = Object.values(directory.presenceState()).flat() as Array<{ roomCode?: string; playerId?: string; isHost?: boolean }>;
+      const availableRoom = activeRooms.find((entry) => entry.roomCode && entry.isHost && activeRooms.filter((player) => player.roomCode === entry.roomCode).length < 20);
       await supabase.removeChannel(directory);
       if (availableRoom?.roomCode) {
         setIsHost(false);
@@ -131,13 +131,11 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     channel.subscribe(async (status: string) => {
       if (status === 'SUBSCRIBED') {
         await channel.track({ playerId: myPlayerId, playerName: myPlayerName, joinedAt: Date.now() });
-        if (hostStatus) {
-          const directory = supabase.channel('gangstar_public_rooms', { config: { presence: { key: myPlayerId } } });
-          directoryChannelRef.current = directory;
-          directory.subscribe(async (directoryStatus: string) => {
-            if (directoryStatus === 'SUBSCRIBED') await directory.track({ roomCode: code, playerId: myPlayerId, playerName: myPlayerName, createdAt: Date.now() });
-          });
-        }
+        const directory = supabase.channel('gangstar_public_rooms', { config: { presence: { key: myPlayerId } } });
+        directoryChannelRef.current = directory;
+        directory.subscribe(async (directoryStatus: string) => {
+          if (directoryStatus === 'SUBSCRIBED') await directory.track({ roomCode: code, playerId: myPlayerId, playerName: myPlayerName, isHost: hostStatus, createdAt: Date.now() });
+        });
         setInLobby(false); gameStateRef.current.isRunning = true; playSuccessSound(); onToast(`Connected online to District ${code}! Share this code with friends.`);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         onToast('Could not connect to the online district. Please try again.');
