@@ -365,6 +365,7 @@ export default function StreetLifeApp() {
         {activeTab === 'STUDIO' ? (
           <StudioScreen
             gameState={activeGameState}
+            telegramUserId={activeTelegramUser?.id != null ? String(activeTelegramUser.id) : ''}
             onToast={showToast}
             onNavigateTab={(tab) => {
               closeAllModals();
