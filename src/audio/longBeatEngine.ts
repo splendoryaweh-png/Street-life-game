@@ -101,6 +101,7 @@ const SCALE_LEAD_NOTES: Record<string, number[]> = {
 export class LongBeatAudioEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private masterCompressor: DynamicsCompressorNode | null = null;
   private analyser: AnalyserNode | null = null;
 
   // Active Playback State
@@ -141,16 +142,24 @@ export class LongBeatAudioEngine {
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioCtxClass();
 
+      // Master gain followed by a safety compressor to prevent stacked drums,
+      // bass and melodic layers from clipping and crackling on mobile speakers.
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+      this.masterCompressor = this.ctx.createDynamicsCompressor();
+      this.masterCompressor.threshold.setValueAtTime(-12, this.ctx.currentTime);
+      this.masterCompressor.knee.setValueAtTime(18, this.ctx.currentTime);
+      this.masterCompressor.ratio.setValueAtTime(8, this.ctx.currentTime);
+      this.masterCompressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+      this.masterCompressor.release.setValueAtTime(0.18, this.ctx.currentTime);
+
       // Analyser for UI visualizers
       this.analyser = this.ctx.createAnalyser();
       this.analyser.fftSize = 128;
       this.analyser.smoothingTimeConstant = 0.82;
 
-      // Master Gain
-      this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
-
-      this.masterGain.connect(this.analyser);
+      this.masterGain.connect(this.masterCompressor);
+      this.masterCompressor.connect(this.analyser);
       this.analyser.connect(this.ctx.destination);
 
       // Auto-resume if browser suspends context when mic or camera is accessed
@@ -174,7 +183,7 @@ export class LongBeatAudioEngine {
     if (!this.streamDestination && typeof this.ctx.createMediaStreamDestination === 'function') {
       try {
         this.streamDestination = this.ctx.createMediaStreamDestination();
-        this.masterGain.connect(this.streamDestination);
+        (this.masterCompressor || this.masterGain).connect(this.streamDestination);
       } catch (e) {
         console.warn('Stream destination fallback:', e);
       }
