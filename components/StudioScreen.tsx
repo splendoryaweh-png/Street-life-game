@@ -386,16 +386,14 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       }
     }
 
-    // 2. If real microphone is blocked/unavailable, activate Studio Virtual Mic stream
+    // Never fabricate a vocal recording. If the real microphone is unavailable,
+    // stop here and ask the player to grant microphone permission.
     if (!stream) {
-      isVirtual = true;
-      const virtual = getVirtualMicStream();
-      if (virtual.stream) {
-        stream = virtual.stream;
-        virtualMicCleanupRef.current = virtual.cleanup;
-      }
+      setIsVirtualMic(false);
+      onToast('🎙️ Microphone access is required. Please allow microphone permission and try again.');
+      return;
     }
-    setIsVirtualMic(isVirtual);
+    setIsVirtualMic(false);
 
     let mimeType = 'audio/webm';
     if (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function') {
@@ -412,12 +410,12 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
         virtualMicCleanupRef.current();
         virtualMicCleanupRef.current = null;
       }
-      let blob: Blob;
-      if (recordedChunksRef.current.length > 0) {
-        blob = new Blob(recordedChunksRef.current, { type: mimeType });
-      } else {
-        blob = createSyntheticVocalWavBlob(recordSecondsRef.current || 3);
+      if (recordedChunksRef.current.length === 0) {
+        setRecordingBeatId(null);
+        onToast('⚠️ No audio was captured. Please check microphone permission and record again.');
+        return;
       }
+      const blob = new Blob(recordedChunksRef.current, { type: mimeType });
       const url = URL.createObjectURL(blob);
       setRecordedBlobUrl(url);
       setRecordedBeatId(beat.id);
@@ -512,20 +510,12 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
         console.warn('Error stopping media recorder:', e);
       }
     } else {
-      // If mediaRecorder was null or failed to start, finalize directly with synthetic vocal blob
       if (virtualMicCleanupRef.current) {
         virtualMicCleanupRef.current();
         virtualMicCleanupRef.current = null;
       }
-      if (recordingBeatId) {
-        const blob = createSyntheticVocalWavBlob(recordSecondsRef.current || 3);
-        const url = URL.createObjectURL(blob);
-        setRecordedBlobUrl(url);
-        setRecordedBeatId(recordingBeatId);
-        setHasPreviewed(false);
-        setIsPreviewPlaying(false);
-        onToast('🎤 Vocal recording captured! Click PREVIEW to listen before posting.');
-      }
+      setRecordingBeatId(null);
+      onToast('⚠️ Recording could not be saved. Please check microphone access and try again.');
     }
 
     setRecordingBeatId(null);
