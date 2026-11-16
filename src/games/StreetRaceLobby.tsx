@@ -115,7 +115,7 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
     if (!isJoinedRoom) return;
 
     const channelName = `streetrace_lobby_${roomCode.toUpperCase().trim()}`;
-    const channel = new BroadcastChannel(channelName);
+    const channel = createRealtimeBroadcastChannel(channelName);
 
     // Broadcast my presence
     const broadcastMyPresence = (readyStatus = isReady) => {
