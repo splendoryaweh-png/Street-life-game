@@ -138,6 +138,7 @@ export function StudioBeats({
   // Independent volume controls. Both start at 50%.
   const [beatVolume, setBeatVolume] = useState(50);
   const [voiceVolume, setVoiceVolume] = useState(50);
+  const [voiceEffect, setVoiceEffect] = useState<'clean' | 'warm' | 'bright' | 'radio' | 'deep'>('clean');
 
   const beatGainNodeRef = useRef<GainNode | null>(null);
   const micGainNodeRef = useRef<GainNode | null>(null);
@@ -356,9 +357,36 @@ export function StudioBeats({
       micGain.gain.value = voiceVolume / 100;
       micGainNodeRef.current = micGain;
 
+      // Per-player voice tone presets. Every preset is processed in the
+      // same recording chain, so it is applied consistently on every beat.
+      const voiceTone = audioCtx.createBiquadFilter();
+      if (voiceEffect === 'warm') {
+        voiceTone.type = 'lowshelf';
+        voiceTone.frequency.setValueAtTime(220, audioCtx.currentTime);
+        voiceTone.gain.setValueAtTime(3, audioCtx.currentTime);
+      } else if (voiceEffect === 'bright') {
+        voiceTone.type = 'highshelf';
+        voiceTone.frequency.setValueAtTime(3200, audioCtx.currentTime);
+        voiceTone.gain.setValueAtTime(3, audioCtx.currentTime);
+      } else if (voiceEffect === 'radio') {
+        voiceTone.type = 'bandpass';
+        voiceTone.frequency.setValueAtTime(1500, audioCtx.currentTime);
+        voiceTone.Q.setValueAtTime(0.75, audioCtx.currentTime);
+      } else if (voiceEffect === 'deep') {
+        voiceTone.type = 'lowshelf';
+        voiceTone.frequency.setValueAtTime(180, audioCtx.currentTime);
+        voiceTone.gain.setValueAtTime(5, audioCtx.currentTime);
+      } else {
+        voiceTone.type = 'peaking';
+        voiceTone.frequency.setValueAtTime(1200, audioCtx.currentTime);
+        voiceTone.Q.setValueAtTime(0.7, audioCtx.currentTime);
+        voiceTone.gain.setValueAtTime(0, audioCtx.currentTime);
+      }
+
       micSource.connect(voiceHighPass);
       voiceHighPass.connect(voiceCompressor);
-      voiceCompressor.connect(micGain);
+      voiceCompressor.connect(voiceTone);
+      voiceTone.connect(micGain);
       micGain.connect(dest);
 
       const beatUrl =
@@ -960,6 +988,26 @@ export function StudioBeats({
                 <span>50% BALANCED</span>
                 <span>100% MAX</span>
               </div>
+            </div>
+
+            <div className="border-t border-white/10 pt-3">
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="studio-voice-effect" className="text-xs font-bold text-white">VOICE FILTER</label>
+                <span className="text-[9px] text-amber-300 font-bold">LEVEL UNLOCKS</span>
+              </div>
+              <select
+                id="studio-voice-effect"
+                value={voiceEffect}
+                onChange={(e) => setVoiceEffect(e.target.value as typeof voiceEffect)}
+                className="w-full rounded-xl bg-zinc-900 border border-cyan-400/30 p-3 text-xs text-white"
+                aria-label="Voice filter"
+              >
+                <option value="clean">Clean Voice — Starter</option>
+                <option value="warm" disabled={studioLevel < 1}>Warm Studio {studioLevel < 1 ? '🔒 Level 1' : '✓'}</option>
+                <option value="bright" disabled={studioLevel < 2}>Bright Vocal {studioLevel < 2 ? '🔒 Level 2' : '✓'}</option>
+                <option value="radio" disabled={studioLevel < 3}>Radio Effect {studioLevel < 3 ? '🔒 Level 3' : '✓'}</option>
+                <option value="deep" disabled={studioLevel < 4}>Deep Vocal {studioLevel < 4 ? '🔒 Level 4' : '✓'}</option>
+              </select>
             </div>
 
             <div className="border-t border-white/10 pt-3">
