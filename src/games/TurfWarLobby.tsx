@@ -108,6 +108,8 @@ export function TurfWarLobby({
   const [isHost, setIsHost] = useState<boolean>(false);
   const [inRoom, setInRoom] = useState<boolean>(false);
   const [players, setPlayers] = useState<TurfLobbyPlayer[]>([]);
+  const playersRef = useRef<TurfLobbyPlayer[]>([]);
+  playersRef.current = players;
   const [copied, setCopied] = useState<boolean>(false);
   const channelRef = useRef<RealtimeBroadcastChannel | null>(null);
   const directoryChannelRef = useRef<any>(null);
@@ -187,7 +189,7 @@ export function TurfWarLobby({
           if (isHost) {
             channel.postMessage({
               type: 'SYNC_PLAYERS',
-              players: [myPlayerObj, ...players.filter((p) => p.id !== newP.id), newP],
+              players: [myPlayerObj, ...playersRef.current.filter((p) => p.id !== newP.id), newP],
             });
           }
         }
@@ -215,7 +217,7 @@ export function TurfWarLobby({
       channel.postMessage({ type: 'PLAYER_LEAVE', playerId: myId });
       channel.close();
     };
-  }, [roomCode, inRoom, isHost, myId, myName, myRole, myAvatar, myColor, onStartMatch, onToast, players]);
+  }, [roomCode, inRoom, isHost, myId, myName, myRole, myAvatar, myColor, onStartMatch, onToast]);
 
   // Create Room
   const handleCreateRoom = () => {
