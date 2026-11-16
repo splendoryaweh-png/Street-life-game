@@ -765,7 +765,7 @@ export function StudioBeats({
     setSpentCoinsDelta(prev => prev + levelInfo.upgradeCost);
     setUpgradedLevelOverride(level);
 
-    localStorage.setItem('streetlife_studio_level', String(level));
+    if (telegramUserId) localStorage.setItem(studioStorageKey('streetlife_studio_level', telegramUserId), String(level));
     onUpgradeStudioLevel?.(level);
 
     playSuccessSound();
@@ -870,7 +870,7 @@ export function StudioBeats({
       longBeatEngine.resume();
     } else {
       setCurrentBeatId(beat.id);
-      localStorage.setItem('streetlife_current_long_beat', beat.id);
+      if (telegramUserId) localStorage.setItem(studioStorageKey('streetlife_current_long_beat', telegramUserId), beat.id);
       longBeatEngine.play(beat.id,0);
     }
   };
