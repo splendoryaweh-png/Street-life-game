@@ -48,8 +48,19 @@ export function generateHighwayMarkers(): HighwayMarker[] {
 }
 
 // Procedural generation of obstacles over 7km
-export function generateHighwayObstacles(): HighwayObstacle[] {
+export function generateHighwayObstacles(seed?: string): HighwayObstacle[] {
   const obstacles: HighwayObstacle[] = [];
+  let seedState = 0;
+  if (seed) {
+    for (let i = 0; i < seed.length; i++) seedState = (Math.imul(seedState, 31) + seed.charCodeAt(i)) >>> 0;
+    if (seedState === 0) seedState = 1;
+  }
+  const random = seed
+    ? () => {
+        seedState = (Math.imul(seedState, 1664525) + 1013904223) >>> 0;
+        return seedState / 4294967296;
+      }
+    : Math.random;
   const obstacleTypes: Array<HighwayObstacle['type']> = [
     'broken_car',
     'oil_slick',
@@ -63,12 +74,12 @@ export function generateHighwayObstacles(): HighwayObstacle[] {
 
   while (currentY < HIGHWAY_LENGTH - 600) {
     // Gap varies between 320 and 650 units
-    currentY += 320 + Math.floor(Math.sin(currentY * 0.003) * 120 + Math.random() * 200);
+    currentY += 320 + Math.floor(Math.sin(currentY * 0.003) * 120 + random() * 200);
 
-    const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+    const type = obstacleTypes[Math.floor(random() * obstacleTypes.length)];
     // Lane offset: -0.75 (lane 1), -0.25 (lane 2), 0.25 (lane 3), 0.75 (lane 4)
     const laneChoices = [-0.75, -0.25, 0.25, 0.75];
-    const laneOffset = laneChoices[Math.floor(Math.random() * laneChoices.length)];
+    const laneOffset = laneChoices[Math.floor(random() * laneChoices.length)];
 
     let color = '#EF4444';
     if (type === 'oil_slick') color = '#020617';
