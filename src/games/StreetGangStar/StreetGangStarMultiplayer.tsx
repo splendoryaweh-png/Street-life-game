@@ -24,6 +24,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [myPlayerId] = useState<string>(() => `player_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`);
   const [myPlayerName] = useState<string>(() => { if (typeof window !== 'undefined') { const saved = localStorage.getItem('streetlife_username'); if (saved) return saved; } return `Hustler_${Math.floor(100 + Math.random() * 900)}`; });
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
+  const [showInvitePanel, setShowInvitePanel] = useState<boolean>(false);
   const [myTeam, setMyTeam] = useState<'blue' | 'red'>('blue');
   const [showTeamModal, setShowTeamModal] = useState<boolean>(false);
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
@@ -57,7 +58,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   }, [soundEnabled]);
 
   const createRoom = () => {
-    playClickSound(); const code = `STREET${Math.floor(100000 + Math.random() * 900000)}`; setRoomCode(code); setIsHost(true);
+    playClickSound(); const code = `STREET${Math.floor(100000 + Math.random() * 900000)}`; setRoomCode(code); setIsHost(true); setShowInvitePanel(true);
     try { const saved = JSON.parse(localStorage.getItem('gangstar_rooms') || '[]'); saved.push({ code, status: 'playing', createdAt: Date.now() }); localStorage.setItem('gangstar_rooms', JSON.stringify(saved.slice(-10))); } catch {}
     connectToRoom(code, true);
   };
@@ -424,6 +425,25 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   return (
     <div className="fixed inset-0 z-50 bg-black text-white select-none overflow-hidden font-sans">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full cursor-crosshair" />
+      {showInvitePanel && isHost && (
+        <div className="absolute inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-3xl border-2 border-[#FFD700] bg-[#11131C] p-6 text-center shadow-[0_0_40px_rgba(255,215,0,0.25)]">
+            <div className="text-3xl mb-2">🏙️</div>
+            <h2 className="text-lg font-black uppercase tracking-wide text-[#FFD700]">Your City Lobby Is Ready</h2>
+            <p className="mt-2 text-sm text-gray-300">Share this invite code with your friends so they can join your city.</p>
+            <div className="mt-5 rounded-2xl border border-[#FFD700]/50 bg-black/60 px-3 py-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-gray-400">Street Gang Star Invite Code</p>
+              <p className="mt-2 break-all font-mono text-2xl font-black tracking-wider text-white">{roomCode}</p>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button onClick={async () => { try { await navigator.clipboard.writeText(roomCode); setCopiedCode(true); onToast('Invite code copied. Send it to your friends.'); } catch { onToast(`Your invite code is ${roomCode}`); } }} type="button" className="rounded-xl bg-white/10 px-3 py-3 text-xs font-black uppercase text-white">{copiedCode ? 'Copied!' : 'Copy Code'}</button>
+              <button onClick={async () => { const inviteText = `Join my Street Gang Star city! Open Street Life → Street Gang Star → Multiplayer and enter code: ${roomCode}`; try { if (navigator.share) await navigator.share({ title: 'Street Gang Star invite', text: inviteText }); else { await navigator.clipboard.writeText(inviteText); onToast('Invite message copied. Send it to your friends.'); } } catch (error) { if ((error as Error)?.name !== 'AbortError') onToast(`Invite code: ${roomCode}`); } }} type="button" className="rounded-xl bg-[#FFD700] px-3 py-3 text-xs font-black uppercase text-black">Share Invite</button>
+            </div>
+            <button onClick={() => setShowInvitePanel(false)} type="button" className="mt-4 w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-xs font-black uppercase text-white">Enter City</button>
+            <p className="mt-3 text-[10px] text-gray-500">You can still see the code in the top-left corner while playing.</p>
+          </div>
+        </div>
+      )}
       {/* SMALL LIFE PANEL - LIKE SECOND PICTURE - 0.75 SCALE */}
       <div className="absolute top-3 left-3 z-30 flex flex-col gap-1 max-w-[185px] scale-[0.75] origin-top-left pointer-events-none">
         <div className="p-2.5 rounded-2xl bg-black/80 border border-white/15 backdrop-blur-md shadow-xl flex items-center justify-between">
