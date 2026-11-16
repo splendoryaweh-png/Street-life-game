@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Copy, Check, Users, Gift, Sparkles, Send, ExternalLink } from 'lucide-react';
+import { Copy, Check, Users, Gift, Send, ExternalLink } from 'lucide-react';
 
 interface ReferralCardProps {
   myReferralCode: string;
@@ -10,7 +10,6 @@ interface ReferralCardProps {
   hasClaimedWelcomeBonus: boolean;
   appliedReferralCode: string | null;
   onApplyInviteCode: (code: string) => void;
-  onSimulateReferral: () => void;
   onToast: (msg: string) => void;
 }
 
@@ -22,7 +21,6 @@ export function ReferralCard({
   hasClaimedWelcomeBonus,
   appliedReferralCode,
   onApplyInviteCode,
-  onSimulateReferral,
   onToast,
 }: ReferralCardProps) {
   const [inputCode, setInputCode] = useState('');
@@ -226,14 +224,6 @@ export function ReferralCard({
           </strong>
         </span>
 
-        <button
-          onClick={onSimulateReferral}
-          type="button"
-          className="px-2.5 py-1 rounded-md bg-[#FFD700]/15 hover:bg-[#FFD700]/25 text-[#FFD700] text-[10px] font-bold border border-[#FFD700]/30 transition-all flex items-center gap-1"
-        >
-          <Sparkles className="w-3 h-3" />
-          Simulate 1 Invite (+100)
-        </button>
       </div>
     </div>
   );
