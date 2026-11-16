@@ -20,10 +20,15 @@ function getTodayDateString(): string {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function getStoredDailyRecordCount(): number {
-  if (typeof window === 'undefined') return 0;
+function studioStorageKey(base: string, telegramUserId: string): string {
+  const account = telegramUserId ? telegramUserId.replace(/[^0-9]/g, '') : 'unverified';
+  return `${base}_${account || 'unverified'}`;
+}
+
+function getStoredDailyRecordCount(telegramUserId: string): number {
+  if (typeof window === 'undefined' || !telegramUserId) return 0;
   try {
-    const raw = localStorage.getItem('streetlife_record_count');
+    const raw = localStorage.getItem(studioStorageKey('streetlife_record_count', telegramUserId));
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed?.date === getTodayDateString()) return parsed.count || 0;
@@ -32,9 +37,10 @@ function getStoredDailyRecordCount(): number {
   return 0;
 }
 
-function saveStoredDailyRecordCount(newCount: number): void {
+function saveStoredDailyRecordCount(newCount: number, telegramUserId: string): void {
+  if (typeof window === 'undefined' || !telegramUserId) return;
   try {
-    localStorage.setItem('streetlife_record_count', JSON.stringify({
+    localStorage.setItem(studioStorageKey('streetlife_record_count', telegramUserId), JSON.stringify({
       date: getTodayDateString(),
       count: newCount
     }));
@@ -51,16 +57,17 @@ export interface SavedStudioRecording {
   audioUrl?: string;
 }
 
-function getStoredRecentRecordings(): SavedStudioRecording[] {
-  if (typeof window === 'undefined') return [];
+function getStoredRecentRecordings(telegramUserId: string): SavedStudioRecording[] {
+  if (typeof window === 'undefined' || !telegramUserId) return [];
   try {
-    const raw = localStorage.getItem('streetlife_recent_recordings');
+    const raw = localStorage.getItem(studioStorageKey('streetlife_recent_recordings', telegramUserId));
     if (raw) return JSON.parse(raw).slice(0,3);
   } catch {}
   return [];
 }
 
-function saveStoredRecentRecordings(recordings: SavedStudioRecording[]): void {
+function saveStoredRecentRecordings(recordings: SavedStudioRecording[], telegramUserId: string): void {
+  if (typeof window === 'undefined' || !telegramUserId) return;
   try {
     const metaList = recordings.slice(0,3).map((r) => ({
       id: r.id,
@@ -70,7 +77,7 @@ function saveStoredRecentRecordings(recordings: SavedStudioRecording[]): void {
       beatName: r.beatName,
       downloadName: r.downloadName
     }));
-    localStorage.setItem('streetlife_recent_recordings', JSON.stringify(metaList));
+    localStorage.setItem(studioStorageKey('streetlife_recent_recordings', telegramUserId), JSON.stringify(metaList));
   } catch {}
 }
 
@@ -94,6 +101,7 @@ function getBestMimeType(isVideo: boolean): string {
 
 interface StudioBeatsProps {
   gameState?: UserGameState;
+  telegramUserId?: string;
   onToast?: (msg: string) => void;
   onSelectForRecording?: (beat: LongBeat) => void;
   onUpgradeStudioLevel?: (newLevel: number) => void;
@@ -101,6 +109,7 @@ interface StudioBeatsProps {
 
 export function StudioBeats({
   gameState,
+  telegramUserId = '',
   onToast,
   onSelectForRecording,
   onUpgradeStudioLevel
@@ -108,7 +117,7 @@ export function StudioBeats({
 
   const [upgradedLevelOverride, setUpgradedLevelOverride] = useState<number | null>(() => {
     if (typeof window !== 'undefined') {
-      const savedLevel = localStorage.getItem('streetlife_studio_level');
+      const savedLevel = telegramUserId ? localStorage.getItem(studioStorageKey('streetlife_studio_level', telegramUserId)) : null;
       if (savedLevel !== null) return parseInt(savedLevel, 10) || 0;
     }
     return null;
@@ -120,7 +129,7 @@ export function StudioBeats({
 
   const [currentBeatId, setCurrentBeatId] = useState(() => {
     if (typeof window !== 'undefined') {
-      const savedBeat = localStorage.getItem('streetlife_current_long_beat');
+      const savedBeat = (telegramUserId ? localStorage.getItem(studioStorageKey('streetlife_current_long_beat', telegramUserId)) : null);
       if (savedBeat && getBeatById(savedBeat)) return savedBeat;
     }
     return LONG_BEATS_CATALOG[0].id;
@@ -158,7 +167,7 @@ export function StudioBeats({
   const [selectedInspectBeat, setSelectedInspectBeat] = useState<LongBeat | null>(null);
   const [isInspectModalOpen, setIsInspectModalOpen] = useState(false);
 
-  const [dailyRecordCount, setDailyRecordCount] = useState(() => getStoredDailyRecordCount());
+  const [dailyRecordCount, setDailyRecordCount] = useState(() => getStoredDailyRecordCount(telegramUserId));
   const [showDailyLimitModal, setShowDailyLimitModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -183,7 +192,7 @@ export function StudioBeats({
   const [previewingBeatId, setPreviewingBeatId] = useState<string | null>(null);
 
   const [recentRecordings, setRecentRecordings] = useState<SavedStudioRecording[]>(
-    () => getStoredRecentRecordings()
+    () => getStoredRecentRecordings(telegramUserId)
   );
 
   const [playingRecId, setPlayingRecId] = useState<string | null>(null);
@@ -288,7 +297,7 @@ export function StudioBeats({
 
     if (isRecording) handleStopRecording();
 
-    if (getStoredDailyRecordCount() >= 2) {
+    if (getStoredDailyRecordCount(telegramUserId) >= 2) {
       setShowDailyLimitModal(true);
       return;
     }
@@ -328,7 +337,7 @@ export function StudioBeats({
       }
 
       setCurrentBeatId(beat.id);
-      localStorage.setItem('streetlife_current_long_beat', beat.id);
+      if (telegramUserId) localStorage.setItem(studioStorageKey('streetlife_current_long_beat', telegramUserId), beat.id);
 
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       const audioCtx = new AudioContextClass();
@@ -512,8 +521,8 @@ export function StudioBeats({
           }
         }));
 
-        const updated = getStoredDailyRecordCount() + 1;
-        saveStoredDailyRecordCount(updated);
+        const updated = getStoredDailyRecordCount(telegramUserId) + 1;
+        saveStoredDailyRecordCount(updated, telegramUserId);
         setDailyRecordCount(updated);
 
         const now = new Date();
@@ -542,7 +551,7 @@ export function StudioBeats({
 
         setRecentRecordings(prev => {
           const next = [newRec, ...prev].slice(0,3);
-          saveStoredRecentRecordings(next);
+          saveStoredRecentRecordings(next, telegramUserId);
           return next;
         });
 
