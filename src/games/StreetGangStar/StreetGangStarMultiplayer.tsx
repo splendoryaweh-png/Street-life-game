@@ -40,6 +40,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [hudIsNearCar, setHudIsNearCar] = useState<boolean>(false);
   const [activePlayerCount, setActivePlayerCount] = useState<number>(1);
   const channelRef = useRef<any>(null);
+  const directoryChannelRef = useRef<any>(null);
 
   const gameStateRef = useRef({
     player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: 1900, y: 1800, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false, hitCount: 0 },
@@ -61,8 +62,26 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     connectToRoom(code, true);
   };
   const joinRandomCity = () => {
-    playClickSound(); const targetCode = `STREET${Math.floor(100000 + Math.random() * 900000)}`; setIsHost(true);
-    setRoomCode(targetCode); connectToRoom(targetCode, true); onToast('New public district created. Share the room code so other players can join.');
+    playClickSound();
+    if (!supabase) { onToast('Online matchmaking is unavailable: the live game connection is not configured.'); return; }
+    const directory = supabase.channel('gangstar_public_rooms', { config: { presence: { key: myPlayerId } } });
+    directory.subscribe(async (status: string) => {
+      if (status !== 'SUBSCRIBED') return;
+      const activeRooms = Object.values(directory.presenceState()).flat() as Array<{ roomCode?: string; playerId?: string }>;
+      const availableRoom = activeRooms.find((entry) => entry.roomCode && entry.playerId !== myPlayerId);
+      await supabase.removeChannel(directory);
+      if (availableRoom?.roomCode) {
+        setIsHost(false);
+        setRoomCode(availableRoom.roomCode);
+        connectToRoom(availableRoom.roomCode, false);
+      } else {
+        const newCode = `STREET${Math.floor(100000 + Math.random() * 900000)}`;
+        setIsHost(true);
+        setRoomCode(newCode);
+        connectToRoom(newCode, true);
+        onToast('No open district was found, so a new public district has been created. Share its code to invite players.');
+      }
+    });
   };
   const joinWithCode = (e: React.FormEvent) => {
     e.preventDefault(); const cleaned = customRoomInput.toUpperCase().trim(); if (!cleaned) { onToast('Please enter a valid room code!'); return; }
@@ -103,6 +122,13 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     channel.subscribe(async (status: string) => {
       if (status === 'SUBSCRIBED') {
         await channel.track({ playerId: myPlayerId, playerName: myPlayerName, joinedAt: Date.now() });
+        if (hostStatus) {
+          const directory = supabase.channel('gangstar_public_rooms', { config: { presence: { key: myPlayerId } } });
+          directoryChannelRef.current = directory;
+          directory.subscribe(async (directoryStatus: string) => {
+            if (directoryStatus === 'SUBSCRIBED') await directory.track({ roomCode: code, playerId: myPlayerId, playerName: myPlayerName, createdAt: Date.now() });
+          });
+        }
         setInLobby(false); gameStateRef.current.isRunning = true; playSuccessSound(); onToast(`Connected online to District ${code}! Share this code with friends.`);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         onToast('Could not connect to the online district. Please try again.');
@@ -312,6 +338,10 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     if (channelRef.current && supabase) {
       void supabase.removeChannel(channelRef.current);
       channelRef.current = null;
+    }
+    if (directoryChannelRef.current && supabase) {
+      void supabase.removeChannel(directoryChannelRef.current);
+      directoryChannelRef.current = null;
     }
   }, []);
 
