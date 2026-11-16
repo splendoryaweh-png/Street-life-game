@@ -2,7 +2,38 @@
 -- Existing player balances are incremented; no balances or progress are reset.
 create extension if not exists pgcrypto;
 
-do $$
+-- Repair any pre-existing duplicate codes before adding the unique index.
+do $
+declare r record; v_code text;
+begin
+  for r in
+    select telegram_id
+    from (
+      select telegram_id,
+             row_number() over (
+               partition by upper(trim(referral_code))
+               order by telegram_id
+             ) as duplicate_number
+      from public.players
+      where referral_code is not null and length(trim(referral_code)) > 0
+    ) duplicates
+    where duplicate_number > 1
+    order by telegram_id
+  loop
+    loop
+      v_code := 'SL' || upper(substr(encode(gen_random_bytes(6), 'hex'), 1, 7));
+      exit when not exists (
+        select 1 from public.players
+        where upper(trim(coalesce(referral_code, ''))) = v_code
+      );
+    end loop;
+    update public.players
+      set referral_code = v_code, updated_at = now()
+      where telegram_id = r.telegram_id;
+  end loop;
+end $;
+
+do $
 declare r record; v_code text;
 begin
   for r in
