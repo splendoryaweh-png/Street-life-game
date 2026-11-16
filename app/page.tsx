@@ -364,6 +364,7 @@ export default function StreetLifeApp() {
       >
         {activeTab === 'STUDIO' ? (
           <StudioScreen
+            key={activeTelegramUser?.id != null ? String(activeTelegramUser.id) : 'telegram-pending'}
             gameState={activeGameState}
             telegramUserId={activeTelegramUser?.id != null ? String(activeTelegramUser.id) : ''}
             onToast={showToast}
