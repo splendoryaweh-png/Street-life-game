@@ -4,11 +4,10 @@
  * [Intro] -> [Verse] -> [Hook] -> [Outro]
  *
  * UNLOCK SYSTEM:
- * - Level 0: 4 Free Beats (Beats 1 to 4)
- * - Level 1: 5 Beats (4 Free + 1 Locked: Beat 5)
- * - Level 2: 7 Beats (4 Free + 3 Locked: Beats 5, 6, 7)
- * - Level 3: 8 Beats (4 Free + 4 Locked: Beats 5, 6, 7, 8; or 10 total)
- * - Level 4: 14 Beats (All 14 Beats Unlocked - Complete MAX)
+ * - Internal level 0: 3 free beats
+ * - Internal level 1: 3 beats
+ * - Internal level 2: 5 beats
+ * - Each following level unlocks one more beat, reaching 14 at internal level 11
  *
  * STRICT REQUIREMENT: NO FX (No car horn, no gun sound, no dice shake, no bike rev).
  * Only clean musical instruments: Drums, 808, Sub-Bass, Piano, Pad, Strings, Sax/Brass, Vocal Chops.
@@ -49,55 +48,125 @@ export interface LongBeat {
 
 export const STUDIO_LEVELS = [
   {
-    level: 0,
-    name: 'Ghetto Studio (Starter)',
-    shortName: 'Level 0 - Starter',
-    unlockedCount: 4,
-    description: '4 Free long beats unlocked from start. Perfect for kicking off your hustle.',
-    upgradeCost: 0,
-    badge: 'STARTER',
-    color: 'from-amber-500 to-yellow-600',
+    "level": 0,
+    "name": "Bedroom Studio (Starter)",
+    "shortName": "Level 1",
+    "unlockedCount": 3,
+    "description": "3 free Long Beats available from the start.",
+    "upgradeCost": 0,
+    "badge": "STARTER",
+    "color": "from-amber-500 to-yellow-600"
   },
   {
-    level: 1,
-    name: 'Street Studio Pro',
-    shortName: 'Level 1 - Pro',
-    unlockedCount: 5,
-    description: 'Unlocks Beat 5: 7KM Chase (160 BPM High Tension Drill).',
-    upgradeCost: 25000,
-    badge: 'STREET PRO',
-    color: 'from-blue-500 to-indigo-600',
+    "level": 1,
+    "name": "Street Studio",
+    "shortName": "Level 2",
+    "unlockedCount": 3,
+    "description": "Progressive Studio upgrade.",
+    "upgradeCost": 25000,
+    "badge": "STREET",
+    "color": "from-blue-500 to-indigo-600"
   },
   {
-    level: 2,
-    name: 'Underground Syndicate Studio',
-    shortName: 'Level 2 - Syndicate',
-    unlockedCount: 7,
-    description: 'Unlocks Beats 6, 7 & 8: Turf War Anthem, Dice Hustler Blues & Ghost Mode.',
-    upgradeCost: 60000,
-    badge: 'SYNDICATE',
-    color: 'from-purple-500 to-violet-700',
+    "level": 2,
+    "name": "Underground Studio",
+    "shortName": "Level 3",
+    "unlockedCount": 5,
+    "description": "Progressive Studio upgrade.",
+    "upgradeCost": 50000,
+    "badge": "UNDERGROUND",
+    "color": "from-purple-500 to-violet-700"
   },
   {
-    level: 3,
-    name: 'Hitmaker Mansion Studio',
-    shortName: 'Level 3 - Hitmaker',
-    unlockedCount: 8,
-    description: 'Unlocks Beats 9 & 10: From Trenches To Mansion & 4-Min Mega Mix Finale.',
-    upgradeCost: 120000,
-    badge: 'HITMAKER',
-    color: 'from-rose-500 to-pink-700',
+    "level": 3,
+    "name": "Pro Studio",
+    "shortName": "Level 4",
+    "unlockedCount": 6,
+    "description": "Progressive Studio upgrade.",
+    "upgradeCost": 75000,
+    "badge": "PRO",
+    "color": "from-cyan-500 to-blue-700"
   },
   {
-    level: 4,
-    name: 'Celebrity Platinum Empire Studio',
-    shortName: 'Level 4 - Celebrity MAX',
-    unlockedCount: 14,
-    description: 'ALL 14 Long Beats unlocked. Supreme acoustic polish and unlimited playback.',
-    upgradeCost: 250000,
-    badge: 'PLATINUM MAX',
-    color: 'from-amber-400 via-[#FFD700] to-yellow-300',
+    "level": 4,
+    "name": "Hitmaker Studio",
+    "shortName": "Level 5",
+    "unlockedCount": 7,
+    "description": "Progressive Studio upgrade.",
+    "upgradeCost": 100000,
+    "badge": "HITMAKER",
+    "color": "from-rose-500 to-pink-700"
   },
+  {
+    "level": 5,
+    "name": "Premium Studio",
+    "shortName": "Level 6",
+    "unlockedCount": 8,
+    "description": "Progressive Studio upgrade.",
+    "upgradeCost": 150000,
+    "badge": "PREMIUM",
+    "color": "from-fuchsia-500 to-purple-700"
+  },
+  {
+    "level": 6,
+    "name": "Elite Studio",
+    "shortName": "Level 7",
+    "unlockedCount": 9,
+    "description": "Progressive Studio upgrade.",
+    "upgradeCost": 200000,
+    "badge": "ELITE",
+    "color": "from-indigo-500 to-violet-700"
+  },
+  {
+    "level": 7,
+    "name": "Platinum Studio",
+    "shortName": "Level 8",
+    "unlockedCount": 10,
+    "description": "Progressive Studio upgrade.",
+    "upgradeCost": 250000,
+    "badge": "PLATINUM",
+    "color": "from-slate-400 to-slate-700"
+  },
+  {
+    "level": 8,
+    "name": "Diamond Studio",
+    "shortName": "Level 9",
+    "unlockedCount": 11,
+    "description": "Progressive Studio upgrade.",
+    "upgradeCost": 300000,
+    "badge": "DIAMOND",
+    "color": "from-cyan-300 to-blue-600"
+  },
+  {
+    "level": 9,
+    "name": "Empire Studio",
+    "shortName": "Level 10",
+    "unlockedCount": 12,
+    "description": "Progressive Studio upgrade.",
+    "upgradeCost": 350000,
+    "badge": "EMPIRE",
+    "color": "from-amber-500 to-orange-700"
+  },
+  {
+    "level": 10,
+    "name": "Legend Studio",
+    "shortName": "Level 11",
+    "unlockedCount": 13,
+    "description": "Progressive Studio upgrade.",
+    "upgradeCost": 425000,
+    "badge": "LEGEND",
+    "color": "from-rose-500 to-amber-500"
+  },
+  {
+    "level": 11,
+    "name": "Celebrity Studio",
+    "shortName": "Level 12",
+    "unlockedCount": 14,
+    "description": "Unlocks all 14 Long Beats.",
+    "upgradeCost": 500000,
+    "badge": "CELEBRITY",
+    "color": "from-amber-400 via-[#FFD700] to-yellow-300"
+  }
 ];
 
 export const LONG_BEATS_CATALOG: LongBeat[] = [
@@ -285,8 +354,8 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
     mood: 'Chill Ride',
     story: 'Late night motorbike glide with your favorite girl holding tight through warm rain.',
     producer: 'Prod. Augustine',
-    isFree: true,
-    requiredStudioLevel: 0,
+    isFree: false,
+    requiredStudioLevel: 2,
     coverGradient: 'from-rose-950 via-pink-900 to-pink-600',
     accentColor: '#EC4899',
     icon: '🏍️',
@@ -347,7 +416,7 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
     story: 'High speed police pursuit across the 7-kilometer highway under flashing blue lights.',
     producer: 'Prod. Gammy Speedworks',
     isFree: false,
-    requiredStudioLevel: 1,
+    requiredStudioLevel: 2,
     coverGradient: 'from-red-950 via-red-900 to-orange-600',
     accentColor: '#EF4444',
     icon: '🏎️',
@@ -404,7 +473,7 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
     story: 'Gang block battle for territory dominance, heavy bass thundering through alleys.',
     producer: 'Prod. Augustine & Gang Syndi',
     isFree: false,
-    requiredStudioLevel: 2,
+    requiredStudioLevel: 3,
     coverGradient: 'from-zinc-950 via-stone-900 to-red-700',
     accentColor: '#DC2626',
     icon: '⚔️',
@@ -461,7 +530,7 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
     story: 'Rolling high stakes on the sidewalk cardboard box, funky bassline guiding the rolls.',
     producer: 'Prod. Gammy Groove',
     isFree: false,
-    requiredStudioLevel: 2,
+    requiredStudioLevel: 4,
     coverGradient: 'from-blue-950 via-slate-900 to-cyan-600',
     accentColor: '#06B6D4',
     icon: '🎲',
@@ -518,7 +587,7 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
     story: 'Operating completely off the grid, undetected by cameras, moving like shadows in the fog.',
     producer: 'Prod. Augustine Shadows',
     isFree: false,
-    requiredStudioLevel: 2,
+    requiredStudioLevel: 5,
     coverGradient: 'from-purple-950 via-slate-950 to-indigo-900',
     accentColor: '#8B5CF6',
     icon: '👻',
@@ -584,7 +653,7 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
     story: 'From sleeping on a cracked mattress to overlooking the Atlantic ocean from a Lekki penthouse.',
     producer: 'Prod. Street Stars Empire',
     isFree: false,
-    requiredStudioLevel: 3,
+    requiredStudioLevel: 6,
     coverGradient: 'from-amber-950 via-yellow-900 to-amber-500',
     accentColor: '#F59E0B',
     icon: '🏰',
@@ -641,7 +710,7 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
     story: 'The definitive 4-minute master symphony traversing all 4 games: Dice, Race, Turf War, and Rider.',
     producer: 'Prod. Augustine & Gammy All-Stars',
     isFree: false,
-    requiredStudioLevel: 3,
+    requiredStudioLevel: 7,
     coverGradient: 'from-indigo-950 via-purple-900 to-amber-600',
     accentColor: '#818CF8',
     icon: '🌟',
@@ -698,7 +767,7 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
     story: 'Cruising the Lekki-Epe expressway in a tinted whip with windows half cracked.',
     producer: 'Prod. Gammy Lekki Waves',
     isFree: false,
-    requiredStudioLevel: 4,
+    requiredStudioLevel: 8,
     coverGradient: 'from-cyan-950 via-teal-900 to-teal-500',
     accentColor: '#14B8A6',
     icon: '🌴',
@@ -764,7 +833,7 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
     story: '3 AM in the city, lights burning in the studio, caffeine and drive pushing forward.',
     producer: 'Prod. Augustine Midnight',
     isFree: false,
-    requiredStudioLevel: 4,
+    requiredStudioLevel: 9,
     coverGradient: 'from-amber-950 via-stone-900 to-yellow-600',
     accentColor: '#EAB308',
     icon: '⚡',
@@ -830,7 +899,7 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
     story: 'Sweat dripping on the microphone pop filter, raw truth spilled into the tape.',
     producer: 'Prod. Augustine & Gang Syndi',
     isFree: false,
-    requiredStudioLevel: 4,
+    requiredStudioLevel: 10,
     coverGradient: 'from-rose-950 via-red-950 to-red-600',
     accentColor: '#F43F5E',
     icon: '🎙️',
@@ -896,7 +965,7 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
     story: 'From impossible odds to unshakeable victory, giving thanks for surviving the trenches.',
     producer: 'Prod. Gammy & Augustine Platinum',
     isFree: false,
-    requiredStudioLevel: 4,
+    requiredStudioLevel: 11,
     coverGradient: 'from-violet-950 via-purple-900 to-amber-500',
     accentColor: '#A855F7',
     icon: '👑',
@@ -954,7 +1023,7 @@ export const LONG_BEATS_CATALOG: LongBeat[] = [
 ];
 
 /**
- * Helper to check if a beat is unlocked for a given player Studio level (0 to 4)
+ * Helper to check if a beat is unlocked for a given player Studio level (0 to 11)
  * - Level 0: Beats 1, 2, 3, 4 (4 free)
  * - Level 1: Beats 1 to 5 (4 free + 1 locked = 5)
  * - Level 2: Beats 1 to 7 (or 8) (4 free + 3 locked = 7)
