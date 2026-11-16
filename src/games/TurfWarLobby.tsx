@@ -283,11 +283,12 @@ export function TurfWarLobby({
   // Random Join uses shared Supabase Presence, not this device's localStorage.
   const handleRandomJoin = () => {
     playClickSound();
-    if (!supabase) {
+    const client = supabase;
+    if (!client) {
       onToast('Online matchmaking is unavailable. Please try joining with a room code.');
       return;
     }
-    const directory = supabase.channel('turfwar_public_rooms', {
+    const directory = client.channel('turfwar_public_rooms', {
       config: { presence: { key: myId } },
     });
     let subscribed = false;
@@ -303,7 +304,7 @@ export function TurfWarLobby({
       const available = hosts.find((host) =>
         members.filter((member) => member.roomCode === host.roomCode).length < 4
       );
-      await supabase.removeChannel(directory);
+      await client.removeChannel(directory);
       if (available?.roomCode) joinRoomWithCode(available.roomCode, false);
       else handleCreateRoom();
     };
@@ -318,7 +319,7 @@ export function TurfWarLobby({
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         if (!resolved) {
           resolved = true;
-          void supabase.removeChannel(directory);
+          void client.removeChannel(directory);
           onToast('Could not connect to online matchmaking. Please try again.');
         }
       }
