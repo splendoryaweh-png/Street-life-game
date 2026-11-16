@@ -162,7 +162,7 @@ export function updateRoom(code: string, updater: (prev: Room) => Room): Room | 
 }
 
 /**
- * Create a new multiplayer room with format: STREET + 100-999 (e.g. STREET482)
+ * Create a new multiplayer room with a six-digit invite code.
  */
 export function createRoom(
   gameType: GameType,
@@ -171,7 +171,7 @@ export function createRoom(
   hostAvatar: string = '👑',
   initialMode?: string
 ): string {
-  const randomNum = Math.floor(100 + Math.random() * 900);
+  const randomNum = Math.floor(100000 + Math.random() * 900000);
   const code = `STREET${randomNum}`;
 
   const hostPlayer: PlayerInRoom = {
