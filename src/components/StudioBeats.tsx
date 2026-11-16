@@ -14,6 +14,7 @@ import {
 import { longBeatEngine } from '../audio/longBeatEngine';
 import { UserGameState } from '@/types/game';
 import { playClickSound, playCoinSound, playSuccessSound } from '@/lib/sound';
+import { getHustlePlayerState, getPlayerStudioLevel } from '@/lib/hustleInventory';
 
 function getTodayDateString(): string {
   const d = new Date();
@@ -130,11 +131,17 @@ export function StudioBeats({
   });
 
   const [spentCoinsDelta, setSpentCoinsDelta] = useState(0);
+  const [inventoryStudioLevel] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    const player = getHustlePlayerState(gameState?.deviceId || 'player_anon');
+    return getPlayerStudioLevel(player);
+  });
   // Telegram players use only their own saved Studio level. The shared legacy
   // gameState field is intentionally ignored for authenticated accounts.
-  const studioLevel = upgradedLevelOverride !== null
-    ? upgradedLevelOverride
-    : (telegramUserId ? 0 : gameState?.studioLevel ?? 0);
+  const studioLevel = Math.max(
+    inventoryStudioLevel,
+    upgradedLevelOverride !== null ? upgradedLevelOverride : (telegramUserId ? 0 : gameState?.studioLevel ?? 0)
+  );
   const playerCoins = Math.max(0, (gameState?.streetCoin ?? 50000) - spentCoinsDelta);
 
   const [currentBeatId, setCurrentBeatId] = useState(() => {
