@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Flag,
   Users,
@@ -111,6 +111,7 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
   // My player
   const [myId] = useState<string>(() => 'racer_' + Math.random().toString(36).substring(2, 8));
   const [players, setPlayers] = useState<RaceLobbyPlayer[]>([]);
+  const lobbyChannelRef = useRef<ReturnType<typeof createRealtimeBroadcastChannel> | null>(null);
 
   // Advertise active race rooms to players using cross-device Supabase Presence.
   useEffect(() => {
@@ -139,6 +140,7 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
 
     const channelName = `streetrace_lobby_${roomCode.toUpperCase().trim()}`;
     const channel = createRealtimeBroadcastChannel(channelName);
+    lobbyChannelRef.current = channel;
 
     // Broadcast my presence
     const broadcastMyPresence = (readyStatus = isReady) => {
@@ -181,6 +183,7 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
 
     return () => {
       channel.close();
+      if (lobbyChannelRef.current === channel) lobbyChannelRef.current = null;
     };
   }, [isJoinedRoom, roomCode, myId, isHost, selectedCar, isReady, onStartRace]);
 
@@ -301,26 +304,20 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
     setIsReady(next);
     playClickSound();
 
-    const channelName = `streetrace_lobby_${roomCode.toUpperCase().trim()}`;
-    const channel = createRealtimeBroadcastChannel(channelName);
-    channel.postMessage({
+    lobbyChannelRef.current?.postMessage({
       type: 'READY_TOGGLE',
       playerId: myId,
       ready: next,
     });
-    channel.close();
   };
 
   // Host starts match
   const handleLaunchRace = () => {
     playSuccessSound();
-    const channelName = `streetrace_lobby_${roomCode.toUpperCase().trim()}`;
-    const channel = createRealtimeBroadcastChannel(channelName);
-    channel.postMessage({
+    lobbyChannelRef.current?.postMessage({
       type: 'START_RACE_SIGNAL',
       players,
     });
-    channel.close();
 
     onStartRace(roomCode, isHost, selectedCar, players, myId);
   };
