@@ -1009,6 +1009,24 @@ export function watchAdToSkipCooldown(): { success: boolean; message: string } {
   return { success: true, message: 'Ad watched! Arrest cooldown cleared immediately.' };
 }
 
+// Apply the verified referral profile returned by the server without changing coin balances.
+export function saveReferralProfile(profile: {
+  referralCode: string;
+  referralsCount: number;
+  hasClaimedWelcomeBonus: boolean;
+  appliedReferralCode: string | null;
+}): void {
+  currentSnapshot = {
+    ...currentSnapshot,
+    myReferralCode: profile.referralCode || currentSnapshot.myReferralCode,
+    referralsCount: Math.max(0, Number(profile.referralsCount) || 0),
+    hasClaimedWelcomeBonus: Boolean(profile.hasClaimedWelcomeBonus),
+    appliedReferralCode: profile.appliedReferralCode || null,
+  };
+  persistState(currentSnapshot);
+  notifyListeners();
+}
+
 // ==================== REFERRAL SYSTEM ACTIONS ====================
 
 // Apply invite code: 500 + 20 welcome bonus for invitee
