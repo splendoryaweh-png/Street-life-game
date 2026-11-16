@@ -75,6 +75,10 @@ export function GangChat({
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const channelRef = useRef<any>(null);
+  const isOpenRef = useRef(isOpen);
+  const soundEnabledRef = useRef(soundEnabled);
+  isOpenRef.current = isOpen;
+  soundEnabledRef.current = soundEnabled;
 
   // Auto-scroll to bottom of chat
   const scrollToBottom = useCallback(() => {
@@ -105,10 +109,10 @@ export function GangChat({
         const newMsg: ChatMessage = data.payload;
         if (newMsg.senderId !== playerId) {
           setMessages((prev) => [...prev, newMsg]);
-          if (!isOpen) {
+          if (!isOpenRef.current) {
             setUnreadCount((c) => c + 1);
           }
-          if (soundEnabled) {
+          if (soundEnabledRef.current) {
             playPickupSound();
           }
         }
@@ -141,7 +145,7 @@ export function GangChat({
     return () => {
       if (supabase) void supabase.removeChannel(channel);
     };
-  }, [roomCode, playerId, isOpen, soundEnabled]);
+  }, [roomCode, playerId]);
 
   // Send a text message
   const handleSendMessage = (e?: React.FormEvent) => {
