@@ -94,8 +94,58 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     });
   };
   const joinWithCode = (e: React.FormEvent) => {
-    e.preventDefault(); const cleaned = customRoomInput.toUpperCase().trim(); if (!cleaned) { onToast('Please enter a valid room code!'); return; }
-    playClickSound(); setRoomCode(cleaned); setIsHost(false); connectToRoom(cleaned, false);
+    e.preventDefault();
+    const cleaned = customRoomInput.toUpperCase().trim().replaceAll(' ', '');
+    if (cleaned.length !== 12 || !cleaned.startsWith('STREET') || !/^[0-9]{6}$/.test(cleaned.slice(6))) {
+      onToast('Enter the full 12-character Street Gang Star invite code.');
+      return;
+    }
+    const client = supabase;
+    if (!client) {
+      onToast('Online multiplayer is unavailable: the live game connection is not configured.');
+      return;
+    }
+
+    playClickSound();
+    const lookup = client.channel('gangstar_public_rooms', {
+      config: { presence: { key: `invite_lookup_${myPlayerId}` } },
+    });
+    let finished = false;
+    const finishLookup = async () => {
+      if (finished) return;
+      finished = true;
+      window.clearTimeout(timeoutId);
+      const entries = Object.values(lookup.presenceState()).flat() as Array<{
+        roomCode?: string;
+        playerId?: string;
+        isHost?: boolean;
+      }>;
+      const hostRoom = entries.find((entry) => entry.roomCode === cleaned && entry.isHost === true);
+      await client.removeChannel(lookup);
+      if (!hostRoom) {
+        onToast('That invite code is not active. Ask the host to create a room and share the new code.');
+        return;
+      }
+      setIsHost(false);
+      setRoomCode(cleaned);
+      connectToRoom(cleaned, false);
+    };
+    const timeoutId = window.setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      void client.removeChannel(lookup);
+      onToast('Could not verify that invite code. Check your connection and try again.');
+    }, 8000);
+    lookup.on('presence', { event: 'sync' }, () => { void finishLookup(); });
+    lookup.subscribe((status: string) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        if (finished) return;
+        finished = true;
+        window.clearTimeout(timeoutId);
+        void client.removeChannel(lookup);
+        onToast('Could not check the invite code. Please try again.');
+      }
+    });
   };
 
   const connectToRoom = (code: string, hostStatus: boolean) => {
@@ -361,7 +411,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         <div className="w-full max-w-md mx-auto my-auto space-y-4 py-6">
           <div className="p-5 rounded-3xl bg-gradient-to-b from-[#181A24] to-[#10121A] border-2 border-[#FFD700]/60 shadow-[0_0_30px_rgba(255,215,0,0.2)]"><div className="flex items-center gap-2 text-[#FFD700] mb-2"><Sparkles className="w-5 h-5" /><h2 className="text-sm font-black uppercase">TYPE A: INVITE CODE ROOM</h2></div><p className="text-xs text-gray-300 mb-4">Create a custom district lobby with a room code to invite friends.</p><button onClick={createRoom} type="button" className="w-full py-3.5 rounded-2xl bg-[#FFD700] text-black font-black text-xs uppercase active:scale-95"> {t('create_room')} </button></div>
           <div className="p-5 rounded-3xl bg-gradient-to-b from-[#181A24] to-[#10121A] border-2 border-sky-500/50 shadow-[0_0_30px_rgba(56,189,248,0.2)]"><div className="flex items-center gap-2 text-sky-400 mb-2"><Radio className="w-5 h-5 animate-pulse" /><h2 className="text-sm font-black uppercase">TYPE B: RANDOM CITY MATCH</h2></div><p className="text-xs text-gray-300 mb-4">Instantly find and drop into any active public city warfare zone.</p><button onClick={joinRandomCity} type="button" className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-black text-xs uppercase active:scale-95"> {t('random_city')} </button></div>
-          <form onSubmit={joinWithCode} className="p-4 rounded-3xl bg-black/60 border border-white/10 flex items-center gap-2"><input type="text" value={customRoomInput} onChange={(e) => setCustomRoomInput(e.target.value)} placeholder={t('invite_code')} className="flex-1 bg-transparent px-3 py-2 text-xs font-mono font-bold text-white placeholder-gray-500 focus:outline-none uppercase" /><button type="submit" className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-black text-xs uppercase">JOIN</button></form>
+          <div className="p-4 rounded-3xl bg-black/60 border border-[#FFD700]/40 space-y-2"><div className="flex items-center gap-2 text-[#FFD700]"><Users className="w-4 h-4" /><span className="text-xs font-black uppercase">JOIN A FRIEND'S DISTRICT</span></div><p className="text-[11px] text-gray-400">Ask the host for their Street Gang Star invite code, then enter it here.</p><form onSubmit={joinWithCode} className="flex items-center gap-2"><input type="text" maxLength={12} autoCapitalize="characters" autoComplete="off" value={customRoomInput} onChange={(e) => setCustomRoomInput(e.target.value.toUpperCase().replaceAll(' ', ''))} placeholder="STREET123456" className="min-w-0 flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-3 text-sm font-mono font-black tracking-wider text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700] uppercase" /><button type="submit" className="shrink-0 px-5 py-3 rounded-xl bg-[#FFD700] text-black font-black text-xs uppercase active:scale-95">JOIN</button></form></div>
         </div>
         <div className="text-center text-[11px] text-gray-500 font-medium"> Supports up to 20 players per city • Auto-synchronized </div>
       </div>
@@ -378,7 +428,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             <button onClick={() => { playSfx('click'); onBack(); }} type="button" className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 pointer-events-auto text-white"><ArrowLeft className="w-4 h-4 text-[#FFD700]" /></button>
             <div><div className="flex items-center gap-1.5"><span className="text-[11px] font-black uppercase text-white tracking-wider">{roomCode}</span><span className="text-[8px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40">{activePlayerCount} ONLINE</span></div><p className="text-[9px] text-gray-400">{cityData.streetName}</p></div>
           </div>
-          <button onClick={() => { navigator.clipboard?.writeText(roomCode); setCopiedCode(true); onToast(`Copied: ${roomCode}`); setTimeout(() => setCopiedCode(false), 2000); }} type="button" className="p-1.5 rounded-xl bg-[#FFD700]/20 hover:bg-[#FFD700]/30 text-[#FFD700] pointer-events-auto">{copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button>
+          <button onClick={async () => { const inviteText = `Join my Street Gang Star district! Open Street Life, choose Street Gang Star → Multiplayer, and enter invite code: ${roomCode}`; try { if (navigator.share) { await navigator.share({ title: 'Street Gang Star invite', text: inviteText }); } else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(inviteText); setCopiedCode(true); window.setTimeout(() => setCopiedCode(false), 2000); onToast('Invite details copied. Send them to your friends.'); } else { onToast(`Invite code: ${roomCode}`); } } catch (error) { if ((error as Error)?.name !== 'AbortError') onToast(`Invite code: ${roomCode}`); } }} type="button" aria-label="Share invite code" title="Share invite code" className="p-1.5 rounded-xl bg-[#FFD700]/20 hover:bg-[#FFD700]/30 text-[#FFD700] pointer-events-auto">{copiedCode ? <Check className="w-4 h-4" /> : <Send className="w-4 h-4" />}</button>
         </div>
         <div className="p-2.5 rounded-2xl bg-black/85 border border-[#FFD700]/30 backdrop-blur-md shadow-xl space-y-2">
           <div><div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider mb-1"><span className="flex items-center gap-1 text-red-400"><Heart className="w-3.5 h-3.5 fill-red-500 text-red-500" /><span>{t('health')}</span></span><span className="font-mono text-white">{hudHealth}%</span></div><div className="w-full h-2.5 bg-black rounded-full overflow-hidden border border-white/10"><div className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 transition-all" style={{ width: `${Math.max(0, Math.min(100, hudHealth))}%` }} /></div></div>
