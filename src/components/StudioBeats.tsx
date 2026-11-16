@@ -312,7 +312,8 @@ export function StudioBeats({
     // Level 1 (internal level 0) can record its three starter beats; locked beats
     // cannot open the microphone or create a recording until their level is owned.
     if (!(isLongBeatUnlocked(beat, studioLevel))) {
-      toast(`🔒 Upgrade your Studio to Level ${beat.requiredStudioLevel + 1} to record this beat.`);
+      setSelectedInspectBeat(beat);
+      toast(`🔒 Unlock Studio Level ${beat.requiredStudioLevel + 1} to record this beat.`);
       setIsUpgradeModalOpen(true);
       return;
     }
@@ -667,6 +668,12 @@ export function StudioBeats({
   const handlePreviewBeat = async (beat: LongBeat) => {
     playClickSound();
 
+    if (!isLongBeatUnlocked(beat, studioLevel)) {
+      setSelectedInspectBeat(beat);
+      setIsUpgradeModalOpen(true);
+      return;
+    }
+
     const beatRec =
       recordingsByBeat[beat.id] ||
       (currentBeatId === beat.id && recordedBlob && recordedUrl
@@ -731,6 +738,12 @@ export function StudioBeats({
 
   const handlePostBeat = async (beat: LongBeat) => {
     playClickSound();
+
+    if (!isLongBeatUnlocked(beat, studioLevel)) {
+      setSelectedInspectBeat(beat);
+      setIsUpgradeModalOpen(true);
+      return;
+    }
 
     const beatRec =
       recordingsByBeat[beat.id] ||
