@@ -366,12 +366,16 @@ export function StudioBeats({
         beatGain.connect(dest);
         beatGain.connect(audioCtx.destination);
 
-        try {
-          await beatEl.play();
-        } catch {}
+        // Start the beat only after MediaRecorder is running. Starting it
+        // here cuts off the opening audio before recording begins.
       } else {
-        longBeatEngine.play(beat.id, 0);
-        setIsPlaying(true);
+        // The procedural beat engine has its own AudioContext. Bridge its
+        // output into this recording context so the beat is included in the mix.
+        const engineDestination = longBeatEngine.getMediaStreamDestination();
+        if (engineDestination?.stream) {
+          const engineSource = audioCtx.createMediaStreamSource(engineDestination.stream);
+          engineSource.connect(dest);
+        }
       }
 
       let finalStream: MediaStream = dest.stream;
@@ -502,6 +506,17 @@ export function StudioBeats({
 
       recorder.start(100);
       setIsRecording(true);
+
+      // Begin playback after the recorder starts so the intro is not lost.
+      if (beatAudioRef.current) {
+        try { await beatAudioRef.current.play(); } catch (error) {
+          console.warn('Beat playback could not start:', error);
+          toast('⚠️ Tap again to allow beat playback');
+        }
+      } else {
+        longBeatEngine.play(beat.id, 0);
+        setIsPlaying(true);
+      }
 
       toast(`🔴 Recording "${beat.name}" - Beat and voice are being recorded!`);
 
