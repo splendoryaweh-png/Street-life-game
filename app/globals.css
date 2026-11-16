@@ -126,3 +126,16 @@ next-route-announcer {
   height: 0 !important;
 }
 
+
+/* Android and Telegram WebView: use one reliable document-level vertical scroller. */
+html,
+body {
+  min-height: 100%;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
+}
+body { position: relative; }
