@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createRealtimeBroadcastChannel, RealtimeBroadcastChannel } from '@/lib/multiplayerRealtime';
 import {
   Swords,
   Shield,
@@ -107,7 +108,7 @@ export function TurfWarLobby({
   const [inRoom, setInRoom] = useState<boolean>(false);
   const [players, setPlayers] = useState<TurfLobbyPlayer[]>([]);
   const [copied, setCopied] = useState<boolean>(false);
-  const channelRef = useRef<BroadcastChannel | null>(null);
+  const channelRef = useRef<RealtimeBroadcastChannel | null>(null);
 
   // Auto join if initialRoomCode provided
   useEffect(() => {
@@ -121,7 +122,7 @@ export function TurfWarLobby({
   useEffect(() => {
     if (!roomCode || !inRoom) return;
 
-    const channel = new BroadcastChannel(`turfwar_lobby_${roomCode}`);
+    const channel = createRealtimeBroadcastChannel(`turfwar_lobby_${roomCode}`);
     channelRef.current = channel;
 
     // Announce my presence
