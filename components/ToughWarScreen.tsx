@@ -64,7 +64,7 @@ export function ToughWarScreen({ gameState, onToast }: ToughWarScreenProps) {
   ];
 
   return (
-    <div className="w-full min-h-[calc(100dvh-5rem)] flex-1 overflow-y-auto pb-40 pt-4 px-4 overscroll-contain select-none">
+    <div className="w-full min-h-[calc(100dvh-5rem)] pb-40 pt-4 px-4 select-none">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-4 px-1">
         <div>
