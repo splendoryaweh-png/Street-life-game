@@ -71,7 +71,7 @@ export function Lobby({
 
   const currentPlayer = players.find((p) => p.id === currentUserId) || players[0];
   const isReady = currentPlayer?.ready ?? false;
-  const canStart = players.length >= 1; // In waves mode, host can even solo or duo vs bots; for pvp min 2
+  const canStart = players.length >= minPlayers;
 
   // Subscribe to real-time chat & reactions via BroadcastChannel
   useEffect(() => {
