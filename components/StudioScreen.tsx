@@ -552,6 +552,20 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
     }
   };
 
+  // Release microphone, recorder, audio context, timers, and preview URL on unmount.
+  useEffect(() => {
+    return () => {
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+      const recorder = mediaRecorderRef.current;
+      if (recorder && recorder.state !== 'inactive') {
+        try { recorder.stop(); } catch {}
+      }
+      micStreamRef.current?.getTracks().forEach((track) => track.stop());
+      audioContextRef.current?.close().catch(() => {});
+      if (recordedBlobUrl) URL.revokeObjectURL(recordedBlobUrl);
+    };
+  }, [recordedBlobUrl]);
+
   // Tap screen listener when browser audio is blocked
   useEffect(() => {
     if (!audioUnlockNotice) return;
