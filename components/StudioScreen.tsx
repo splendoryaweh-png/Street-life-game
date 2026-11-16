@@ -142,11 +142,12 @@ function getVirtualMicStream(): { stream: MediaStream | null; cleanup: () => voi
 
 interface StudioScreenProps {
   gameState: UserGameState;
+  telegramUserId?: string;
   onToast: (msg: string) => void;
   onNavigateTab?: (tab: string) => void;
 }
 
-export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
+export function StudioScreen({ gameState, telegramUserId = '', onToast }: StudioScreenProps) {
   const [rentExpired, setRentExpired] = useState<boolean>(() => isStudioRentExpired());
   const [daysRemaining, setDaysRemaining] = useState<number>(() => getDaysRemainingOnRent());
   const [activeTestBeatId, setActiveTestBeatId] = useState<string | null>(null);
@@ -793,6 +794,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       {studioViewMode === 'long_beats' ? (
         <StudioBeats
           gameState={gameState}
+          telegramUserId={telegramUserId}
           onToast={onToast}
           onSelectForRecording={handleSelectLongBeatForRecording}
         />
