@@ -12,8 +12,6 @@ import {
   saveDailyClaim,
   saveHasPlayedToday,
   resetDailyTestState,
-  applyInviteCode,
-  simulateReferralInvited,
   tickGameState,
 } from '@/lib/storage';
 import { initTelegramWebApp, getTelegramInitData, BotNotification } from '@/lib/telegram';
@@ -68,6 +66,8 @@ export default function StreetLifeApp() {
   const [leaderboard] = useState<LeaderboardEntry[]>(() => getLeaderboard());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [telegramAccountId, setTelegramAccountId] = useState<string>('');
+  const [serverReferralCode, setServerReferralCode] = useState<string>('');
+  const [serverReferralsCount, setServerReferralsCount] = useState<number>(0);
 
   // Reactive Game State Store (streetLife_save_v2)
   const gameState: UserGameState = useSyncExternalStore(
@@ -117,32 +117,18 @@ export default function StreetLifeApp() {
   useEffect(() => {
     setIsMounted(true);
 
-    // Read a referral code passed through the STREET LIFE Telegram bot.
-    // Telegram Mini Apps provide start_param; browser testing can use startapp/start.
+    // Capture a referral code from Telegram start_param or browser startapp.
+    let launchReferralCode = '';
     try {
       const telegramStartParam = (
         window.Telegram?.WebApp?.initDataUnsafe as
           | { start_param?: string }
           | undefined
       )?.start_param;
-
       const urlParams = new URLSearchParams(window.location.search);
-      const browserStartParam =
-        urlParams.get('startapp') || urlParams.get('start');
-
-      const referralCode = (telegramStartParam || browserStartParam || '').trim();
-
-      if (referralCode) {
-        const result = applyInviteCode(referralCode);
-
-        if (result.success) {
-          playSuccessSound();
-          playCoinSound();
-          setToastMessage(result.message);
-        }
-      }
+      launchReferralCode = (telegramStartParam || urlParams.get('startapp') || urlParams.get('start') || '').trim();
     } catch (error) {
-      console.error('Telegram referral-link processing failed:', error);
+      console.error('Could not read Telegram referral start parameter:', error);
     }
 
     if (typeof window !== 'undefined') {
@@ -155,6 +141,50 @@ export default function StreetLifeApp() {
     const telegramIdentity = initTelegramWebApp();
     if (telegramIdentity?.id !== undefined && telegramIdentity?.id !== null) {
       setTelegramAccountId(String(telegramIdentity.id));
+    }
+
+    // Referral codes and rewards are issued only by the Telegram-verified server.
+    const referralInitData = getTelegramInitData();
+    if (referralInitData) {
+      void (async () => {
+        try {
+          const profileResponse = await fetch('/api/referrals', {
+            headers: { 'x-telegram-init-data': referralInitData },
+            cache: 'no-store',
+          });
+          const profile = await profileResponse.json().catch(() => ({}));
+          if (profileResponse.ok && profile.ok) {
+            setServerReferralCode(String(profile.referralCode || ''));
+            setServerReferralsCount(Number(profile.referralsCount || 0));
+          }
+          if (launchReferralCode) {
+            const claimResponse = await fetch('/api/referrals', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-telegram-init-data': referralInitData },
+              body: JSON.stringify({ referralCode: launchReferralCode }),
+            });
+            const claim = await claimResponse.json().catch(() => ({}));
+            if (claimResponse.ok && claim.ok) {
+              playSuccessSound();
+              playCoinSound();
+              setToastMessage(claim.message || 'Referral reward claimed.');
+            } else if (claimResponse.status !== 409) {
+              setToastMessage(claim.error || 'Referral could not be claimed.');
+            }
+            const refreshed = await fetch('/api/referrals', {
+              headers: { 'x-telegram-init-data': referralInitData },
+              cache: 'no-store',
+            });
+            const refreshedProfile = await refreshed.json().catch(() => ({}));
+            if (refreshed.ok && refreshedProfile.ok) {
+              setServerReferralCode(String(refreshedProfile.referralCode || ''));
+              setServerReferralsCount(Number(refreshedProfile.referralsCount || 0));
+            }
+          }
+        } catch (error) {
+          console.error('Verified referral setup failed:', error);
+        }
+      })();
     }
 
     const timer = setTimeout(() => {
@@ -246,23 +276,27 @@ export default function StreetLifeApp() {
     showToast(`${title} will arrive in future updates!`);
   };
 
-  const handleApplyInvite = (code: string) => {
-    const res = applyInviteCode(code);
-
-    if (res.success) {
+  const handleApplyInvite = async (code: string) => {
+    const initData = getTelegramInitData();
+    if (!initData) {
+      showToast('Open STREET LIFE inside Telegram to claim a verified referral reward.');
+      return;
+    }
+    try {
+      const response = await fetch('/api/referrals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-telegram-init-data': initData },
+        body: JSON.stringify({ referralCode: code }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Referral could not be claimed.');
       playSuccessSound();
       playCoinSound();
-    } else {
+      showToast(result.message);
+    } catch (error) {
       playClickSound();
+      showToast(error instanceof Error ? error.message : 'Referral could not be claimed.');
     }
-
-    showToast(res.message);
-  };
-
-  const handleSimulateReferral = () => {
-    playCoinSound();
-    simulateReferralInvited();
-    showToast('🤝 Someone joined via your invite! +10 Coins earned.');
   };
 
   return (
@@ -614,12 +648,11 @@ export default function StreetLifeApp() {
 
             {/* SYNDICATE REFERRALS (Kept on HOME tab) */}
             <ReferralCard
-              myReferralCode={activeGameState.myReferralCode}
-              referralsCount={activeGameState.referralsCount}
+              myReferralCode={serverReferralCode || activeGameState.myReferralCode}
+              referralsCount={serverReferralsCount}
               hasClaimedWelcomeBonus={activeGameState.hasClaimedWelcomeBonus}
               appliedReferralCode={activeGameState.appliedReferralCode}
               onApplyInviteCode={handleApplyInvite}
-              onSimulateReferral={handleSimulateReferral}
               onToast={showToast}
             />
 
