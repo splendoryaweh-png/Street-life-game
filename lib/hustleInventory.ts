@@ -76,14 +76,14 @@ export const HOUSE_DESIGN_CATALOG: CatalogItem[] = [
 export const STUDIO_LEVELS_CATALOG: CatalogItem[] = [
   { id: 'bedroom_studio', name: 'Bedroom Studio (Starter)', price: 0, category: 'STUDIO_LEVELS', soundQuality: 40, payoutPerSong: 100, icon: '🎙️', desc: 'Free Starter - 3 Long Beats' },
   { id: 'street_studio', name: 'Street Studio', price: 25000, category: 'STUDIO_LEVELS', soundQuality: 45, payoutPerSong: 500, icon: '🎧', desc: 'Level 2 - 25,000 SC' },
-  { id: 'pro_studio', name: 'Pro Studio', price: 50000, category: 'STUDIO_LEVELS', soundQuality: 55, payoutPerSong: 1500, icon: '🎛️', desc: 'Level 3 - 50,000 SC' },
-  { id: 'hitmaker_studio', name: 'Hitmaker Studio', price: 75000, category: 'STUDIO_LEVELS', soundQuality: 65, payoutPerSong: 2500, icon: '👑', desc: 'Level 4 - 75,000 SC' },
-  { id: 'premium_studio', name: 'Premium Studio', price: 100000, category: 'STUDIO_LEVELS', soundQuality: 70, payoutPerSong: 3500, icon: '🎼', desc: 'Level 5 - 100,000 SC' },
-  { id: 'elite_studio', name: 'Elite Studio', price: 150000, category: 'STUDIO_LEVELS', soundQuality: 75, payoutPerSong: 4500, icon: '💿', desc: 'Level 6 - 150,000 SC' },
-  { id: 'platinum_studio', name: 'Platinum Studio', price: 200000, category: 'STUDIO_LEVELS', soundQuality: 80, payoutPerSong: 5500, icon: '💎', desc: 'Level 7 - 200,000 SC' },
-  { id: 'diamond_studio', name: 'Diamond Studio', price: 250000, category: 'STUDIO_LEVELS', soundQuality: 85, payoutPerSong: 6500, icon: '✨', desc: 'Level 8 - 250,000 SC' },
-  { id: 'empire_studio', name: 'Empire Studio', price: 300000, category: 'STUDIO_LEVELS', soundQuality: 90, payoutPerSong: 7500, icon: '🏙️', desc: 'Level 9 - 300,000 SC' },
-  { id: 'legend_studio', name: 'Legend Studio', price: 425000, category: 'STUDIO_LEVELS', soundQuality: 95, payoutPerSong: 8500, icon: '🔥', desc: 'Level 10 - 425,000 SC' },
+  { id: 'pro_studio', name: 'Pro Studio', price: 100000, category: 'STUDIO_LEVELS', soundQuality: 55, payoutPerSong: 1500, icon: '🎛️', desc: 'Level 3 - 100,000 SC' },
+  { id: 'hitmaker_studio', name: 'Hitmaker Studio', price: 200000, category: 'STUDIO_LEVELS', soundQuality: 65, payoutPerSong: 2500, icon: '👑', desc: 'Level 4 - 200,000 SC' },
+  { id: 'premium_studio', name: 'Premium Studio', price: 250000, category: 'STUDIO_LEVELS', soundQuality: 70, payoutPerSong: 3500, icon: '🎼', desc: 'Level 5 - 250,000 SC' },
+  { id: 'elite_studio', name: 'Elite Studio', price: 300000, category: 'STUDIO_LEVELS', soundQuality: 75, payoutPerSong: 4500, icon: '💿', desc: 'Level 6 - 300,000 SC' },
+  { id: 'platinum_studio', name: 'Platinum Studio', price: 350000, category: 'STUDIO_LEVELS', soundQuality: 80, payoutPerSong: 5500, icon: '💎', desc: 'Level 7 - 350,000 SC' },
+  { id: 'diamond_studio', name: 'Diamond Studio', price: 375000, category: 'STUDIO_LEVELS', soundQuality: 85, payoutPerSong: 6500, icon: '✨', desc: 'Level 8 - 375,000 SC' },
+  { id: 'empire_studio', name: 'Empire Studio', price: 400000, category: 'STUDIO_LEVELS', soundQuality: 90, payoutPerSong: 7500, icon: '🏙️', desc: 'Level 9 - 400,000 SC' },
+  { id: 'legend_studio', name: 'Legend Studio', price: 450000, category: 'STUDIO_LEVELS', soundQuality: 95, payoutPerSong: 8500, icon: '🔥', desc: 'Level 10 - 450,000 SC' },
   { id: 'celebrity_studio', name: 'Celebrity Studio', price: 500000, category: 'STUDIO_LEVELS', soundQuality: 100, payoutPerSong: 10000, icon: '⭐', desc: 'Level 11 - 500,000 SC - All 14 beats' },
 ];
 
