@@ -110,7 +110,28 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
   const [myId] = useState<string>(() => 'racer_' + Math.random().toString(36).substring(2, 8));
   const [players, setPlayers] = useState<RaceLobbyPlayer[]>([]);
 
-  // Setup lobby channel
+  // Advertise active race rooms to players using cross-device Supabase Presence.
+  useEffect(() => {
+    if (!isJoinedRoom || !roomCode || !supabase) return;
+    const directory = supabase.channel('streetrace_public_rooms', {
+      config: { presence: { key: myId } },
+    });
+    directory.subscribe(async (status: string) => {
+      if (status === 'SUBSCRIBED') {
+        await directory.track({
+          roomCode,
+          playerId: myId,
+          isHost,
+          joinedAt: Date.now(),
+        });
+      }
+    });
+    return () => {
+      if (supabase) void supabase.removeChannel(directory);
+    };
+  }, [isJoinedRoom, roomCode, myId, isHost]);
+
+  // Setup Realtime lobby channel
   useEffect(() => {
     if (!isJoinedRoom) return;
 
@@ -209,26 +230,57 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
     onToast(`Joined Race Room ${cleanCode}!`);
   };
 
-  // Handle Quick Match (Random Join)
+  // Quick Match discovers an actual host room across devices.
   const handleQuickMatch = () => {
-    const randomCode = 'RACE-OPEN';
-    setRoomCode(randomCode);
-    setIsHost(false);
-    setIsJoinedRoom(true);
-    setIsReady(true);
-    setPlayers([
-      {
-        id: myId,
-        name: 'Speed Demon (You)',
-        carSkin: selectedCar,
-        avatar: '⚡',
-        isHost: false,
-        ready: true,
-        ping: 20,
-      },
-    ]);
     playClickSound();
-    onToast('Matched into Highway Lobby!');
+    if (!supabase) {
+      onToast('Online matchmaking is unavailable. Create a room and share its code.');
+      return;
+    }
+    const directory = supabase.channel('streetrace_public_rooms', {
+      config: { presence: { key: myId } },
+    });
+    let subscribed = false;
+    let presenceSynced = false;
+    let resolved = false;
+    const resolveMatch = async () => {
+      if (!subscribed || !presenceSynced || resolved) return;
+      resolved = true;
+      const members = Object.values(directory.presenceState()).flat() as Array<{
+        roomCode?: string; playerId?: string; isHost?: boolean;
+      }>;
+      const hosts = members.filter((entry) => entry.roomCode && entry.isHost);
+      const available = hosts.find((host) =>
+        members.filter((member) => member.roomCode === host.roomCode).length < 4
+      );
+      await supabase.removeChannel(directory);
+      if (available?.roomCode) {
+        setRoomCode(available.roomCode);
+        setIsHost(false);
+        setIsJoinedRoom(true);
+        setIsReady(false);
+        setPlayers([{ id: myId, name: 'Speed Demon (You)', carSkin: selectedCar, avatar: '⚡', isHost: false, ready: false, ping: 20 }]);
+        onToast('Matched into an open Highway Lobby!');
+      } else {
+        handleCreateRoom();
+      }
+    };
+    directory.on('presence', { event: 'sync' }, () => {
+      presenceSynced = true;
+      void resolveMatch();
+    });
+    directory.subscribe((status: string) => {
+      if (status === 'SUBSCRIBED') {
+        subscribed = true;
+        void resolveMatch();
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        if (!resolved) {
+          resolved = true;
+          void supabase.removeChannel(directory);
+          onToast('Could not connect to race matchmaking. Please try again.');
+        }
+      }
+    });
   };
 
   // Copy Room Code
