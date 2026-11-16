@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       `👤 Player ID: ${user.id}`,
       `🎵 Beat: ${beatName}`,
       producer ? `🎧 Producer: ${producer}` : '',
-      Number.isFinite(duration) && duration > 0 ? `⏱️ Duration: ${Math.min(60, Math.floor(duration))} seconds` : '',
+      Number.isFinite(duration) && duration > 0 ? `⏱️ Duration: ${Math.min(180, Math.floor(duration))} seconds` : '',
     ].filter(Boolean).join('\n');
 
     const telegramForm = new FormData();
