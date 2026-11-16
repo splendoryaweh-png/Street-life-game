@@ -95,7 +95,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
   }
 
   return (
-    <div className="w-full flex-1 min-h-[calc(100dvh-5rem)] overflow-y-auto pb-40 pt-4 px-4 overscroll-contain select-none animate-in fade-in duration-200">
+    <div className="w-full flex-1 min-h-[calc(100dvh-5rem)] pb-40 pt-4 px-4 select-none animate-in fade-in duration-200">
       {/* HEADER SECTION */}
       <div className="flex items-center justify-between px-1">
         <div>
