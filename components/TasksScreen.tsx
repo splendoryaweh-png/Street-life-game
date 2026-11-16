@@ -667,7 +667,6 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               link={OFFICIAL_LINKS.mainChannel}
               icon={Flame}
               badge="5,000 SC"
-              buttonLabel="Boost Channel"
               isCompleted={!!completed['boost_main_channel'] || taskSubmissionStatuses['boost_main_channel'] === 'approved'}
               isPending={taskSubmissionStatuses['boost_main_channel'] === 'pending'}
               buttonLabel={submittingTaskId === 'boost_main_channel' ? 'Submitting...' : readyToSubmitTaskIds['boost_main_channel'] ? 'Submit for review' : undefined}
@@ -690,7 +689,6 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               link={OFFICIAL_LINKS.paymentProof}
               icon={Flame}
               badge="5,000 SC"
-              buttonLabel="Boost Channel"
               isCompleted={!!completed['boost_proof_channel'] || taskSubmissionStatuses['boost_proof_channel'] === 'approved'}
               isPending={taskSubmissionStatuses['boost_proof_channel'] === 'pending'}
               buttonLabel={submittingTaskId === 'boost_proof_channel' ? 'Submitting...' : readyToSubmitTaskIds['boost_proof_channel'] ? 'Submit for review' : undefined}
