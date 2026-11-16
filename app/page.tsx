@@ -165,6 +165,7 @@ export default function StreetLifeApp() {
             });
             const claim = await claimResponse.json().catch(() => ({}));
             if (claimResponse.ok && claim.ok) {
+              saveCoins(activeGameState.streetCoin + Number(claim.inviteeReward || 520));
               playSuccessSound();
               playCoinSound();
               setToastMessage(claim.message || 'Referral reward claimed.');
@@ -290,6 +291,7 @@ export default function StreetLifeApp() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Referral could not be claimed.');
+      saveCoins(activeGameState.streetCoin + Number(result.inviteeReward || 520));
       playSuccessSound();
       playCoinSound();
       showToast(result.message);
