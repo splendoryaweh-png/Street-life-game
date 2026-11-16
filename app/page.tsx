@@ -67,6 +67,7 @@ export default function StreetLifeApp() {
   const [activeTab, setActiveTab] = useState<NavTab>('HOME');
   const [leaderboard] = useState<LeaderboardEntry[]>(() => getLeaderboard());
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [telegramAccountId, setTelegramAccountId] = useState<string>('');
 
   // Reactive Game State Store (streetLife_save_v2)
   const gameState: UserGameState = useSyncExternalStore(
@@ -151,7 +152,10 @@ export default function StreetLifeApp() {
       } catch {}
     }
 
-    initTelegramWebApp();
+    const telegramIdentity = initTelegramWebApp();
+    if (telegramIdentity?.id !== undefined && telegramIdentity?.id !== null) {
+      setTelegramAccountId(String(telegramIdentity.id));
+    }
 
     const timer = setTimeout(() => {
       setIsLoading(false);
@@ -356,6 +360,7 @@ export default function StreetLifeApp() {
         {activeTab === 'STUDIO' ? (
           <StudioScreen
             gameState={activeGameState}
+            telegramUserId={telegramAccountId || String(activeTelegramUser?.id ?? '')}
             onToast={showToast}
             onNavigateTab={(tab) => {
               closeAllModals();
