@@ -305,7 +305,7 @@ export default function StreetLifeApp() {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#0A0A0A] text-white flex flex-col items-center justify-between selection:bg-[#FFD700] selection:text-black overflow-x-hidden">
+    <div className="min-h-[100dvh] h-auto w-full bg-[#0A0A0A] text-white flex flex-col items-center justify-start selection:bg-[#FFD700] selection:text-black overflow-x-hidden">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-[#FFD700] text-black font-bold text-xs shadow-xl shadow-[#FFD700]/30 animate-in fade-in slide-in-from-top duration-200">
@@ -394,7 +394,7 @@ export default function StreetLifeApp() {
       <main
         className={`w-full max-w-md mx-auto ${
           isChromeHidden ? 'pt-3 pb-16' : 'pt-14 pb-28'
-        } flex-1 flex flex-col min-h-0 overflow-visible transition-all duration-300`}
+        } flex-none flex flex-col min-h-[calc(100dvh-5rem)] overflow-visible transition-all duration-300`}
       >
         {activeTab === 'STUDIO' ? (
           <StudioScreen
@@ -484,7 +484,7 @@ export default function StreetLifeApp() {
             }}
           />
         ) : (
-          <div className="w-full flex-1 min-h-[calc(100dvh-5rem)] overflow-y-auto pb-40 pt-4 px-4 overscroll-contain space-y-4">
+          <div className="w-full min-h-[calc(100dvh-5rem)] pb-40 pt-4 px-4 space-y-4">
             {/* CENTER LOGO */}
             <CenterLogo />
 
