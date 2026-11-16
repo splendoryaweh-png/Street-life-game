@@ -164,6 +164,7 @@ export function StudioBeats({
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [isPostingMix, setIsPostingMix] = useState(false);
 
   const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
@@ -595,7 +596,7 @@ export function StudioBeats({
 
   const handlePreview = () => handlePreviewBeat(currentBeat);
 
-  const handlePostBeat = (beat: LongBeat) => {
+  const handlePostBeat = async (beat: LongBeat) => {
     playClickSound();
 
     const beatRec =
@@ -605,7 +606,7 @@ export function StudioBeats({
             blob: recordedBlob!,
             url: recordedUrl!,
             durationSec: recordingSeconds,
-            isVideo: false,
+            isVideo: isVideoFreestyle,
             beatName: beat.name
           }
         : null);
@@ -614,30 +615,45 @@ export function StudioBeats({
       toast(`🎤 Record on "${beat.name}" first!`);
       return;
     }
+    if (beatRec.isVideo || !beatRec.blob.type.startsWith('audio/')) {
+      toast('Video freestyle posting is not supported yet. Please post an audio mix.');
+      return;
+    }
+    if (isPostingMix) return;
 
-    try {
-      const a = document.createElement('a');
-      a.href = beatRec.url;
-      a.download =
-        `StreetLife-MIXED-${beat.name.replace(/\s+/g,'_')}-${Date.now()}.${beatRec.url.includes('mp4') ? 'mp4' : 'webm'}`;
-
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-
-      setTimeout(() => {
-        try { document.body.removeChild(a); } catch {}
-      }, 1000);
-
-    } catch (e) {
-      window.open(beatRec.url, '_blank');
+    const initData = (window as any).Telegram?.WebApp?.initData || '';
+    if (!initData) {
+      toast('Open STREET LIFE inside Telegram before posting your mix.');
+      return;
     }
 
-    setTimeout(() => {
-      window.open('https://t.me/Streetlifestars', '_blank');
-    }, 1500);
+    setIsPostingMix(true);
+    toast('⏳ Sending your mix to the STREET LIFE group…');
+    try {
+      const form = new FormData();
+      const extension = beatRec.blob.type.includes('mp4') ? 'm4a' : 'webm';
+      form.set('audio', beatRec.blob, `StreetLife-${beat.name.replace(/[^a-z0-9_-]+/gi, '_')}.${extension}`);
+      form.set('beatName', beat.name);
+      form.set('producer', beat.producer || '');
+      form.set('durationSeconds', String(beatRec.durationSec));
 
-    playSuccessSound();
+      const response = await fetch('/api/studio/send-mix', {
+        method: 'POST',
+        headers: { 'x-telegram-init-data': initData },
+        body: form
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Telegram could not post your mix.');
+      }
+      playSuccessSound();
+      toast('✅ Your mix has been posted to @Streetlifestars!');
+    } catch (error) {
+      console.error('Studio mix upload failed:', error);
+      toast(error instanceof Error ? error.message : 'Unable to post your mix. Please try again.');
+    } finally {
+      setIsPostingMix(false);
+    }
   };
 
   const handlePost = () => handlePostBeat(currentBeat);
