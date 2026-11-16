@@ -17,6 +17,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Lobby } from '../../multiplayer/Lobby';
+import { GangChat } from '../StreetGangStar/GangChat';
 import {
   GameType,
   PlayerInRoom,
@@ -989,6 +990,7 @@ export function StreetDiceMultiplayer({
           </div>
         </div>
       )}
+      {roomCode && <GangChat roomCode={roomCode} playerId={myId} playerName={myPlayerObj?.name || myName} playerTeam="blue" onToast={onToast} />}
     </div>
   );
 }
