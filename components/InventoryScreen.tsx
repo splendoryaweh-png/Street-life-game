@@ -1632,7 +1632,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               </div>
             </div>
 
-            {playerStudioLevel < 11 && (
+            {playerStudioLevel < 10 && (
               <button
                 onClick={() => {
                   setMainTab('shop');
