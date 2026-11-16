@@ -124,7 +124,11 @@ export function StudioBeats({
   });
 
   const [spentCoinsDelta, setSpentCoinsDelta] = useState(0);
-  const studioLevel = upgradedLevelOverride !== null ? upgradedLevelOverride : gameState?.studioLevel ?? 0;
+  // Telegram players use only their own saved Studio level. The shared legacy
+  // gameState field is intentionally ignored for authenticated accounts.
+  const studioLevel = upgradedLevelOverride !== null
+    ? upgradedLevelOverride
+    : (telegramUserId ? 0 : gameState?.studioLevel ?? 0);
   const playerCoins = Math.max(0, (gameState?.streetCoin ?? 50000) - spentCoinsDelta);
 
   const [currentBeatId, setCurrentBeatId] = useState(() => {
