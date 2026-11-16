@@ -20,10 +20,15 @@ function getTodayDateString(): string {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function getStoredDailyRecordCount(): number {
-  if (typeof window === 'undefined') return 0;
+function studioStorageKey(base: string, telegramUserId: string): string {
+  const account = telegramUserId ? telegramUserId.replace(/[^0-9]/g, '') : 'unverified';
+  return `${base}_${account || 'unverified'}`;
+}
+
+function getStoredDailyRecordCount(telegramUserId: string): number {
+  if (typeof window === 'undefined' || !telegramUserId) return 0;
   try {
-    const raw = localStorage.getItem('streetlife_record_count');
+    const raw = localStorage.getItem(studioStorageKey('streetlife_record_count', telegramUserId));
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed?.date === getTodayDateString()) return parsed.count || 0;
@@ -32,9 +37,10 @@ function getStoredDailyRecordCount(): number {
   return 0;
 }
 
-function saveStoredDailyRecordCount(newCount: number): void {
+function saveStoredDailyRecordCount(newCount: number, telegramUserId: string): void {
+  if (typeof window === 'undefined' || !telegramUserId) return;
   try {
-    localStorage.setItem('streetlife_record_count', JSON.stringify({
+    localStorage.setItem(studioStorageKey('streetlife_record_count', telegramUserId), JSON.stringify({
       date: getTodayDateString(),
       count: newCount
     }));
@@ -51,16 +57,17 @@ export interface SavedStudioRecording {
   audioUrl?: string;
 }
 
-function getStoredRecentRecordings(): SavedStudioRecording[] {
-  if (typeof window === 'undefined') return [];
+function getStoredRecentRecordings(telegramUserId: string): SavedStudioRecording[] {
+  if (typeof window === 'undefined' || !telegramUserId) return [];
   try {
-    const raw = localStorage.getItem('streetlife_recent_recordings');
+    const raw = localStorage.getItem(studioStorageKey('streetlife_recent_recordings', telegramUserId));
     if (raw) return JSON.parse(raw).slice(0,3);
   } catch {}
   return [];
 }
 
-function saveStoredRecentRecordings(recordings: SavedStudioRecording[]): void {
+function saveStoredRecentRecordings(recordings: SavedStudioRecording[], telegramUserId: string): void {
+  if (typeof window === 'undefined' || !telegramUserId) return;
   try {
     const metaList = recordings.slice(0,3).map((r) => ({
       id: r.id,
@@ -70,7 +77,7 @@ function saveStoredRecentRecordings(recordings: SavedStudioRecording[]): void {
       beatName: r.beatName,
       downloadName: r.downloadName
     }));
-    localStorage.setItem('streetlife_recent_recordings', JSON.stringify(metaList));
+    localStorage.setItem(studioStorageKey('streetlife_recent_recordings', telegramUserId), JSON.stringify(metaList));
   } catch {}
 }
 
@@ -94,6 +101,7 @@ function getBestMimeType(isVideo: boolean): string {
 
 interface StudioBeatsProps {
   gameState?: UserGameState;
+  telegramUserId?: string;
   onToast?: (msg: string) => void;
   onSelectForRecording?: (beat: LongBeat) => void;
   onUpgradeStudioLevel?: (newLevel: number) => void;
@@ -101,6 +109,7 @@ interface StudioBeatsProps {
 
 export function StudioBeats({
   gameState,
+  telegramUserId = '',
   onToast,
   onSelectForRecording,
   onUpgradeStudioLevel
@@ -108,19 +117,23 @@ export function StudioBeats({
 
   const [upgradedLevelOverride, setUpgradedLevelOverride] = useState<number | null>(() => {
     if (typeof window !== 'undefined') {
-      const savedLevel = localStorage.getItem('streetlife_studio_level');
+      const savedLevel = telegramUserId ? localStorage.getItem(studioStorageKey('streetlife_studio_level', telegramUserId)) : null;
       if (savedLevel !== null) return parseInt(savedLevel, 10) || 0;
     }
     return null;
   });
 
   const [spentCoinsDelta, setSpentCoinsDelta] = useState(0);
-  const studioLevel = upgradedLevelOverride !== null ? upgradedLevelOverride : gameState?.studioLevel ?? 0;
+  // Telegram players use only their own saved Studio level. The shared legacy
+  // gameState field is intentionally ignored for authenticated accounts.
+  const studioLevel = upgradedLevelOverride !== null
+    ? upgradedLevelOverride
+    : (telegramUserId ? 0 : gameState?.studioLevel ?? 0);
   const playerCoins = Math.max(0, (gameState?.streetCoin ?? 50000) - spentCoinsDelta);
 
   const [currentBeatId, setCurrentBeatId] = useState(() => {
     if (typeof window !== 'undefined') {
-      const savedBeat = localStorage.getItem('streetlife_current_long_beat');
+      const savedBeat = (telegramUserId ? localStorage.getItem(studioStorageKey('streetlife_current_long_beat', telegramUserId)) : null);
       if (savedBeat && getBeatById(savedBeat)) return savedBeat;
     }
     return LONG_BEATS_CATALOG[0].id;
@@ -138,6 +151,8 @@ export function StudioBeats({
   // Independent volume controls. Both start at 50%.
   const [beatVolume, setBeatVolume] = useState(50);
   const [voiceVolume, setVoiceVolume] = useState(50);
+  const [voiceEffect, setVoiceEffect] = useState<'clean' | 'warm' | 'bright' | 'radio' | 'deep' | 'echo' | 'reverb'>('clean');
+  const [noiseReductionEnabled, setNoiseReductionEnabled] = useState(true);
 
   const beatGainNodeRef = useRef<GainNode | null>(null);
   const micGainNodeRef = useRef<GainNode | null>(null);
@@ -157,13 +172,14 @@ export function StudioBeats({
   const [selectedInspectBeat, setSelectedInspectBeat] = useState<LongBeat | null>(null);
   const [isInspectModalOpen, setIsInspectModalOpen] = useState(false);
 
-  const [dailyRecordCount, setDailyRecordCount] = useState(() => getStoredDailyRecordCount());
+  const [dailyRecordCount, setDailyRecordCount] = useState(() => getStoredDailyRecordCount(telegramUserId));
   const [showDailyLimitModal, setShowDailyLimitModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [isPostingMix, setIsPostingMix] = useState(false);
 
   const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
@@ -181,7 +197,7 @@ export function StudioBeats({
   const [previewingBeatId, setPreviewingBeatId] = useState<string | null>(null);
 
   const [recentRecordings, setRecentRecordings] = useState<SavedStudioRecording[]>(
-    () => getStoredRecentRecordings()
+    () => getStoredRecentRecordings(telegramUserId)
   );
 
   const [playingRecId, setPlayingRecId] = useState<string | null>(null);
@@ -286,7 +302,7 @@ export function StudioBeats({
 
     if (isRecording) handleStopRecording();
 
-    if (getStoredDailyRecordCount() >= 2) {
+    if (getStoredDailyRecordCount(telegramUserId) >= 2) {
       setShowDailyLimitModal(true);
       return;
     }
@@ -301,8 +317,13 @@ export function StudioBeats({
       try {
         micStream = await navigator.mediaDevices.getUserMedia(
           isVideoFreestyle
-            ? { audio: true, video: { facingMode: 'user' } }
-            : { audio: true }
+            ? {
+                audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
+                video: { facingMode: 'user' }
+              }
+            : {
+                audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true }
+              }
         );
       } catch (e) {
         console.warn('mic denied', e);
@@ -321,7 +342,7 @@ export function StudioBeats({
       }
 
       setCurrentBeatId(beat.id);
-      localStorage.setItem('streetlife_current_long_beat', beat.id);
+      if (telegramUserId) localStorage.setItem(studioStorageKey('streetlife_current_long_beat', telegramUserId), beat.id);
 
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       const audioCtx = new AudioContextClass();
@@ -331,13 +352,89 @@ export function StudioBeats({
       const micSource = audioCtx.createMediaStreamSource(micStream);
       const dest = audioCtx.createMediaStreamDestination();
 
+      // Clean up handling: remove low-frequency handling noise and control
+      // sudden vocal peaks before mixing the voice into the recording.
+      const voiceHighPass = audioCtx.createBiquadFilter();
+      voiceHighPass.type = 'highpass';
+      voiceHighPass.frequency.setValueAtTime(85, audioCtx.currentTime);
+      voiceHighPass.Q.setValueAtTime(0.707, audioCtx.currentTime);
+
+      const voiceCompressor = audioCtx.createDynamicsCompressor();
+      voiceCompressor.threshold.setValueAtTime(-24, audioCtx.currentTime);
+      voiceCompressor.knee.setValueAtTime(18, audioCtx.currentTime);
+      voiceCompressor.ratio.setValueAtTime(3.5, audioCtx.currentTime);
+      voiceCompressor.attack.setValueAtTime(0.008, audioCtx.currentTime);
+      voiceCompressor.release.setValueAtTime(0.16, audioCtx.currentTime);
+
       // Voice gain follows the Voice Volume slider.
       const micGain = audioCtx.createGain();
       micGain.gain.value = voiceVolume / 100;
       micGainNodeRef.current = micGain;
 
-      micSource.connect(micGain);
+      // Per-player voice tone presets. Every preset is processed in the
+      // same recording chain, so it is applied consistently on every beat.
+      const voiceTone = audioCtx.createBiquadFilter();
+      if (voiceEffect === 'warm') {
+        voiceTone.type = 'lowshelf';
+        voiceTone.frequency.setValueAtTime(220, audioCtx.currentTime);
+        voiceTone.gain.setValueAtTime(3, audioCtx.currentTime);
+      } else if (voiceEffect === 'bright') {
+        voiceTone.type = 'highshelf';
+        voiceTone.frequency.setValueAtTime(3200, audioCtx.currentTime);
+        voiceTone.gain.setValueAtTime(3, audioCtx.currentTime);
+      } else if (voiceEffect === 'radio') {
+        voiceTone.type = 'bandpass';
+        voiceTone.frequency.setValueAtTime(1500, audioCtx.currentTime);
+        voiceTone.Q.setValueAtTime(0.75, audioCtx.currentTime);
+      } else if (voiceEffect === 'deep') {
+        voiceTone.type = 'lowshelf';
+        voiceTone.frequency.setValueAtTime(180, audioCtx.currentTime);
+        voiceTone.gain.setValueAtTime(5, audioCtx.currentTime);
+      } else {
+        voiceTone.type = 'peaking';
+        voiceTone.frequency.setValueAtTime(1200, audioCtx.currentTime);
+        voiceTone.Q.setValueAtTime(0.7, audioCtx.currentTime);
+        voiceTone.gain.setValueAtTime(0, audioCtx.currentTime);
+      }
+
+      micSource.connect(voiceHighPass);
+      voiceHighPass.connect(voiceCompressor);
+      voiceCompressor.connect(voiceTone);
+      voiceTone.connect(micGain);
       micGain.connect(dest);
+
+      // Optional creative voice effects are added after the tone filter.
+      // The dry voice remains present so effects never make speech disappear.
+      if (voiceEffect === 'echo') {
+        const delay = audioCtx.createDelay(0.8);
+        delay.delayTime.setValueAtTime(0.24, audioCtx.currentTime);
+        const feedback = audioCtx.createGain();
+        feedback.gain.setValueAtTime(0.22, audioCtx.currentTime);
+        const wet = audioCtx.createGain();
+        wet.gain.setValueAtTime(0.28, audioCtx.currentTime);
+        micGain.connect(delay);
+        delay.connect(wet);
+        wet.connect(dest);
+        delay.connect(feedback);
+        feedback.connect(delay);
+      } else if (voiceEffect === 'reverb') {
+        const convolver = audioCtx.createConvolver();
+        const impulseLength = Math.floor(audioCtx.sampleRate * 1.6);
+        const impulse = audioCtx.createBuffer(2, impulseLength, audioCtx.sampleRate);
+        for (let channel = 0; channel < impulse.numberOfChannels; channel++) {
+          const samples = impulse.getChannelData(channel);
+          for (let i = 0; i < impulseLength; i++) {
+            const decay = Math.pow(1 - i / impulseLength, 2.6);
+            samples[i] = (Math.random() * 2 - 1) * decay;
+          }
+        }
+        convolver.buffer = impulse;
+        const wet = audioCtx.createGain();
+        wet.gain.setValueAtTime(0.24, audioCtx.currentTime);
+        micGain.connect(convolver);
+        convolver.connect(wet);
+        wet.connect(dest);
+      }
 
       const beatUrl =
         (beat as any).fileUrl ||
@@ -365,12 +462,16 @@ export function StudioBeats({
         beatGain.connect(dest);
         beatGain.connect(audioCtx.destination);
 
-        try {
-          await beatEl.play();
-        } catch {}
+        // Start the beat only after MediaRecorder is running. Starting it
+        // here cuts off the opening audio before recording begins.
       } else {
-        longBeatEngine.play(beat.id, 0);
-        setIsPlaying(true);
+        // The procedural beat engine has its own AudioContext. Bridge its
+        // output into this recording context so the beat is included in the mix.
+        const engineDestination = longBeatEngine.getMediaStreamDestination();
+        if (engineDestination?.stream) {
+          const engineSource = audioCtx.createMediaStreamSource(engineDestination.stream);
+          engineSource.connect(dest);
+        }
       }
 
       let finalStream: MediaStream = dest.stream;
@@ -458,8 +559,8 @@ export function StudioBeats({
           }
         }));
 
-        const updated = getStoredDailyRecordCount() + 1;
-        saveStoredDailyRecordCount(updated);
+        const updated = getStoredDailyRecordCount(telegramUserId) + 1;
+        saveStoredDailyRecordCount(updated, telegramUserId);
         setDailyRecordCount(updated);
 
         const now = new Date();
@@ -488,7 +589,7 @@ export function StudioBeats({
 
         setRecentRecordings(prev => {
           const next = [newRec, ...prev].slice(0,3);
-          saveStoredRecentRecordings(next);
+          saveStoredRecentRecordings(next, telegramUserId);
           return next;
         });
 
@@ -501,6 +602,17 @@ export function StudioBeats({
 
       recorder.start(100);
       setIsRecording(true);
+
+      // Begin playback after the recorder starts so the intro is not lost.
+      if (beatAudioRef.current) {
+        try { await beatAudioRef.current.play(); } catch (error) {
+          console.warn('Beat playback could not start:', error);
+          toast('⚠️ Tap again to allow beat playback');
+        }
+      } else {
+        longBeatEngine.play(beat.id, 0);
+        setIsPlaying(true);
+      }
 
       toast(`🔴 Recording "${beat.name}" - Beat and voice are being recorded!`);
 
@@ -595,7 +707,7 @@ export function StudioBeats({
 
   const handlePreview = () => handlePreviewBeat(currentBeat);
 
-  const handlePostBeat = (beat: LongBeat) => {
+  const handlePostBeat = async (beat: LongBeat) => {
     playClickSound();
 
     const beatRec =
@@ -605,7 +717,7 @@ export function StudioBeats({
             blob: recordedBlob!,
             url: recordedUrl!,
             durationSec: recordingSeconds,
-            isVideo: false,
+            isVideo: isVideoFreestyle,
             beatName: beat.name
           }
         : null);
@@ -614,30 +726,45 @@ export function StudioBeats({
       toast(`🎤 Record on "${beat.name}" first!`);
       return;
     }
+    if (beatRec.isVideo || !beatRec.blob.type.startsWith('audio/')) {
+      toast('Video freestyle posting is not supported yet. Please post an audio mix.');
+      return;
+    }
+    if (isPostingMix) return;
 
-    try {
-      const a = document.createElement('a');
-      a.href = beatRec.url;
-      a.download =
-        `StreetLife-MIXED-${beat.name.replace(/\s+/g,'_')}-${Date.now()}.${beatRec.url.includes('mp4') ? 'mp4' : 'webm'}`;
-
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-
-      setTimeout(() => {
-        try { document.body.removeChild(a); } catch {}
-      }, 1000);
-
-    } catch (e) {
-      window.open(beatRec.url, '_blank');
+    const initData = (window as any).Telegram?.WebApp?.initData || '';
+    if (!initData) {
+      toast('Open STREET LIFE inside Telegram before posting your mix.');
+      return;
     }
 
-    setTimeout(() => {
-      window.open('https://t.me/Streetlifestars', '_blank');
-    }, 1500);
+    setIsPostingMix(true);
+    toast('⏳ Sending your mix to the STREET LIFE group…');
+    try {
+      const form = new FormData();
+      const extension = beatRec.blob.type.includes('mp4') ? 'm4a' : 'webm';
+      form.set('audio', beatRec.blob, `StreetLife-${beat.name.replace(/[^a-z0-9_-]+/gi, '_')}.${extension}`);
+      form.set('beatName', beat.name);
+      form.set('producer', beat.producer || '');
+      form.set('durationSeconds', String(beatRec.durationSec));
 
-    playSuccessSound();
+      const response = await fetch('/api/studio/send-mix', {
+        method: 'POST',
+        headers: { 'x-telegram-init-data': initData },
+        body: form
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Telegram could not post your mix.');
+      }
+      playSuccessSound();
+      toast('✅ Your mix has been posted to @Streetlifestars!');
+    } catch (error) {
+      console.error('Studio mix upload failed:', error);
+      toast(error instanceof Error ? error.message : 'Unable to post your mix. Please try again.');
+    } finally {
+      setIsPostingMix(false);
+    }
   };
 
   const handlePost = () => handlePostBeat(currentBeat);
@@ -676,7 +803,7 @@ export function StudioBeats({
     setSpentCoinsDelta(prev => prev + levelInfo.upgradeCost);
     setUpgradedLevelOverride(level);
 
-    localStorage.setItem('streetlife_studio_level', String(level));
+    if (telegramUserId) localStorage.setItem(studioStorageKey('streetlife_studio_level', telegramUserId), String(level));
     onUpgradeStudioLevel?.(level);
 
     playSuccessSound();
@@ -781,7 +908,7 @@ export function StudioBeats({
       longBeatEngine.resume();
     } else {
       setCurrentBeatId(beat.id);
-      localStorage.setItem('streetlife_current_long_beat', beat.id);
+      if (telegramUserId) localStorage.setItem(studioStorageKey('streetlife_current_long_beat', telegramUserId), beat.id);
       longBeatEngine.play(beat.id,0);
     }
   };
@@ -908,6 +1035,45 @@ export function StudioBeats({
                 <span>50% BALANCED</span>
                 <span>100% MAX</span>
               </div>
+            </div>
+
+            <div className="border-t border-white/10 pt-3">
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="studio-voice-effect" className="text-xs font-bold text-white">VOICE FILTER</label>
+                <span className="text-[9px] text-amber-300 font-bold">LEVEL UNLOCKS</span>
+              </div>
+              <select
+                id="studio-voice-effect"
+                value={voiceEffect}
+                onChange={(e) => setVoiceEffect(e.target.value as typeof voiceEffect)}
+                className="w-full rounded-xl bg-zinc-900 border border-cyan-400/30 p-3 text-xs text-white"
+                aria-label="Voice filter"
+              >
+                <option value="clean">Clean Voice — Starter</option>
+                <option value="warm" disabled={studioLevel < 1}>Warm Studio {studioLevel < 1 ? '🔒 Level 1' : '✓'}</option>
+                <option value="bright" disabled={studioLevel < 2}>Bright Vocal {studioLevel < 2 ? '🔒 Level 2' : '✓'}</option>
+                <option value="radio" disabled={studioLevel < 3}>Radio Effect {studioLevel < 3 ? '🔒 Level 3' : '✓'}</option>
+                <option value="deep" disabled={studioLevel < 4}>Deep Vocal {studioLevel < 4 ? '🔒 Level 4' : '✓'}</option>
+                <option value="echo" disabled={studioLevel < 3}>Studio Echo {studioLevel < 3 ? '🔒 Level 3' : '✓'}</option>
+                <option value="reverb" disabled={studioLevel < 4}>Studio Reverb {studioLevel < 4 ? '🔒 Level 4' : '✓'}</option>
+              </select>
+            </div>
+
+            <div className="border-t border-white/10 pt-3">
+              <label className="flex items-center justify-between gap-3 text-xs font-bold text-white">
+                <span className="flex items-center gap-2">
+                  <Volume2 className="w-4 h-4 text-emerald-400"/>
+                  NOISE REDUCTION
+                </span>
+                <input
+                  type="checkbox"
+                  checked={noiseReductionEnabled}
+                  onChange={(e) => setNoiseReductionEnabled(e.target.checked)}
+                  className="h-5 w-5 accent-emerald-400"
+                  aria-label="Noise reduction"
+                />
+              </label>
+              <p className="text-[10px] text-gray-500 mt-1">Reduces background noise picked up by supported phone microphones</p>
             </div>
 
             <div className="border-t border-white/10 pt-3">
