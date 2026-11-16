@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Flag, Trophy, Clock, ChevronsUp, ArrowLeft, Volume2, VolumeX, ShieldAlert, Zap, Gauge } from 'lucide-react';
 import { StreetRaceLobby, RaceCarSkin, RaceLobbyPlayer, RACE_CARS } from './StreetRaceLobby';
+import { GangChat } from './StreetGangStar/GangChat';
 import { HIGHWAY_LENGTH, generateHighwayMarkers, generateHighwayObstacles, renderHighwayScenery, renderRoadSegments, renderObstaclesOnRoad, renderPlayerCarBehind, renderOpponentCar, HighwayObstacle, HighwayMarker } from './StreetRaceHighway';
 import { playCoinSound, playSuccessSound, playPunchSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
@@ -265,6 +266,7 @@ export const StreetRaceMultiplayer: React.FC<StreetRaceMultiplayerProps> = ({ on
       </div>
 
       {isFinished && <div className="absolute inset-0 bg-black/85 z-50 flex items-center justify-center p-4"><div className="bg-slate-900 border-2 border-amber-500 rounded-3xl p-6 w-full max-w-sm text-center"><Trophy className="w-14 h-14 text-amber-400 mx-auto"/><h2 className="text-xl font-black mt-2">FINISH! #{myRank}</h2><p className="text-sm text-slate-400">+{earnedCoins} SC</p><button onClick={onBack} className="w-full mt-4 py-3 rounded-xl bg-amber-400 text-black font-black">Collect</button></div></div>}
+      {roomCode && <GangChat roomCode={roomCode} playerId={myRacerId.current} playerName={racersRef.current.get(myRacerId.current)?.name || 'Street Racer'} playerTeam="blue" onToast={onToast} />}
     </div>
   );
 };
