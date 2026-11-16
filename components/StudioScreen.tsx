@@ -294,13 +294,14 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
     let context: AudioContext | null = null;
     let beatAudio: HTMLAudioElement | null = null;
     try {
-      mic = await navigator.mediaDevices.getUserMedia({
+      const microphoneStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
       });
+      mic = microphoneStream;
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContextClass) throw new Error('Audio mixing is not supported by this browser.');
       context = new AudioContextClass();
@@ -315,7 +316,7 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
       compressor.release.value = 0.25;
       compressor.connect(destination);
 
-      const micSource = context.createMediaStreamSource(mic);
+      const micSource = context.createMediaStreamSource(microphoneStream);
       const highPass = context.createBiquadFilter();
       highPass.type = 'highpass';
       highPass.frequency.value = 85;
@@ -352,7 +353,7 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
       recorder.onstop = () => {
         const chunks = recordedChunksRef.current;
         const blob = new Blob(chunks, { type: recordingMimeTypeRef.current });
-        mic.getTracks().forEach((track) => track.stop());
+        microphoneStream.getTracks().forEach((track) => track.stop());
         beatAudio?.pause();
         beatAudio?.removeAttribute('src');
         context?.close().catch(() => {});
