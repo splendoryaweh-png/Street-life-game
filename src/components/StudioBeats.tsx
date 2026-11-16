@@ -814,22 +814,23 @@ export function StudioBeats({
   };
 
   const handleUpgradeToLevel = (level: number) => {
+    const nextLevel = studioLevel + 1;
+    if (level !== nextLevel) {
+      toast(`🔒 Unlock Level ${nextLevel + 1} first.`);
+      return;
+    }
     const levelInfo = STUDIO_LEVELS[level];
     if (!levelInfo) return;
-
     if (playerCoins < levelInfo.upgradeCost) {
       toast(`❌ Need ${levelInfo.upgradeCost.toLocaleString()} Coins!`);
       return;
     }
-
     setSpentCoinsDelta(prev => prev + levelInfo.upgradeCost);
     setUpgradedLevelOverride(level);
-
     if (telegramUserId) localStorage.setItem(studioStorageKey('streetlife_studio_level', telegramUserId), String(level));
     onUpgradeStudioLevel?.(level);
-
     playSuccessSound();
-    toast(`🎉 Upgraded to ${levelInfo.name}!`);
+    toast(`🎉 Upgraded to ${levelInfo.name}! Your newly unlocked beats are ready to use.`);
     setIsUpgradeModalOpen(false);
   };
 
@@ -1250,7 +1251,7 @@ export function StudioBeats({
             <div
               key={beat.id}
               onClick={()=>handleTogglePlay(beat)}
-              className={`p-3.5 rounded-3xl border cursor-pointer ${isSelected?'border-2 border-[#FFD700]':'border-white/10 bg-[#151518]'}`}
+              className={`p-3.5 rounded-3xl border cursor-pointer ${!isUnlocked?'border-amber-500/30 bg-[#111113] opacity-90':isSelected?'border-2 border-[#FFD700]':'border-white/10 bg-[#151518]'}`}
             >
               <div className="flex items-center gap-3">
                 <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${beat.coverGradient} p-1 flex items-center justify-center shrink-0`}>
@@ -1281,23 +1282,51 @@ export function StudioBeats({
                 </button>
 
                 <button
-                  onClick={()=>handleRecordBeat(beat)}
-                  className={`py-2 px-1 rounded-xl text-xs font-black uppercase ${isBeatRecordingActive?'bg-red-600 text-white animate-pulse':'bg-red-500/20 text-red-300'}`}
+                  onClick={()=> isUnlocked ? handleRecordBeat(beat) : (setSelectedInspectBeat(beat), setIsUpgradeModalOpen(true))}
+                  aria-label={isUnlocked ? 'Record this beat' : `Unlock Level ${beat.requiredStudioLevel + 1} to record this beat`}
+                  className={`py-2 px-1 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-1 ${!isUnlocked?'bg-amber-500/15 text-amber-300 border border-amber-400/40':isBeatRecordingActive?'bg-red-600 text-white animate-pulse':'bg-red-500/20 text-red-300'}`}
                 >
-                  {isBeatRecordingActive?`Stop (${formatRecordingTimer(recordingSeconds)})`:'Record Mix'}
+                  {!isUnlocked ? <><Lock className="w-3.5 h-3.5"/><span>Locked</span></> : isBeatRecordingActive ? `Stop (${formatRecordingTimer(recordingSeconds)})` : 'Record Mix'}
                 </button>
 
                 <button
-                  onClick={()=>handlePostBeat(beat)}
-                  className="py-2 px-1 rounded-xl text-xs font-black uppercase bg-emerald-500/20 text-emerald-300"
+                  onClick={()=> isUnlocked ? handlePostBeat(beat) : (setSelectedInspectBeat(beat), setIsUpgradeModalOpen(true))}
+                  disabled={!isUnlocked}
+                  className={`py-2 px-1 rounded-xl text-xs font-black uppercase ${isUnlocked?'bg-emerald-500/20 text-emerald-300':'bg-white/5 text-gray-500 cursor-not-allowed'}`}
                 >
-                  Post Mix
+                  {isUnlocked ? 'Post Mix' : '🔒 Locked'}
                 </button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {isUpgradeModalOpen && (() => {
+        const nextLevel = Math.min(studioLevel + 1, STUDIO_LEVELS.length - 1);
+        const levelInfo = STUDIO_LEVELS[nextLevel];
+        const canUnlock = Boolean(levelInfo) && (!selectedInspectBeat || studioLevel >= selectedInspectBeat.requiredStudioLevel - 1);
+        return (
+          <div className="fixed inset-0 z-[80] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsUpgradeModalOpen(false)}>
+            <div className="w-full max-w-sm bg-[#17171b] border-2 border-amber-400/70 rounded-3xl p-6 text-center shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="mx-auto mb-3 w-14 h-14 rounded-2xl bg-amber-400/15 flex items-center justify-center"><Lock className="w-7 h-7 text-amber-300"/></div>
+              <h3 className="text-lg font-black text-white uppercase mb-2">Beat Locked</h3>
+              <p className="text-sm text-gray-300 mb-2">
+                {selectedInspectBeat ? <><span className="font-bold text-amber-300">{selectedInspectBeat.name}</span> requires Studio Level {selectedInspectBeat.requiredStudioLevel + 1}.</> : 'Upgrade your Studio to unlock more beats.'}
+              </p>
+              <p className="text-xs text-gray-400 mb-4">
+                {canUnlock && levelInfo ? `Next step: ${levelInfo.name} — ${levelInfo.upgradeCost.toLocaleString()} SC. Levels must be unlocked in order.` : 'Unlock the previous Studio level first.'}
+              </p>
+              {canUnlock && levelInfo && (
+                <button onClick={() => handleUpgradeToLevel(nextLevel)} className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-[#FFD700] text-black font-black text-xs uppercase">
+                  Unlock {levelInfo.shortName} • {levelInfo.upgradeCost.toLocaleString()} SC
+                </button>
+              )}
+              <button onClick={() => setIsUpgradeModalOpen(false)} className="w-full mt-2 py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs uppercase">Not now</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {showDailyLimitModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
