@@ -38,7 +38,7 @@ export interface TurfLobbyPlayer {
 
 interface TurfWarLobbyProps {
   onBack: () => void;
-  onStartMatch: (roomCode: string, isHost: boolean, role: TurfRole, players: TurfLobbyPlayer[]) => void;
+  onStartMatch: (roomCode: string, isHost: boolean, role: TurfRole, players: TurfLobbyPlayer[], playerId: string) => void;
   currentCoins: number;
   initialRoomCode?: string;
   onToast: (msg: string) => void;
@@ -179,7 +179,7 @@ export function TurfWarLobby({
       } else if (data.type === 'START_MATCH') {
         playSuccessSound();
         onToast('Match started! Loading 1-Hour Turf Warzone...');
-        onStartMatch(roomCode, isHost, myRole, data.players || players);
+        onStartMatch(roomCode, isHost, myRole, data.players || players, myId);
       } else if (data.type === 'PLAYER_LEAVE') {
         setPlayers((prev) => prev.filter((p) => p.id !== data.playerId));
       }
@@ -323,7 +323,7 @@ export function TurfWarLobby({
         players,
       });
     }
-    onStartMatch(roomCode, true, myRole, players);
+    onStartMatch(roomCode, true, myRole, players, myId);
   };
 
   // Copy Room Code
