@@ -275,7 +275,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
   const totalWithdrawnCoins = withdrawalsList.reduce((acc, curr) => acc + curr.coinAmount, 0);
 
   return (
-    <div className="w-full min-h-[calc(100dvh-5rem)] flex-1 overflow-y-auto pb-40 pt-4 px-4 overscroll-contain select-none animate-in fade-in duration-300 space-y-4">
+    <div className="w-full min-h-[calc(100dvh-5rem)] pb-40 pt-4 px-4 select-none animate-in fade-in duration-300 space-y-4">
       {/* HEADER: BANK & FINANCIAL VAULT */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2.5">
@@ -1319,8 +1319,7 @@ export function BankScreen({ gameState, onToast, onBack }: BankScreenProps) {
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
           <div
             className="w-full max-w-sm rounded-3xl bg-[#141414] border-2 border-amber-500/50 p-6 space-y-4 shadow-2xl relative overflow-y-auto max-h-[90vh]"
-            style={{ WebkitOverflowScrolling: 'touch' }}
-          >
+                >
             <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-400 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20 text-2xl">
               🔒
             </div>
