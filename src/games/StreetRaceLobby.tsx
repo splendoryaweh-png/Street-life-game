@@ -21,6 +21,8 @@ import {
   Trophy,
 } from 'lucide-react';
 import { playClickSound, playSuccessSound } from '@/lib/sound';
+import { createRealtimeBroadcastChannel } from '@/lib/multiplayerRealtime';
+import { supabase } from '@/lib/supabase';
 
 export interface RaceCarSkin {
   id: string;
