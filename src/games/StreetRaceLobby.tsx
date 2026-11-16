@@ -83,7 +83,7 @@ export interface RaceLobbyPlayer {
 
 interface StreetRaceLobbyProps {
   onBack: () => void;
-  onStartRace: (roomCode: string, isHost: boolean, selectedCar: RaceCarSkin, players: RaceLobbyPlayer[]) => void;
+  onStartRace: (roomCode: string, isHost: boolean, selectedCar: RaceCarSkin, players: RaceLobbyPlayer[], playerId: string) => void;
   currentCoins: number;
   initialRoomCode?: string;
   onToast: (msg: string) => void;
@@ -152,7 +152,7 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
         );
       } else if (data.type === 'START_RACE_SIGNAL') {
         playSuccessSound();
-        onStartRace(roomCode, false, selectedCar, data.players);
+        onStartRace(roomCode, false, selectedCar, data.players, myId);
       }
     };
 
@@ -267,7 +267,7 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
     });
     channel.close();
 
-    onStartRace(roomCode, isHost, selectedCar, players);
+    onStartRace(roomCode, isHost, selectedCar, players, myId);
   };
 
   return (
