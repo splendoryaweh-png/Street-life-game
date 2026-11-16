@@ -379,8 +379,8 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
       mixedDestinationRef.current = destination;
       beatSourceRef.current = beatSource;
       audioElementRef.current = beatAudio;
-      recorder.start(250);
       await beatAudio.play();
+      recorder.start(250);
       setRecordingBeatId(beat.id);
       setIsVirtualMic(false);
       onToast('🎙️ Recording vocals and beat together. Noise reduction is enabled.');
