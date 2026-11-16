@@ -884,7 +884,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
   const vehiclePromptTemplate = `Generate image: Realistic photography, same young man [${equippedClothesName}] sitting inside/driving [${equippedVehicleName}], hands on wheel/handle, [${equippedPhoneName}] on dashboard, city through window`;
 
   return (
-    <div className="w-full min-h-[calc(100dvh-5rem)] flex-1 overflow-y-auto pb-40 pt-4 px-4 overscroll-contain space-y-4 select-none font-sans">
+    <div className="w-full min-h-[calc(100dvh-5rem)] pb-40 pt-4 px-4 space-y-4 select-none font-sans">
       {/* ------------------------------------------------------------- */}
       {/* 3. TOP NAVIGATION - INVENTORY HEADER */}
       {/* 🏪 INVENTORY - Street Hustle */}
