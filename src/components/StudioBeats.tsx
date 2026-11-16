@@ -337,12 +337,28 @@ export function StudioBeats({
       const micSource = audioCtx.createMediaStreamSource(micStream);
       const dest = audioCtx.createMediaStreamDestination();
 
+      // Clean up handling: remove low-frequency handling noise and control
+      // sudden vocal peaks before mixing the voice into the recording.
+      const voiceHighPass = audioCtx.createBiquadFilter();
+      voiceHighPass.type = 'highpass';
+      voiceHighPass.frequency.setValueAtTime(85, audioCtx.currentTime);
+      voiceHighPass.Q.setValueAtTime(0.707, audioCtx.currentTime);
+
+      const voiceCompressor = audioCtx.createDynamicsCompressor();
+      voiceCompressor.threshold.setValueAtTime(-24, audioCtx.currentTime);
+      voiceCompressor.knee.setValueAtTime(18, audioCtx.currentTime);
+      voiceCompressor.ratio.setValueAtTime(3.5, audioCtx.currentTime);
+      voiceCompressor.attack.setValueAtTime(0.008, audioCtx.currentTime);
+      voiceCompressor.release.setValueAtTime(0.16, audioCtx.currentTime);
+
       // Voice gain follows the Voice Volume slider.
       const micGain = audioCtx.createGain();
       micGain.gain.value = voiceVolume / 100;
       micGainNodeRef.current = micGain;
 
-      micSource.connect(micGain);
+      micSource.connect(voiceHighPass);
+      voiceHighPass.connect(voiceCompressor);
+      voiceCompressor.connect(micGain);
       micGain.connect(dest);
 
       const beatUrl =
