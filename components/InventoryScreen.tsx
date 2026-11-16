@@ -295,6 +295,17 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
   // ---------------------------------------------------------------------------
   const handleBuyItem = (item: CatalogItem, isRent = false) => {
     playClickSound();
+    if (item.category === 'STUDIO_LEVELS') {
+      const targetLevel = STUDIO_LEVELS_CATALOG.findIndex((studio) => studio.id === item.id);
+      if (targetLevel > playerStudioLevel + 1) {
+        onToast(`🔒 Upgrade to Studio Level ${playerStudioLevel + 1} first.`);
+        return;
+      }
+      if (targetLevel <= playerStudioLevel) {
+        onToast('You already own this Studio level or a higher one.');
+        return;
+      }
+    }
     const cost = item.price;
 
     if (gameState.streetCoin < cost) {
@@ -1395,6 +1406,8 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               STUDIO_LEVELS_CATALOG.map((item) => {
                 const isOwned = playerState.owned.studioLevels.includes(item.id);
                 const isEquipped = playerState.equipped.studio === item.id;
+                const studioItemLevel = STUDIO_LEVELS_CATALOG.findIndex((studio) => studio.id === item.id);
+                const isAvailable = studioItemLevel <= playerStudioLevel + 1;
 
                 return (
                   <div
@@ -1432,9 +1445,10 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                         <button
                           onClick={() => handleBuyItem(item)}
                           type="button"
-                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-black uppercase tracking-wider shadow-[0_0_15px_rgba(236,72,153,0.4)] active:scale-95 transition-all cursor-pointer"
+                          disabled={!isAvailable}
+                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-black uppercase tracking-wider shadow-[0_0_15px_rgba(236,72,153,0.4)] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          Upgrade ({item.price.toLocaleString()} SC)
+                          {isAvailable ? `Upgrade (${item.price.toLocaleString()} SC)` : `🔒 Unlock previous level first`}
                         </button>
                       )}
                     </div>
@@ -1618,7 +1632,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               </div>
             </div>
 
-            {playerStudioLevel < 4 && (
+            {playerStudioLevel < 11 && (
               <button
                 onClick={() => {
                   setMainTab('shop');
