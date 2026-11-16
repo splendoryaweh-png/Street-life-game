@@ -111,21 +111,21 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       config: { presence: { key: `invite_lookup_${myPlayerId}` } },
     });
     let finished = false;
-    const finishLookup = async () => {
-      if (finished) return;
-      finished = true;
-      window.clearTimeout(timeoutId);
+    let subscribed = false;
+    const checkInvitePresence = async () => {
+      if (finished || !subscribed) return;
       const entries = Object.values(lookup.presenceState()).flat() as Array<{
         roomCode?: string;
         playerId?: string;
         isHost?: boolean;
       }>;
+      // Presence can sync once before the host's directory track arrives.
+      // Keep listening until the host appears or the verification times out.
       const hostRoom = entries.find((entry) => entry.roomCode === cleaned && entry.isHost === true);
+      if (!hostRoom) return;
+      finished = true;
+      window.clearTimeout(timeoutId);
       await client.removeChannel(lookup);
-      if (!hostRoom) {
-        onToast('That invite code is not active. Ask the host to create a room and share the new code.');
-        return;
-      }
       setIsHost(false);
       setRoomCode(cleaned);
       connectToRoom(cleaned, false);
@@ -134,11 +134,14 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       if (finished) return;
       finished = true;
       void client.removeChannel(lookup);
-      onToast('Could not verify that invite code. Check your connection and try again.');
-    }, 8000);
-    lookup.on('presence', { event: 'sync' }, () => { void finishLookup(); });
+      onToast('That invite code could not be found. Make sure the host is still in the district and share the displayed code again.');
+    }, 10000);
+    lookup.on('presence', { event: 'sync' }, () => { void checkInvitePresence(); });
     lookup.subscribe((status: string) => {
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      if (status === 'SUBSCRIBED') {
+        subscribed = true;
+        void checkInvitePresence();
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         if (finished) return;
         finished = true;
         window.clearTimeout(timeoutId);
