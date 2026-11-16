@@ -83,7 +83,7 @@ export const StreetRaceMultiplayer: React.FC<{ onBack: () => void; onToast: (msg
     const stablePlayerId = playerId || myRacerId.current;
     myRacerId.current = stablePlayerId;
     setRoomCode(code); setMyCarSkin(car); setInRace(true);
-    obstaclesRef.current = generateHighwayObstacles();
+    obstaclesRef.current = generateHighwayObstacles(code);
     racersRef.current.clear();
     const roster = lobbyPlayers.length ? lobbyPlayers : [{
       id: stablePlayerId, name: 'You', carSkin: car, avatar: '🏎️', isHost: host, ready: true, ping: 20,
