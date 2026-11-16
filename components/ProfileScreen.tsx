@@ -171,8 +171,7 @@ export function ProfileScreen({
 
   return (
     <div
-      className="w-full min-h-[calc(100dvh-5rem)] flex-1 overflow-y-auto pb-40 pt-4 px-4 overscroll-contain select-none"
-      style={{ WebkitOverflowScrolling: 'touch' }}
+      className="w-full min-h-[calc(100dvh-5rem)] pb-40 pt-4 px-4 select-none"
     >
       {/* PROFILE HEADER CARD */}
       <div className="rounded-3xl bg-[#151515] border border-white/10 p-5 shadow-2xl mb-4">
