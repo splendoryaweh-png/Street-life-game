@@ -74,18 +74,32 @@ export const HOUSE_DESIGN_CATALOG: CatalogItem[] = [
 ];
 
 export const STUDIO_LEVELS_CATALOG: CatalogItem[] = [
-  { id: 'bedroom_studio', name: 'Bedroom Studio (Starter)', price: 0, category: 'STUDIO_LEVELS', soundQuality: 40, payoutPerSong: 100, icon: '🎙️', desc: 'Free Starter [Owned] - Sound 40% - Earn 100 SC/song' },
-  { id: 'street_studio', name: 'Street Studio', price: 25000, category: 'STUDIO_LEVELS', soundQuality: 60, payoutPerSong: 500, icon: '🎧', desc: '25,000 SC - Sound 60% - Earn 500 SC/song -> Unlocks Studio Tab' },
-  { id: 'pro_studio', name: 'Pro Studio', price: 100000, category: 'STUDIO_LEVELS', soundQuality: 85, payoutPerSong: 2000, icon: '🎛️', desc: '100,000 SC - Sound 85% - Earn 2,000 SC/song + 500 fans' },
-  { id: 'hitmaker_studio', name: 'Hitmaker Studio (Level 3)', price: 200000, category: 'STUDIO_LEVELS', soundQuality: 90, payoutPerSong: 5000, icon: '👑', desc: 'Level 3 [200,000 SC] - Sound 90% - Earn 5,000 SC/song + 1,200 fans' },
-  { id: 'celebrity_studio', name: 'Celebrity Studio', price: 500000, category: 'STUDIO_LEVELS', soundQuality: 100, payoutPerSong: 10000, icon: '⭐', desc: '500,000 SC - Sound 100% - Earn 10,000 SC/hit + 2,500 fans' },
+  { id: 'bedroom_studio', name: 'Bedroom Studio (Starter)', price: 0, category: 'STUDIO_LEVELS', soundQuality: 40, payoutPerSong: 100, icon: '🎙️', desc: 'Free Starter - 3 Long Beats' },
+  { id: 'street_studio', name: 'Street Studio', price: 25000, category: 'STUDIO_LEVELS', soundQuality: 45, payoutPerSong: 500, icon: '🎧', desc: 'Level 2' },
+  { id: 'underground_studio', name: 'Underground Studio', price: 50000, category: 'STUDIO_LEVELS', soundQuality: 50, payoutPerSong: 1000, icon: '🎚️', desc: 'Level 3' },
+  { id: 'pro_studio', name: 'Pro Studio', price: 75000, category: 'STUDIO_LEVELS', soundQuality: 60, payoutPerSong: 2000, icon: '🎛️', desc: 'Level 4' },
+  { id: 'hitmaker_studio', name: 'Hitmaker Studio', price: 100000, category: 'STUDIO_LEVELS', soundQuality: 65, payoutPerSong: 3000, icon: '👑', desc: 'Level 5' },
+  { id: 'premium_studio', name: 'Premium Studio', price: 150000, category: 'STUDIO_LEVELS', soundQuality: 70, payoutPerSong: 4000, icon: '🎼', desc: 'Level 6' },
+  { id: 'elite_studio', name: 'Elite Studio', price: 200000, category: 'STUDIO_LEVELS', soundQuality: 75, payoutPerSong: 5000, icon: '💿', desc: 'Level 7' },
+  { id: 'platinum_studio', name: 'Platinum Studio', price: 250000, category: 'STUDIO_LEVELS', soundQuality: 80, payoutPerSong: 6000, icon: '💎', desc: 'Level 8' },
+  { id: 'diamond_studio', name: 'Diamond Studio', price: 300000, category: 'STUDIO_LEVELS', soundQuality: 85, payoutPerSong: 7000, icon: '✨', desc: 'Level 9' },
+  { id: 'empire_studio', name: 'Empire Studio', price: 350000, category: 'STUDIO_LEVELS', soundQuality: 90, payoutPerSong: 8000, icon: '🏙️', desc: 'Level 10' },
+  { id: 'legend_studio', name: 'Legend Studio', price: 425000, category: 'STUDIO_LEVELS', soundQuality: 95, payoutPerSong: 9000, icon: '🔥', desc: 'Level 11' },
+  { id: 'celebrity_studio', name: 'Celebrity Studio', price: 500000, category: 'STUDIO_LEVELS', soundQuality: 100, payoutPerSong: 10000, icon: '⭐', desc: 'Level 12 - All 14 beats' },
 ];
 
 export function getPlayerStudioLevel(playerState: HustlePlayerState): number {
   const owned = playerState.owned?.studioLevels || [];
-  if (owned.includes('celebrity_studio')) return 4;
-  if (owned.includes('hitmaker_studio')) return 3;
-  if (owned.includes('pro_studio')) return 2;
+  if (owned.includes('celebrity_studio')) return 11;
+  if (owned.includes('legend_studio')) return 10;
+  if (owned.includes('empire_studio')) return 9;
+  if (owned.includes('diamond_studio')) return 8;
+  if (owned.includes('platinum_studio')) return 7;
+  if (owned.includes('elite_studio')) return 6;
+  if (owned.includes('premium_studio')) return 5;
+  if (owned.includes('hitmaker_studio')) return 4;
+  if (owned.includes('pro_studio')) return 3;
+  if (owned.includes('underground_studio')) return 2;
   if (owned.includes('street_studio')) return 1;
   return 0;
 }
