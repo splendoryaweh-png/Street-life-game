@@ -308,6 +308,15 @@ export function StudioBeats({
   const handleRecordBeat = async (beat: LongBeat) => {
     playClickSound();
 
+    // Enforce beat ownership at the recording action itself, not only in the catalog UI.
+    // Level 1 (internal level 0) can record its three starter beats; locked beats
+    // cannot open the microphone or create a recording until their level is owned.
+    if (!(isLongBeatUnlocked(beat, studioLevel))) {
+      toast(`🔒 Upgrade your Studio to Level ${beat.requiredStudioLevel + 1} to record this beat.`);
+      setIsUpgradeModalOpen(true);
+      return;
+    }
+
     if (isRecording && recordingBeatId === beat.id) {
       handleStopRecording();
       return;
