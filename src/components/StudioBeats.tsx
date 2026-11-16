@@ -118,7 +118,13 @@ export function StudioBeats({
   const [upgradedLevelOverride, setUpgradedLevelOverride] = useState<number | null>(() => {
     if (typeof window !== 'undefined') {
       const savedLevel = telegramUserId ? localStorage.getItem(studioStorageKey('streetlife_studio_level', telegramUserId)) : null;
-      if (savedLevel !== null) return parseInt(savedLevel, 10) || 0;
+      if (savedLevel !== null) {
+        const previousLevel = parseInt(savedLevel, 10) || 0;
+        // Migrate players from the former five-tier scale without removing
+        // their previously unlocked beat access.
+        const migratedLevel = previousLevel >= 4 ? 10 : previousLevel === 3 ? 6 : previousLevel === 2 ? 3 : previousLevel === 1 ? 1 : 0;
+        return migratedLevel;
+      }
     }
     return null;
   });
