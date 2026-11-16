@@ -642,7 +642,7 @@ export function TurfWarLobby({
         <div className="space-y-2.5 mb-4">
           <div className="flex items-center justify-between px-1">
             <span className="text-xs font-black uppercase text-gray-400">Squad Members (Max 4)</span>
-            <span className="text-[10px] font-mono text-emerald-400">BroadcastChannel P2P</span>
+            <span className="text-[10px] font-mono text-emerald-400">ONLINE REALTIME</span>
           </div>
 
           {[0, 1, 2, 3].map((slotIdx) => {
