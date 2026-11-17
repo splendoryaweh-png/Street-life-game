@@ -167,7 +167,25 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
       const data = event.data;
       if (!data) return;
 
-      if (data.type === 'PLAYER_JOINED') {
+      if (data.type === 'REQUEST_LOBBY_STATE') {
+        // Re-send the current roster even when the host joined before this
+        // player subscribed to the room channel.
+        broadcastMyPresence();
+        const currentPlayers = playersRef.current;
+        if (currentPlayers.length) {
+          channel.postMessage({ type: 'LOBBY_STATE', players: currentPlayers });
+        }
+      } else if (data.type === 'LOBBY_STATE') {
+        setPlayers((prev) => {
+          const merged = new Map(prev.map((player) => [player.id, player]));
+          (data.players || []).forEach((player: RaceLobbyPlayer) => merged.set(player.id, player));
+          return Array.from(merged.values());
+        });
+        if ((data.players || []).some((player: RaceLobbyPlayer) => player.isHost) && hostWaitTimeoutRef.current) {
+          clearTimeout(hostWaitTimeoutRef.current);
+          hostWaitTimeoutRef.current = null;
+        }
+      } else if (data.type === 'PLAYER_JOINED') {
         if (data.player?.isHost && hostWaitTimeoutRef.current) {
           clearTimeout(hostWaitTimeoutRef.current);
           hostWaitTimeoutRef.current = null;
