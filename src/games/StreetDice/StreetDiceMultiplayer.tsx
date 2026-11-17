@@ -128,6 +128,7 @@ export function StreetDiceMultiplayer({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const botTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const joinHostTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const roomStateRequestedRef = useRef<string | null>(null);
 
   // Host creates room
   const handleHostCreate = () => {
@@ -607,7 +608,8 @@ export function StreetDiceMultiplayer({
     // Ask the host for its authoritative local room snapshot after our
     // Realtime listener is registered; the host's original create event
     // may have been sent before this invitee connected.
-    if (!isHost) {
+    if (!isHost && roomStateRequestedRef.current !== roomCode) {
+      roomStateRequestedRef.current = roomCode;
       sendUpdate(roomCode, myId, { action: 'request_room_state', playerId: myId });
     }
 
