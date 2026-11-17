@@ -538,7 +538,21 @@ export function StreetDiceMultiplayer({
       } else if (type === 'update') {
         const action = data?.action;
 
-        if (action === 'player_joined' && isHost) {
+        if (action === 'request_room_state' && isHost) {
+          const currentRoom = getRoom(roomCode);
+          if (currentRoom) {
+            sendUpdate(roomCode, myId, {
+              action: 'room_state_snapshot',
+              room: currentRoom,
+            });
+          }
+        } else if (action === 'room_state_snapshot' && data.room?.code === roomCode) {
+          setPlayers(data.room.players || []);
+          if (data.room.hostId && (data.room.players || []).some((player: PlayerInRoom) => player.id === data.room.hostId) && joinHostTimeoutRef.current) {
+            clearTimeout(joinHostTimeoutRef.current);
+            joinHostTimeoutRef.current = null;
+          }
+        } else if (action === 'player_joined' && isHost) {
           const joiningPlayer = data.player as PlayerInRoom | undefined;
           if (!joiningPlayer) return;
           const current = getRoom(roomCode);
