@@ -112,6 +112,9 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
   const [myId] = useState<string>(() => 'racer_' + Math.random().toString(36).substring(2, 8));
   const [players, setPlayers] = useState<RaceLobbyPlayer[]>([]);
   const lobbyChannelRef = useRef<ReturnType<typeof createRealtimeBroadcastChannel> | null>(null);
+  const playersRef = useRef<RaceLobbyPlayer[]>([]);
+  playersRef.current = players;
+  const hostWaitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Advertise active race rooms to players using cross-device Supabase Presence.
   useEffect(() => {
@@ -165,6 +168,10 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
       if (!data) return;
 
       if (data.type === 'PLAYER_JOINED') {
+        if (data.player?.isHost && hostWaitTimeoutRef.current) {
+          clearTimeout(hostWaitTimeoutRef.current);
+          hostWaitTimeoutRef.current = null;
+        }
         setPlayers((prev) => {
           const filtered = prev.filter((p) => p.id !== data.player.id);
           return [...filtered, data.player];
@@ -220,6 +227,15 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
     setIsHost(false);
     setIsJoinedRoom(true);
     setIsReady(false);
+    if (hostWaitTimeoutRef.current) clearTimeout(hostWaitTimeoutRef.current);
+    hostWaitTimeoutRef.current = setTimeout(() => {
+      if (!playersRef.current.some((player) => player.isHost)) {
+        setIsJoinedRoom(false);
+        setPlayers([]);
+        onToast('Host was not detected in that race room. Check the code and make sure the host is still there.');
+      }
+      hostWaitTimeoutRef.current = null;
+    }, 15000);
     setPlayers([
       {
         id: myId,
