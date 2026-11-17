@@ -192,7 +192,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         directory.subscribe(async (directoryStatus: string) => {
           if (directoryStatus === 'SUBSCRIBED') await directory.track({ roomCode: code, playerId: myPlayerId, playerName: myPlayerName, isHost: hostStatus, createdAt: Date.now() });
         });
-        setInLobby(false); gameStateRef.current.isRunning = true; playSuccessSound(); onToast(`Connected online to District ${code}! Share this code with friends.`);
+        if (hostStatus) { setInLobby(true); gameStateRef.current.isRunning = false; } else { setInLobby(false); gameStateRef.current.isRunning = true; }
+        playSuccessSound(); onToast(`Connected online to District ${code}! Share this code with friends.`);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         onToast('Could not connect to the online district. Please try again.');
       }
@@ -418,6 +419,25 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           <div className="p-4 rounded-3xl bg-black/60 border border-[#FFD700]/40 space-y-2"><div className="flex items-center gap-2 text-[#FFD700]"><Users className="w-4 h-4" /><span className="text-xs font-black uppercase">JOIN A FRIEND'S DISTRICT</span></div><p className="text-[11px] text-gray-400">Ask the host for their Street Gang Star invite code, then enter it here.</p><form onSubmit={joinWithCode} className="flex items-center gap-2"><input type="text" maxLength={12} autoCapitalize="characters" autoComplete="off" value={customRoomInput} onChange={(e) => setCustomRoomInput(e.target.value.toUpperCase().replaceAll(' ', ''))} placeholder="STREET123456" className="min-w-0 flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-3 text-sm font-mono font-black tracking-wider text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700] uppercase" /><button type="submit" className="shrink-0 px-5 py-3 rounded-xl bg-[#FFD700] text-black font-black text-xs uppercase active:scale-95">JOIN</button></form></div>
         </div>
         <div className="text-center text-[11px] text-gray-500 font-medium"> Supports up to 20 players per city • Auto-synchronized </div>
+        {showInvitePanel && isHost && roomCode && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+            <div className="w-full max-w-sm rounded-3xl border-2 border-[#FFD700] bg-[#11131C] p-6 text-center shadow-[0_0_40px_rgba(255,215,0,0.25)]">
+              <div className="text-3xl mb-2">🏙️</div>
+              <h2 className="text-lg font-black uppercase tracking-wide text-[#FFD700]">Your City Lobby Is Ready</h2>
+              <p className="mt-2 text-sm text-gray-300">Share this invite code before entering the city.</p>
+              <div className="mt-5 rounded-2xl border border-[#FFD700]/50 bg-black/60 px-3 py-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-gray-400">Street Gang Star Invite Code</p>
+                <p className="mt-2 break-all font-mono text-3xl font-black tracking-wider text-white">{roomCode}</p>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <button onClick={async () => { try { await navigator.clipboard.writeText(roomCode); setCopiedCode(true); onToast('Invite code copied. Send it to your friends.'); } catch { onToast(`Your invite code is ${roomCode}`); } }} type="button" className="rounded-xl bg-white/10 px-3 py-3 text-xs font-black uppercase text-white">{copiedCode ? 'Copied!' : 'Copy Code'}</button>
+                <button onClick={async () => { const inviteText = `Join my Street Gang Star city! Open Street Life → Street Gang Star → Multiplayer and enter code: ${roomCode}`; try { if (navigator.share) await navigator.share({ title: 'Street Gang Star invite', text: inviteText }); else { await navigator.clipboard.writeText(inviteText); onToast('Invite message copied. Send it to your friends.'); } } catch (error) { if ((error as Error)?.name !== 'AbortError') onToast(`Invite code: ${roomCode}`); } }} type="button" className="rounded-xl bg-[#FFD700] px-3 py-3 text-xs font-black uppercase text-black">Share Invite</button>
+              </div>
+              <button onClick={() => { setShowInvitePanel(false); setInLobby(false); gameStateRef.current.isRunning = true; }} type="button" className="mt-4 w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-xs font-black uppercase text-white">Enter City</button>
+              <p className="mt-3 text-[10px] text-gray-500">The battle will begin when you enter the city.</p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
