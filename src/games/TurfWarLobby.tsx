@@ -175,7 +175,19 @@ export function TurfWarLobby({
       const data = event.data;
       if (!data) return;
 
-      if (data.type === 'PLAYER_JOIN') {
+      if (data.type === 'REQUEST_LOBBY_STATE') {
+        // A late joiner may miss the host's first broadcast. Reply to an
+        // explicit state request so room codes work across separate devices.
+        const currentPlayers = playersRef.current;
+        const ownPlayer = {
+          id: myId, name: myName, role: myRole, avatar: myAvatar,
+          color: myColor, isHost, ready: isHost, ping: 20,
+        };
+        channel.postMessage({
+          type: 'SYNC_PLAYERS',
+          players: [ownPlayer, ...currentPlayers.filter((player) => player.id !== myId)],
+        });
+      } else if (data.type === 'PLAYER_JOIN') {
         const newP: TurfLobbyPlayer = data.player;
         if (newP.id !== myId) {
           setPlayers((prev) => {
