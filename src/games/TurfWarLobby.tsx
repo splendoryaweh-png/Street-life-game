@@ -230,6 +230,12 @@ export function TurfWarLobby({
       }
     };
 
+    // Request the live roster only after the message handler is installed.
+    // This is essential when the host created the room before the invitee joined.
+    if (!isHost) {
+      channel.postMessage({ type: 'REQUEST_LOBBY_STATE', requesterId: myId });
+    }
+
     return () => {
       channel.postMessage({ type: 'PLAYER_LEAVE', playerId: myId });
       channel.close();
