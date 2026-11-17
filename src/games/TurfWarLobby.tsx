@@ -113,6 +113,7 @@ export function TurfWarLobby({
   const [copied, setCopied] = useState<boolean>(false);
   const channelRef = useRef<RealtimeBroadcastChannel | null>(null);
   const directoryChannelRef = useRef<any>(null);
+  const hostWaitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto join if initialRoomCode provided
   useEffect(() => {
@@ -196,6 +197,10 @@ export function TurfWarLobby({
       } else if (data.type === 'SYNC_PLAYERS') {
         const synced: TurfLobbyPlayer[] = data.players;
         setPlayers(synced);
+        if (synced.some((player) => player.isHost) && hostWaitTimeoutRef.current) {
+          clearTimeout(hostWaitTimeoutRef.current);
+          hostWaitTimeoutRef.current = null;
+        }
       } else if (data.type === 'READY_TOGGLE') {
         setPlayers((prev) =>
           prev.map((p) => (p.id === data.playerId ? { ...p, ready: data.ready } : p))
@@ -277,7 +282,16 @@ export function TurfWarLobby({
     };
     setPlayers([me]);
     setInRoom(true);
-    onToast(`Joined room ${clean}! Connecting...`);
+    if (hostWaitTimeoutRef.current) clearTimeout(hostWaitTimeoutRef.current);
+    hostWaitTimeoutRef.current = setTimeout(() => {
+      if (!playersRef.current.some((player) => player.isHost)) {
+        setInRoom(false);
+        setPlayers([]);
+        onToast('Host was not detected in that room. Check the code and make sure the host has not left.');
+      }
+      hostWaitTimeoutRef.current = null;
+    }, 15000);
+    onToast(`Joining room ${clean} and checking host connection...`);
   };
 
   // Random Join uses shared Supabase Presence, not this device's localStorage.
@@ -768,7 +782,7 @@ export function TurfWarLobby({
                 : 'bg-[#FFD700] text-black shadow-lg shadow-[#FFD700]/30'
             }`}
           >
-            {players.find((p) => p.id === myId)?.ready ? 'READY! (WAITING FOR HOST)' : 'PRESS TO BE READY'}
+            {players.find((p) => p.id === myId)?.ready ? (players.some((p) => p.isHost) ? 'READY — HOST IS CONNECTED' : 'READY — CONNECTING TO HOST') : 'PRESS TO BE READY'}
           </button>
         )}
 
