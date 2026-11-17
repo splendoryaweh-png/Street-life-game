@@ -604,6 +604,13 @@ export function StreetDiceMultiplayer({
       }
     });
 
+    // Ask the host for its authoritative local room snapshot after our
+    // Realtime listener is registered; the host's original create event
+    // may have been sent before this invitee connected.
+    if (!isHost) {
+      sendUpdate(roomCode, myId, { action: 'request_room_state', playerId: myId });
+    }
+
     return () => {
       unsubscribe();
     };
