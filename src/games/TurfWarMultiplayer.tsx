@@ -160,7 +160,7 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
   };
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => { keysRef.current[e.key.toLowerCase()] = true; if (e.key.toLowerCase() === 'r') { triggerReload(); } if (e.key === ' ' || e.code === 'Space') { isShootingRef.current = true; } if (e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 'e') { tryEnterExitTank(); } };
+    const handleKeyDown = (e: KeyboardEvent) => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) || e.code === 'Space') e.preventDefault(); keysRef.current[e.key.toLowerCase()] = true; if (e.key.toLowerCase() === 'r') { triggerReload(); } if (e.key === ' ' || e.code === 'Space') { isShootingRef.current = true; } if (e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 'e') { tryEnterExitTank(); } };
     const handleKeyUp = (e: KeyboardEvent) => { keysRef.current[e.key.toLowerCase()] = false; if (e.key === ' ' || e.code === 'Space') { isShootingRef.current = false; } };
     window.addEventListener('keydown', handleKeyDown); window.addEventListener('keyup', handleKeyUp);
     return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
