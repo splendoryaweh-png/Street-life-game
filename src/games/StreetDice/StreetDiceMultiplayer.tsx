@@ -127,6 +127,7 @@ export function StreetDiceMultiplayer({
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const botTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const joinHostTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Host creates room
   const handleHostCreate = () => {
@@ -170,7 +171,18 @@ export function StreetDiceMultiplayer({
         setPlayers(room.players);
       }
       saveRejoin(targetCode, myId);
-      onToast(`Joined room ${targetCode}!`);
+      if (joinHostTimeoutRef.current) clearTimeout(joinHostTimeoutRef.current);
+      joinHostTimeoutRef.current = setTimeout(() => {
+        const latestRoom = getRoom(targetCode);
+        if (!latestRoom?.hostId || !latestRoom.players.some((player) => player.id === latestRoom.hostId)) {
+          setRoomCode(null);
+          setPlayers([]);
+          clearRejoin();
+          onToast('Host was not detected in that Street Dice room. Check the code and make sure the host is still connected.');
+        }
+        joinHostTimeoutRef.current = null;
+      }, 15000);
+      onToast(`Joining room ${targetCode} and checking host connection...`);
     } else {
       onToast('Could not join room (not found or full)!');
     }
@@ -516,6 +528,10 @@ export function StreetDiceMultiplayer({
 
       if (type === 'room_state') {
         setPlayers(data.players || []);
+        if (data.hostId && (data.players || []).some((player: PlayerInRoom) => player.id === data.hostId) && joinHostTimeoutRef.current) {
+          clearTimeout(joinHostTimeoutRef.current);
+          joinHostTimeoutRef.current = null;
+        }
         if (data.status === 'playing' && phase === 'lobby') {
           setPhase('playing');
         }
