@@ -130,7 +130,7 @@ export const StreetRaceMultiplayer: React.FC<StreetRaceMultiplayerProps> = ({ on
   }, [inRace, roomCode]);
 
   useEffect(() => {
-    const kd = (e:KeyboardEvent)=>{ keysRef.current[e.key.toLowerCase()]=true; if(e.key===' '||e.key==='Shift') isNitroRef.current=true; };
+    const kd = (e:KeyboardEvent)=>{ if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) || e.code === 'Space') e.preventDefault(); keysRef.current[e.key.toLowerCase()]=true; if(e.key===' '||e.key==='Shift') isNitroRef.current=true; };
     const ku = (e:KeyboardEvent)=>{ keysRef.current[e.key.toLowerCase()]=false; if(e.key===' '||e.key==='Shift') isNitroRef.current=false; };
     window.addEventListener('keydown',kd); window.addEventListener('keyup',ku);
     return ()=>{ window.removeEventListener('keydown',kd); window.removeEventListener('keyup',ku); };
