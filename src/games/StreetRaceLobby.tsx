@@ -206,6 +206,12 @@ export const StreetRaceLobby: React.FC<StreetRaceLobbyProps> = ({
       }
     };
 
+    // Ask the already-connected host for the current roster; broadcasts sent
+    // before this player subscribed are not replayed by Supabase.
+    if (!isHost) {
+      channel.postMessage({ type: 'REQUEST_LOBBY_STATE', requesterId: myId });
+    }
+
     return () => {
       channel.close();
       if (lobbyChannelRef.current === channel) lobbyChannelRef.current = null;
