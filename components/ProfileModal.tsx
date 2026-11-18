@@ -1,7 +1,8 @@
 
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';, { useState, useRef } from 'react';
 import { TelegramUser } from '@/types/game';
 import {
   X,
@@ -52,13 +53,13 @@ export function ProfileModal({
   const [copiedLink, setCopiedLink] = useState(false);
   const [emailInput, setEmailInput] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('userEmail') || propEmail || '';
+      return getAccountStorageItem('userEmail') || propEmail || '';
     }
     return propEmail || '';
   });
   const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('userEmail') || '';
+      const stored = getAccountStorageItem('userEmail') || '';
       return stored.toLowerCase() === ADMIN_EMAIL.toLowerCase();
     }
     return false;
