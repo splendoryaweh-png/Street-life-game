@@ -32,6 +32,7 @@ export interface DailyClaimsDbRecord {
 }
 
 const STORAGE_KEY_CLAIMS_DB = 'street_daily_claims_db_v1';
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';
 const STORAGE_KEY_DEVICE_ID = 'street_device_id_v1';
 
 export function getOrCreateDeviceId(): string {
@@ -69,7 +70,7 @@ export const DAILY_LOGIN_SCHEDULE = [
 export function getDailyClaimsTable(): DailyClaimsDbRecord[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_CLAIMS_DB);
+    const raw = getAccountStorageItem(STORAGE_KEY_CLAIMS_DB);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -79,7 +80,7 @@ export function getDailyClaimsTable(): DailyClaimsDbRecord[] {
 export function saveDailyClaimsTable(table: DailyClaimsDbRecord[]): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(STORAGE_KEY_CLAIMS_DB, JSON.stringify(table));
+    setAccountStorageItem(STORAGE_KEY_CLAIMS_DB, JSON.stringify(table));
   } catch {}
 }
 
