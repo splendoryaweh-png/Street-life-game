@@ -318,7 +318,17 @@ export default function StreetLifeApp() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Referral could not be claimed.');
       saveCoins(getGameStateSnapshot().streetCoin + Number(result.inviteeReward || 520));
-      saveReferralProfile({ referralCode: serverReferralCode || activeGameState.myReferralCode, referralsCount: serverReferralsCount, hasClaimedWelcomeBonus: true, appliedReferralCode: code });
+      const verifiedReferralCount = Math.max(0, Number(result.referralsCount ?? serverReferralsCount));
+      const currentReferralState = getGameStateSnapshot();
+      setServerReferralCode(String(result.referralCode || serverReferralCode || activeGameState.myReferralCode));
+      setServerReferralsCount(verifiedReferralCount);
+      saveReferralProfile({
+        referralCode: String(result.referralCode || serverReferralCode || activeGameState.myReferralCode),
+        referralsCount: verifiedReferralCount,
+        hasClaimedWelcomeBonus: true,
+        appliedReferralCode: String(result.appliedReferralCode || code),
+        inviterRewardCoins: Math.max(0, verifiedReferralCount - currentReferralState.referralsCount) * 100,
+      });
       playSuccessSound();
       playCoinSound();
       showToast(result.message);
