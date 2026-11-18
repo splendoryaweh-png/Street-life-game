@@ -182,7 +182,23 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
   }, [inGame, isGameOver, isHourVictory, isHost]);
 
   const handleMatchHourCompleted = () => { setIsHourVictory(true); const killBonus = totalKills * 10; const waveBonus = currentWave * 100; const hourBonus = 1000; const totalAward = killBonus + waveBonus + hourBonus; setEarnedCoins(totalAward); addGameCoins(totalAward, `+${totalAward} SC - Barracks Survived!`, 'wave_complete'); playSuccessSound(); confetti({ particleCount: 150, spread: 90 }); onToast(`1-HOUR SURVIVED! +${totalAward} SC!`); };
-  const handlePlayerDied = () => { setIsGameOver(true); const killBonus = totalKills * 10; const waveBonus = Math.max(0, (currentWave - 1) * 100); const totalAward = killBonus + waveBonus; setEarnedCoins(totalAward); if (totalAward > 0) { addGameCoins(totalAward, `+${totalAward} SC - Wave ${currentWave}`, 'wave_complete'); } playPunchSound(); };
+  const handlePlayerDied = () => {
+    const player = playersRef.current.get(myPlayerId.current);
+    if (player) {
+      player.hp = player.maxHp;
+      player.armor = player.maxArmor;
+      player.isAlive = true;
+      player.hitCount = 0;
+      player.inTankId = null;
+      player.insideBuildingId = null;
+      player.vx = 0;
+      player.vy = 0;
+      player.x = 3000 + (Math.random() * 80 - 40);
+      player.y = 3000 + (Math.random() * 80 - 40);
+    }
+    playPunchSound();
+    onToast('You were defeated and have respawned. The multiplayer room and invite code remain active.');
+  };
 
   const fireBullet = (me: PlayerState, angle: number) => {
     if (me.ammo <= 0) { triggerReload(); return; }
