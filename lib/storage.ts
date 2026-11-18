@@ -17,6 +17,44 @@ import {
 
 const SAVE_KEY_V2 = 'streetLife_save_v2';
 
+/**
+ * Scope game persistence to the active Telegram account. The first visit by
+ * each account may read the old unscoped value as a one-time starting copy;
+ * all subsequent writes are account-specific and never overwrite the legacy
+ * key. This preserves existing players' current progress while stopping
+ * accounts on the same device from sharing future changes.
+ */
+function getAccountStorageKey(key: string): string {
+  let telegramId = 'guest';
+  try {
+    const id = typeof window !== 'undefined'
+      ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id
+      : null;
+    if (id !== undefined && id !== null) telegramId = String(id);
+  } catch {}
+  return `streetLife_account_${telegramId}_${key}`;
+}
+
+function localStorage.getItem(key: string): string | null {
+  const scopedKey = getAccountStorageKey(key);
+  const scopedValue = localStorage.getItem(scopedKey);
+  if (scopedValue !== null) return scopedValue;
+  // One-time compatibility copy: each Telegram account retains the old
+  // shared starting snapshot, but future saves are isolated by Telegram ID.
+  const legacyValue = localStorage.getItem(key);
+  if (legacyValue !== null) localStorage.setItem(scopedKey, legacyValue);
+  return legacyValue;
+}
+
+function localStorage.setItem(key: string, value: string): void {
+  localStorage.setItem(getAccountStorageKey(key), value);
+}
+
+function localStorage.removeItem(key: string): void {
+  localStorage.removeItem(getAccountStorageKey(key));
+}
+
+
 export const DEFAULT_WITHDRAWALS: WithdrawalRecord[] = [
   {
     id: 'wdr_init_1',
@@ -418,33 +456,33 @@ function persistState(state: UserGameState) {
       studioAdDayMap: state.studioAdDayMap || {},
       lastPostTimestamp: state.lastPostTimestamp || 0,
     };
-    localStorage.setItem(SAVE_KEY_V2, JSON.stringify(dataToSave));
-    localStorage.setItem('streetCoin', state.streetCoin.toString());
-    localStorage.setItem('shooterLevel', state.shooterLevel.toString());
-    localStorage.setItem('rentExpiry', validRentExpiry.toString());
-    localStorage.setItem('streetLife_checksum', calculateChecksum(state.streetCoin, validRentExpiry));
+    setAccountStorageItem(SAVE_KEY_V2, JSON.stringify(dataToSave));
+    setAccountStorageItem('streetCoin', state.streetCoin.toString());
+    setAccountStorageItem('shooterLevel', state.shooterLevel.toString());
+    setAccountStorageItem('rentExpiry', validRentExpiry.toString());
+    setAccountStorageItem('streetLife_checksum', calculateChecksum(state.streetCoin, validRentExpiry));
 
     // Direct localStorage keys required by Prom 4, Prom 5, and Prom 6
     if (state.inventoryArray) {
-      localStorage.setItem('inventoryArray', JSON.stringify(state.inventoryArray));
+      setAccountStorageItem('inventoryArray', JSON.stringify(state.inventoryArray));
     }
     if (state.equippedItems) {
-      localStorage.setItem('equippedItems', JSON.stringify(state.equippedItems));
+      setAccountStorageItem('equippedItems', JSON.stringify(state.equippedItems));
     }
     if (typeof state.watchCountDaily === 'number') {
-      localStorage.setItem('watchCountDaily', state.watchCountDaily.toString());
+      setAccountStorageItem('watchCountDaily', state.watchCountDaily.toString());
     }
     if (state.lastWatchDate) {
-      localStorage.setItem('lastWatchDate', state.lastWatchDate);
+      setAccountStorageItem('lastWatchDate', state.lastWatchDate);
     }
     // PROM 6: Task System Direct Keys
     if (state.completedTasks) {
-      localStorage.setItem('completedTasks', JSON.stringify(state.completedTasks));
-      localStorage.setItem('streetLife_completedTasks', JSON.stringify(state.completedTasks));
+      setAccountStorageItem('completedTasks', JSON.stringify(state.completedTasks));
+      setAccountStorageItem('streetLife_completedTasks', JSON.stringify(state.completedTasks));
     }
     if (state.taskProgress) {
-      localStorage.setItem('taskProgress', JSON.stringify(state.taskProgress));
-      localStorage.setItem('streetLife_taskProgress', JSON.stringify(state.taskProgress));
+      setAccountStorageItem('taskProgress', JSON.stringify(state.taskProgress));
+      setAccountStorageItem('streetLife_taskProgress', JSON.stringify(state.taskProgress));
     }
   } catch (err) {
     console.error('Failed to save to localStorage streetLife_save_v2:', err);
@@ -475,7 +513,7 @@ export function subscribeGameState(listener: () => void) {
       const now = Date.now();
       let loadedData: Partial<UserGameState> = {};
 
-      const rawV2 = localStorage.getItem(SAVE_KEY_V2);
+      const rawV2 = getAccountStorageItem(SAVE_KEY_V2);
       if (rawV2) {
         try {
           loadedData = JSON.parse(rawV2);
@@ -484,12 +522,12 @@ export function subscribeGameState(listener: () => void) {
         }
       } else {
         // Fallback / migration from legacy v1 individual keys
-        const storedCoin = localStorage.getItem('streetCoin');
-        const storedReferral = localStorage.getItem('myReferralCode');
-        const storedDevice = localStorage.getItem('deviceId');
-        const storedPlayed = localStorage.getItem('hasPlayedToday');
-        const storedStreak = localStorage.getItem('dailyStreak');
-        const storedLastClaim = localStorage.getItem('lastClaimDate');
+        const storedCoin = getAccountStorageItem('streetCoin');
+        const storedReferral = getAccountStorageItem('myReferralCode');
+        const storedDevice = getAccountStorageItem('deviceId');
+        const storedPlayed = getAccountStorageItem('hasPlayedToday');
+        const storedStreak = getAccountStorageItem('dailyStreak');
+        const storedLastClaim = getAccountStorageItem('lastClaimDate');
 
         if (storedCoin) loadedData.streetCoin = parseInt(storedCoin, 10);
         if (storedReferral) loadedData.myReferralCode = storedReferral;
@@ -530,7 +568,7 @@ export function subscribeGameState(listener: () => void) {
 
       // Prom 2 & Transactions hydration
       let shooterLevel = typeof loadedData.shooterLevel === 'number' ? loadedData.shooterLevel : 1;
-      const storedShooterLevel = localStorage.getItem('shooterLevel');
+      const storedShooterLevel = getAccountStorageItem('shooterLevel');
       if (storedShooterLevel) {
         const parsed = parseInt(storedShooterLevel, 10);
         if (!isNaN(parsed) && parsed >= 1) shooterLevel = parsed;
@@ -561,7 +599,7 @@ export function subscribeGameState(listener: () => void) {
       // PROM 5: Inventory Hydration
       let inventoryArray = DEFAULT_INVENTORY_ARRAY;
       try {
-        const rawInv = localStorage.getItem('inventoryArray');
+        const rawInv = getAccountStorageItem('inventoryArray');
         if (rawInv) {
           const parsed = JSON.parse(rawInv);
           if (Array.isArray(parsed) && parsed.length > 0) inventoryArray = parsed;
@@ -574,7 +612,7 @@ export function subscribeGameState(listener: () => void) {
 
       let equippedItems = DEFAULT_EQUIPPED_ITEMS;
       try {
-        const rawEquipped = localStorage.getItem('equippedItems');
+        const rawEquipped = getAccountStorageItem('equippedItems');
         if (rawEquipped) {
           const parsed = JSON.parse(rawEquipped);
           if (Array.isArray(parsed)) equippedItems = parsed;
@@ -587,9 +625,9 @@ export function subscribeGameState(listener: () => void) {
 
       // PROM 4: Watch Ads Hydration
       const todayStr = new Date().toISOString().split('T')[0];
-      let lastWatchDate = localStorage.getItem('lastWatchDate') || loadedData.lastWatchDate || todayStr;
+      let lastWatchDate = getAccountStorageItem('lastWatchDate') || loadedData.lastWatchDate || todayStr;
       let watchCountDaily = 0;
-      const rawWatchCount = localStorage.getItem('watchCountDaily');
+      const rawWatchCount = getAccountStorageItem('watchCountDaily');
       if (rawWatchCount !== null) {
         watchCountDaily = parseInt(rawWatchCount, 10) || 0;
       } else if (typeof loadedData.watchCountDaily === 'number') {
@@ -600,8 +638,8 @@ export function subscribeGameState(listener: () => void) {
       if (lastWatchDate !== todayStr) {
         watchCountDaily = 0;
         lastWatchDate = todayStr;
-        localStorage.setItem('watchCountDaily', '0');
-        localStorage.setItem('lastWatchDate', todayStr);
+        setAccountStorageItem('watchCountDaily', '0');
+        setAccountStorageItem('lastWatchDate', todayStr);
       }
 
       const boostUntil = typeof loadedData.boostUntil === 'number' ? loadedData.boostUntil : null;
@@ -609,7 +647,7 @@ export function subscribeGameState(listener: () => void) {
       // PROM 6: Task System Hydration
       let completedTasks: Record<string, boolean> = { ...DEFAULT_COMPLETED_TASKS };
       try {
-        const rawCompleted = localStorage.getItem('completedTasks') || localStorage.getItem('streetLife_completedTasks');
+        const rawCompleted = getAccountStorageItem('completedTasks') || getAccountStorageItem('streetLife_completedTasks');
         if (rawCompleted) {
           const parsed = JSON.parse(rawCompleted);
           if (parsed && typeof parsed === 'object') {
@@ -632,7 +670,7 @@ export function subscribeGameState(listener: () => void) {
 
       let taskProgress: Record<string, number> = { ...DEFAULT_TASK_PROGRESS };
       try {
-        const rawProgress = localStorage.getItem('taskProgress') || localStorage.getItem('streetLife_taskProgress');
+        const rawProgress = getAccountStorageItem('taskProgress') || getAccountStorageItem('streetLife_taskProgress');
         if (rawProgress) {
           const parsed = JSON.parse(rawProgress);
           if (parsed && typeof parsed === 'object') {
@@ -692,18 +730,18 @@ export function subscribeGameState(listener: () => void) {
         // Studio Rent & Security
         studioLevel: loadedData.studioLevel || 0,
         rentExpiry: (() => {
-          const storedRent = typeof window !== 'undefined' ? localStorage.getItem('rentExpiry') : null;
+          const storedRent = typeof window !== 'undefined' ? getAccountStorageItem('rentExpiry') : null;
           if (storedRent) {
             const p = parseInt(storedRent, 10);
             if (!isNaN(p) && p > 0) return p;
           }
           return loadedData.rentExpiry && loadedData.rentExpiry > 0 ? loadedData.rentExpiry : now + DEFAULT_RENT_DURATION;
         })(),
-        userEmail: loadedData.userEmail || (typeof window !== 'undefined' ? localStorage.getItem('userEmail') || '' : ''),
+        userEmail: loadedData.userEmail || (typeof window !== 'undefined' ? getAccountStorageItem('userEmail') || '' : ''),
         isBanned: !!loadedData.isBanned,
         postedSongs: loadedData.postedSongs || (typeof window !== 'undefined' ? (() => {
           try {
-            const r = localStorage.getItem('streetLife_postedSongs');
+            const r = getAccountStorageItem('streetLife_postedSongs');
             return r ? JSON.parse(r) : [];
           } catch {
             return [];
@@ -1654,14 +1692,14 @@ export function getHustleHubState(userId = 'anon'): HustleHubState {
   if (typeof window === 'undefined') return defaultState;
 
   try {
-    const raw = localStorage.getItem(`${HUSTLE_HUB_KEY}_${userId}`);
+    const raw = getAccountStorageItem(`${HUSTLE_HUB_KEY}_${userId}`);
     if (!raw) return defaultState;
     const parsed = JSON.parse(raw);
     // Reset daily recording count if new date
     if (parsed.todayRecordingsDate !== todayStr) {
       parsed.todayRecordingsCount = 0;
       parsed.todayRecordingsDate = todayStr;
-      localStorage.setItem(`${HUSTLE_HUB_KEY}_${userId}`, JSON.stringify(parsed));
+      setAccountStorageItem(`${HUSTLE_HUB_KEY}_${userId}`, JSON.stringify(parsed));
     }
     return { ...defaultState, ...parsed };
   } catch {
@@ -1674,7 +1712,7 @@ export function saveHustleHubState(userId = 'anon', update: Partial<HustleHubSta
   const updated: HustleHubState = { ...current, ...update };
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem(`${HUSTLE_HUB_KEY}_${userId}`, JSON.stringify(updated));
+      setAccountStorageItem(`${HUSTLE_HUB_KEY}_${userId}`, JSON.stringify(updated));
     } catch (e) {
       console.warn('Hustle hub save error:', e);
     }
@@ -1688,7 +1726,7 @@ export function saveHustleHubState(userId = 'anon', update: Partial<HustleHubSta
 
 export function getRentExpiry(): number {
   if (typeof window === 'undefined') return Date.now() + DEFAULT_RENT_DURATION;
-  const stored = localStorage.getItem('rentExpiry');
+  const stored = getAccountStorageItem('rentExpiry');
   if (stored) {
     const val = parseInt(stored, 10);
     if (!isNaN(val) && val > 0) return val;
@@ -1869,7 +1907,7 @@ export function savePostedSong(song: Omit<PostedSong, 'id' | 'timestamp'>): { su
   };
 
   if (typeof window !== 'undefined') {
-    localStorage.setItem('streetLife_postedSongs', JSON.stringify(updatedSongs));
+    setAccountStorageItem('streetLife_postedSongs', JSON.stringify(updatedSongs));
   }
   persistState(currentSnapshot);
   notifyListeners();
@@ -1880,7 +1918,7 @@ export function savePostedSong(song: Omit<PostedSong, 'id' | 'timestamp'>): { su
 export function getStoredPostedSongs(): PostedSong[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem('streetLife_postedSongs');
+    const raw = getAccountStorageItem('streetLife_postedSongs');
     if (!raw) return [];
     return JSON.parse(raw);
   } catch {
@@ -1898,7 +1936,7 @@ export function setUserEmail(email: string): void {
     userEmail: email.trim().toLowerCase(),
   };
   if (typeof window !== 'undefined') {
-    localStorage.setItem('userEmail', email.trim().toLowerCase());
+    setAccountStorageItem('userEmail', email.trim().toLowerCase());
   }
   persistState(currentSnapshot);
   notifyListeners();
@@ -1907,7 +1945,7 @@ export function setUserEmail(email: string): void {
 export function logAdminAction(adminEmail: string, action: string, details: string): void {
   if (typeof window === 'undefined') return;
   try {
-    const existingRaw = localStorage.getItem('streetLife_adminLogs');
+    const existingRaw = getAccountStorageItem('streetLife_adminLogs');
     const existing: AdminLog[] = existingRaw ? JSON.parse(existingRaw) : [];
     const newLog: AdminLog = {
       id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -1916,7 +1954,7 @@ export function logAdminAction(adminEmail: string, action: string, details: stri
       details,
       timestamp: Date.now(),
     };
-    localStorage.setItem('streetLife_adminLogs', JSON.stringify([newLog, ...existing].slice(0, 50)));
+    setAccountStorageItem('streetLife_adminLogs', JSON.stringify([newLog, ...existing].slice(0, 50)));
   } catch (err) {
     console.warn('Admin log error:', err);
   }
@@ -1925,7 +1963,7 @@ export function logAdminAction(adminEmail: string, action: string, details: stri
 export function getAdminLogs(): AdminLog[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem('streetLife_adminLogs');
+    const raw = getAccountStorageItem('streetLife_adminLogs');
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -1959,7 +1997,7 @@ export function adminDeleteSong(songId: string): void {
     postedSongs: updated,
   };
   if (typeof window !== 'undefined') {
-    localStorage.setItem('streetLife_postedSongs', JSON.stringify(updated));
+    setAccountStorageItem('streetLife_postedSongs', JSON.stringify(updated));
   }
   persistState(currentSnapshot);
   notifyListeners();
@@ -1980,11 +2018,11 @@ export function adminToggleBan(targetUserId?: string): boolean {
 
 export function adminResetAll(): void {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem(SAVE_KEY_V2);
-    localStorage.removeItem('streetCoin');
-    localStorage.removeItem('rentExpiry');
-    localStorage.removeItem('streetLife_checksum');
-    localStorage.removeItem('streetLife_postedSongs');
+    removeAccountStorageItem(SAVE_KEY_V2);
+    removeAccountStorageItem('streetCoin');
+    removeAccountStorageItem('rentExpiry');
+    removeAccountStorageItem('streetLife_checksum');
+    removeAccountStorageItem('streetLife_postedSongs');
   }
   currentSnapshot = {
     ...SERVER_GAME_STATE_SNAPSHOT,
@@ -2014,7 +2052,7 @@ export function recordWithdrawalClick(data: {
 }): WithdrawalClickRecord[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem('withdrawalRequests');
+    const raw = getAccountStorageItem('withdrawalRequests');
     const existing: WithdrawalClickRecord[] = raw ? JSON.parse(raw) : [];
     const newRecord: WithdrawalClickRecord = {
       userId: data.userId || 'anonymous',
@@ -2024,7 +2062,7 @@ export function recordWithdrawalClick(data: {
       status: data.status || 'Clicked - Waiting for Nov 30',
     };
     const updated = [newRecord, ...existing];
-    localStorage.setItem('withdrawalRequests', JSON.stringify(updated));
+    setAccountStorageItem('withdrawalRequests', JSON.stringify(updated));
     return updated;
   } catch (err) {
     console.warn('Error recording withdrawal click:', err);
@@ -2035,7 +2073,7 @@ export function recordWithdrawalClick(data: {
 export function getWithdrawalClickRecords(): WithdrawalClickRecord[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem('withdrawalRequests');
+    const raw = getAccountStorageItem('withdrawalRequests');
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
