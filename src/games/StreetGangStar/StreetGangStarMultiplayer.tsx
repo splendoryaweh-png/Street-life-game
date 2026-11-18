@@ -51,7 +51,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   useEffect(() => { isHostRef.current = isHost; }, [isHost]);
 
   const gameStateRef = useRef({
-    player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: 1900, y: 1800, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false, hitCount: 0 },
+    player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: 4000, y: 4000, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false, hitCount: 0 },
     remotePlayers: new Map<string, RemotePlayer>(),
     unlockedGuns: { pistol: true, shotgun_laser: false, ak_laser: false, sniper_laser: false } as Record<WeaponType, boolean>,
     cars: [] as (CityCar & { health: number; maxHealth: number })[], civilians: [] as Civilian[], gangsters: [] as Gangster[], lasers: [] as LaserBeam[], sparks: [] as SparkParticle[],
@@ -279,7 +279,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         broadcastGameMessage({ type: 'player_sync', senderId: myPlayerId, payload: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, team: myTeam, gun: p.gun, avatarColor: '#FFD700', isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset } });
         if (isHost && now % 600 < 150) { broadcastGameMessage({ type: 'host_sync', senderId: myPlayerId, payload: { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters } }); }
       }
-      s.remotePlayers.forEach((rem, remId) => { rem.x += (rem.targetX - rem.x) * 0.25; rem.y += (rem.targetY - rem.y) * 0.25; if (now - rem.lastSeen > 8000) { s.remotePlayers.delete(remId); setActivePlayerCount(s.remotePlayers.size + 1); } });
+      s.remotePlayers.forEach((rem, remId) => { rem.x += (rem.targetX - rem.x) * 0.25; rem.y += (rem.targetY - rem.y) * 0.25; if (now - rem.lastSeen > 6 * 60 * 1000) { s.remotePlayers.delete(remId); setActivePlayerCount(s.remotePlayers.size + 1); } });
       if (isHost && now - s.lastSpawnTime >= 5000) {
         s.lastSpawnTime = now; const edge = cityData.gangsterSpawnEdges[Math.floor(Math.random() * cityData.gangsterSpawnEdges.length)]; const isBus = Math.random() > 0.65;
         s.gangsters.push({ id: `gangster_${now}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: 6, maxHealth: 6, speed: isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isBus ? 'bus' : 'motorcycle' });
