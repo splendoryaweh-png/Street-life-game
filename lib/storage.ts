@@ -1053,9 +1053,24 @@ export function saveReferralProfile(profile: {
   referralsCount: number;
   hasClaimedWelcomeBonus: boolean;
   appliedReferralCode: string | null;
+  inviterRewardCoins?: number;
 }): void {
+  const reward = Math.max(0, Math.floor(Number(profile.inviterRewardCoins) || 0));
+  const now = Date.now();
+  const rewardTransaction: CoinTransaction | null = reward > 0 ? {
+    id: `tx_referral_sync_${now}`,
+    type: 'referral',
+    description: `+${reward} for verified referrals`,
+    amount: reward,
+    timestamp: now,
+  } : null;
+
   currentSnapshot = {
     ...currentSnapshot,
+    streetCoin: currentSnapshot.streetCoin + reward,
+    transactions: rewardTransaction
+      ? [rewardTransaction, ...(currentSnapshot.transactions || [])].slice(0, 25)
+      : currentSnapshot.transactions,
     myReferralCode: profile.referralCode || currentSnapshot.myReferralCode,
     referralsCount: Math.max(0, Number(profile.referralsCount) || 0),
     hasClaimedWelcomeBonus: Boolean(profile.hasClaimedWelcomeBonus),
