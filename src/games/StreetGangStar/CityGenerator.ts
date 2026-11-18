@@ -202,8 +202,9 @@ export function getRandomCityByCountry(countryCode?: string, seedStr?: string): 
   const themeKey = THEMES[selectedCountry] ? selectedCountry : 'WORLD';
   const theme = THEMES[themeKey];
 
-  const mapWidth = 4000;
-  const mapHeight = 4000;
+  // Double the playable district while preserving the original layout proportions.
+  const mapWidth = 8000;
+  const mapHeight = 8000;
 
   // 1. Generate Arterial Road Grid (Horizontal & Vertical Highways + Cross streets)
   const roads: Road[] = [];
@@ -365,6 +366,24 @@ export function getRandomCityByCountry(countryCode?: string, seedStr?: string): 
     { x: 3960, y: 2200, edge: 'right' },
     { x: 3960, y: 3000, edge: 'right' },
   ];
+
+  // Scale every generated world-space coordinate and size to match the 2x map.
+  const scale = (value: number) => value * 2;
+  roads.forEach((road) => { road.x = scale(road.x); road.y = scale(road.y); road.width = scale(road.width); road.height = scale(road.height); });
+  buildings.forEach((building) => {
+    building.x = scale(building.x); building.y = scale(building.y);
+    building.width = scale(building.width); building.height = scale(building.height);
+    building.door.x = scale(building.door.x); building.door.y = scale(building.door.y);
+    building.door.width = scale(building.door.width); building.door.height = scale(building.door.height);
+    building.interiorItems.forEach((item) => { item.x = scale(item.x); item.y = scale(item.y); });
+  });
+  compounds.forEach((compound) => {
+    compound.x = scale(compound.x); compound.y = scale(compound.y);
+    compound.width = scale(compound.width); compound.height = scale(compound.height);
+    compound.gates.forEach((gate) => { gate.x = scale(gate.x); gate.y = scale(gate.y); gate.width = scale(gate.width); gate.height = scale(gate.height); });
+  });
+  spawnPoints.forEach((point) => { point.x = scale(point.x); point.y = scale(point.y); });
+  gangsterSpawnEdges.forEach((point) => { point.x = scale(point.x); point.y = scale(point.y); });
 
   return {
     cityName,
