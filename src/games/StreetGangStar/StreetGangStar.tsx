@@ -8,6 +8,7 @@ import { getRandomCityByCountry, CityData, isPointInsideBuilding } from './CityG
 import { getGangStarText, GangStarTextKey } from './language';
 import { StreetGangStarIntro } from './Intro';
 import { StreetJoystick } from './StreetJoystick';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 export type WeaponType = 'pistol' | 'shotgun_laser' | 'ak_laser' | 'sniper_laser';
 export interface WeaponDef { id: WeaponType; nameKey: GangStarTextKey; damage: number; maxAmmo: number; fireRateMs: number; laserColor: string; price: number; bulletSpeed: number; spread: number; }
 export const WEAPONS: Record<WeaponType, WeaponDef> = {
@@ -18,7 +19,7 @@ export const WEAPONS: Record<WeaponType, WeaponDef> = {
 };
 export interface LaserBeam { id: string; x1: number; y1: number; x2: number; y2: number; color: string; life: number; maxLife: number; isPlayer: boolean; damage: number; }
 export interface CityCar { id: string; x: number; y: number; vx: number; vy: number; speed: number; direction: 'horizontal' | 'vertical'; width: number; height: number; color: string; isOccupied: boolean; hasDriver: boolean; driverType: 'civilian' | 'player' | 'gangster' | null; health: number; maxHealth: number; }
-export interface Civilian { id: string; x: number; y: number; vx: number; vy: number; speed: number; facingAngle: number; state: 'walking' | 'scared' | 'saved'; color: string; }
+export interface Civilian { id: string; x: number; y: number; vx: number; vy: number; speed: number; facingAngle: number; state: 'walking' | 'scared' | 'saved'; color: string; health?: number; maxHealth?: number; }
 export interface Gangster { id: string; type: 'fighter_motor' | 'fighter_bus'; x: number; y: number; vx: number; vy: number; health: number; maxHealth: number; speed: number; facingAngle: number; gun: WeaponType; lastShootTime: number; vehicleType: 'motorcycle' | 'bus'; }
 export interface SparkParticle { x: number; y: number; vx: number; vy: number; color: string; life: number; }
 interface StreetGangStarProps { onBack: () => void; onToast: (msg: string) => void; language?: string; initialCountry?: string; }
@@ -26,6 +27,8 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const t = useCallback((key: GangStarTextKey) => getGangStarText(language, key), [language]);
   const [showIntro, setShowIntro] = useState<boolean>(true);
+  const [showDeathModal, setShowDeathModal] = useState<boolean>(false);
+  const [isAdLoading, setIsAdLoading] = useState<boolean>(false);
   const [showAvatarModal, setShowAvatarModal] = useState<boolean>(false);
   const [avatarColor, setAvatarColor] = useState<string>(() => { if (typeof window !== 'undefined') { return getAccountStorageItem('gangstar_avatar_color') || '#FFD700'; } return '#FFD700'; });
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
@@ -58,13 +61,34 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     const s = gameStateRef.current; const cars: CityCar[] = []; const colors = ['#38BDF8', '#F97316', '#A855F7', '#EF4444', '#10B981', '#E2E8F0', '#FACC15'];
     cityData.roads.forEach((road, idx) => { if (idx < 10) { const isHoriz = road.direction === 'horizontal'; const carW = isHoriz ? 54 : 30; const carH = isHoriz ? 30 : 54; const startX = isHoriz ? (idx * 380) % cityData.mapWidth : road.x + 30; const startY = isHoriz ? road.y + 40 : (idx * 380) % cityData.mapHeight; const speed = 2.4 + (idx % 3) * 0.5; cars.push({ id: `car_${idx}`, x: startX, y: startY, vx: isHoriz ? speed : 0, vy: isHoriz ? 0 : speed, speed, direction: road.direction, width: carW, height: carH, color: colors[idx % colors.length], isOccupied: false, hasDriver: true, driverType: 'civilian', health: 10, maxHealth: 10 }); } });
     s.cars = cars; const civs: Civilian[] = []; const civColors = ['#94A3B8', '#CBD5E1', '#E2E8F0', '#F1F5F9', '#64748B'];
-    for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length] }); } s.civilians = civs;
+    for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length], health: 4, maxHealth: 4 }); } s.civilians = civs;
   }, [cityData]);
   const setupGame = useCallback(() => {
     const s = gameStateRef.current; s.player.x = 1900; s.player.y = 1800; s.player.health = 100; s.player.ammo = WEAPONS.pistol.maxAmmo; s.player.maxAmmo = WEAPONS.pistol.maxAmmo; s.player.gun = 'pistol'; s.player.isCover = false; s.player.inCarId = null; s.gangsters = []; s.lasers = []; s.sparks = []; s.lastSpawnTime = Date.now(); s.isRunning = true;
     setHudHealth(100); setHudAmmo(WEAPONS.pistol.maxAmmo); setHudMaxAmmo(WEAPONS.pistol.maxAmmo); setHudGun('pistol'); setHudInCover(false); setHudInCar(false); initTrafficAndCivilians();
   }, [initTrafficAndCivilians]);
   const handleStartFromIntro = () => { setShowIntro(false); setupGame(); };
+  const handleWatchAdToRevive = async () => {
+    if (isAdLoading) return;
+    setIsAdLoading(true);
+    try {
+      await showAdsgramRewardedAd();
+      const s = gameStateRef.current;
+      s.player.health = 100;
+      s.player.x = 1900;
+      s.player.y = 1800;
+      s.player.inCarId = null;
+      s.isRunning = true;
+      setHudHealth(100);
+      setHudInCar(false);
+      setShowDeathModal(false);
+      onToast('Rewarded ad completed. Full energy restored!');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'The ad could not be completed. Please try again.');
+    } finally {
+      setIsAdLoading(false);
+    }
+  };
   const handleReload = useCallback(() => { const s = gameStateRef.current; if (s.player.isReloading) return; const wDef = WEAPONS[s.player.gun]; if (s.player.ammo >= wDef.maxAmmo) return; s.player.isReloading = true; playSfx('reload'); onToast(t('reload_alert')); setTimeout(() => { s.player.ammo = wDef.maxAmmo; s.player.isReloading = false; setHudAmmo(wDef.maxAmmo); }, 900); }, [onToast, playSfx, t]);
   const handleToggleCar = useCallback(() => {
     const s = gameStateRef.current; const p = s.player; if (p.inCarId) { const car = s.cars.find((c) => c.id === p.inCarId); if (car) { car.isOccupied = false; car.hasDriver = false; car.driverType = null; p.x = car.x + 30; p.y = car.y + 30; } p.inCarId = null; setHudInCar(false); playSfx('click'); onToast(t('car_exit')); return; }
@@ -95,10 +119,11 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     canvas.addEventListener('mousemove', onMouseMove); canvas.addEventListener('mousedown', onMouseDown); window.addEventListener('mouseup', onMouseUp);
     const loop = () => {
       const s = gameStateRef.current; const p = s.player; const now = Date.now();
+      if (!s.isRunning) { animId = requestAnimationFrame(loop); return; }
       if (s.keys.mouseLeft) { shootPlayerLaser(); }
       if (now - s.lastSpawnTime >= 5000) {
         s.lastSpawnTime = now; const edge = cityData.gangsterSpawnEdges[Math.floor(Math.random() * cityData.gangsterSpawnEdges.length)]; const isBus = Math.random() > 0.5;
-        s.gangsters.push({ id: `gangster_${Date.now()}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: 3, maxHealth: 3, speed: isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isBus ? 'bus' : 'motorcycle' });
+        s.gangsters.push({ id: `gangster_${Date.now()}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: 6, maxHealth: 6, speed: isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isBus ? 'bus' : 'motorcycle' });
       }
       if (p.isJumping) { p.jumpOffset += p.jumpVy; p.jumpVy -= 0.65; if (p.jumpOffset <= 0) { p.jumpOffset = 0; p.jumpVy = 0; p.isJumping = false; } }
       let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
@@ -137,13 +162,24 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
           for (let gIdx = s.gangsters.length - 1; gIdx >= 0; gIdx--) {
             const g = s.gangsters[gIdx];
             if (distToSegment(g.x, g.y, l.x1, l.y1, l.x2, l.y2) < 38) {
-              g.health -= 1; // 3 shots die
+              g.health -= 1; // 6 direct hits to defeat an enemy
               for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); }
               s.lasers.splice(lIdx, 1); hit = true;
               if (g.health <= 0) {
                 for (let sp = 0; sp < 16; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, color: sp % 2 ? '#ff0000' : '#ffaa00', life: 22 }); }
                 s.gangsters.splice(gIdx, 1); p.coins += 5; setHudCoins(p.coins); setGangstersKilledCount(k => k + 1); addGameCoins(5, '+5 SC', 'task_reward'); playSfx('coin');
               }
+              break;
+            }
+          }
+          if (hit) continue;
+          for (let civIdx = s.civilians.length - 1; civIdx >= 0; civIdx--) {
+            const civ = s.civilians[civIdx];
+            if (civ.state !== 'saved' && distToSegment(civ.x, civ.y, l.x1, l.y1, l.x2, l.y2) < 30) {
+              civ.health = (civ.health ?? 4) - 1;
+              s.lasers.splice(lIdx, 1); hit = true;
+              for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#FDE68A', life: 14 }); }
+              if (civ.health <= 0) s.civilians.splice(civIdx, 1);
               break;
             }
           }
@@ -164,10 +200,10 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
           if (hit) continue;
         } else {
           if (Math.hypot(p.x - l.x2, p.y - l.y2) < 42 || distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 30) {
-            const isDriver = !!p.inCarId; let dmg = 10; if (p.isCover) dmg = 1; else if (isDriver) dmg = 3;
+            const dmg = 10; // Player is defeated after ten enemy hits.
             p.health = Math.max(0, p.health - dmg); setHudHealth(p.health); s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 4; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, color: '#38BDF8', life: 12 }); }
-            if (p.health <= 0) { playSfx('siren'); onToast(t('player_down')); p.health = 100; p.x = 1900; p.y = 1800; setHudHealth(100); }
+            if (p.health <= 0) { playSfx('siren'); onToast(t('player_down')); p.health = 0; s.isRunning = false; setHudHealth(0); setShowDeathModal(true); }
           }
         }
         if (l.life <= 0 && s.lasers[lIdx]) { s.lasers.splice(lIdx, 1); }
@@ -252,6 +288,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
         <button onClick={() => { playSfx('click'); setShowAvatarModal(true); }} type="button" className="p-2 rounded-2xl bg-black/85 border border-white/20 text-white font-black text-xs uppercase active:scale-95 transition-all cursor-pointer hover:border-[#FFD700] backdrop-blur-md"><Users className="w-4 h-4" /></button>
       </div>
       <StreetJoystick onMove={(movement) => { gameStateRef.current.joystickMovement = movement; if (movement.isMoving) { gameStateRef.current.isMouseActive = false; } }} onJump={handleJump} onShoot={shootPlayerLaser} onRunToggle={(running) => { gameStateRef.current.isRunActive = running; }} onHijackOrEnterCar={handleToggleCar} isNearCar={hudIsNearCar} isInCar={hudInCar} isCover={hudInCover} onCoverToggle={handleToggleCover} onReload={handleReload} ammo={hudAmmo} maxAmmo={hudMaxAmmo} />
+      {showDeathModal && (<div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4"><div className="w-full max-w-sm rounded-3xl border-2 border-red-500/70 bg-[#11131C] p-6 text-center shadow-[0_0_40px_rgba(239,68,68,0.25)]"><div className="text-5xl mb-3">💀</div><h2 className="text-xl font-black uppercase tracking-wide text-white">You Died</h2><p className="mt-2 text-sm text-gray-300">Your energy is empty. Watch a rewarded ad to restore full energy and continue.</p><div className="mt-5 space-y-3"><button onClick={handleWatchAdToRevive} disabled={isAdLoading} type="button" className="w-full rounded-xl bg-[#FFD700] px-4 py-3.5 text-xs font-black uppercase text-black disabled:opacity-60">{isAdLoading ? 'Loading Rewarded Ad…' : '▶ Watch Ad — Restore Full Energy'}</button><button onClick={() => { setShowDeathModal(false); onBack(); }} type="button" className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3.5 text-xs font-black uppercase text-white">Go Back to Home Page</button></div></div></div>)}
       {showShopModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-[#FFD700] p-5 shadow-[0_0_35px_rgba(255,215,0,0.3)] text-left relative animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><div className="flex items-center gap-2 text-[#FFD700]"><ShoppingBag className="w-5 h-5" /><h3 className="text-base font-black uppercase tracking-wider">{t('gun_shop')}</h3></div><button onClick={() => setShowShopModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="space-y-2.5">{(Object.keys(WEAPONS) as WeaponType[]).map((wKey) => { const w = WEAPONS[wKey]; const isOwned = gameStateRef.current.unlockedGuns[wKey]; const isEquipped = hudGun === wKey; return (<div key={wKey} className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${isEquipped ? 'bg-[#FFD700]/15 border-[#FFD700]' : 'bg-black/60 border-white/10'}`}><div><h4 className="text-xs font-black text-white">{t(w.nameKey)}</h4><p className="text-[10px] text-gray-400">DMG: {w.damage} | Ammo: {w.maxAmmo}</p></div>{isEquipped ? (<span className="text-[10px] font-mono text-[#FFD700] font-black uppercase">EQUIPPED</span>) : isOwned ? (<button onClick={() => { gameStateRef.current.player.gun = wKey; gameStateRef.current.player.ammo = w.maxAmmo; gameStateRef.current.player.maxAmmo = w.maxAmmo; setHudGun(wKey); setHudAmmo(w.maxAmmo); setHudMaxAmmo(w.maxAmmo); playSfx('click'); setShowShopModal(false); }} type="button" className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase active:scale-95">EQUIP</button>) : (<button onClick={() => handleBuyWeapon(wKey)} type="button" className="px-3 py-1.5 rounded-xl bg-[#FFD700] text-black font-black text-xs uppercase active:scale-95 hover:brightness-110 shadow-md">{w.price} SC</button>)}</div>); })}</div></div></div>)}
       {showAvatarModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-white/20 p-5 shadow-2xl text-left relative animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><h3 className="text-sm font-black uppercase tracking-wider text-white">{t('customize_avatar')}</h3><button onClick={() => setShowAvatarModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="mb-4"><span className="text-xs font-bold text-gray-300 block mb-2">{t('choose_color')}</span><div className="flex items-center gap-2">{['#FFD700', '#22C55E', '#3B82F6', '#EF4444', '#A855F7', '#E2E8F0'].map((col) => (<button key={col} onClick={() => { setAvatarColor(col); if (typeof window !== 'undefined') { setAccountStorageItem('gangstar_avatar_color', col); } playSfx('click'); }} type="button" className={`w-9 h-9 rounded-2xl border-2 transition-all cursor-pointer ${avatarColor === col ? 'scale-110 border-white shadow-lg' : 'border-transparent'}`} style={{ backgroundColor: col }} />))}</div></div><button onClick={() => setShowAvatarModal(false)} type="button" className="w-full py-3 rounded-2xl bg-[#FFD700] text-black font-black text-xs uppercase active:scale-95 cursor-pointer shadow-lg shadow-[#FFD700]/30">{t('close')}</button></div></div>)}
       {showTeamModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-white/20 p-5 shadow-2xl text-left relative animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><h3 className="text-sm font-black uppercase tracking-wider text-white">{t('team_join')}</h3><button onClick={() => setShowTeamModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="space-y-3"><button onClick={() => { setPlayerTeam('blue'); setShowTeamModal(false); playSfx('click'); onToast('Joined Blue Syndicate Defend Team!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left transition-all ${playerTeam === 'blue' ? 'bg-sky-950/60 border-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.3)]' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-sky-400">{t('team_blue')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_blue_desc')}</p></button><button onClick={() => { setPlayerTeam('red'); setShowTeamModal(false); playSfx('click'); onToast('Joined Red Corsairs Free-For-All!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left transition-all ${playerTeam === 'red' ? 'bg-red-950/60 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-red-400">{t('team_red')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_red_desc')}</p></button></div></div></div>)}
