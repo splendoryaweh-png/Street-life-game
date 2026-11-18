@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { TelegramUser, UserGameState, NavTab } from '@/types/game';
 import {
@@ -64,13 +65,13 @@ export function ProfileScreen({
   const [copiedLink, setCopiedLink] = useState(false);
   const [emailInput, setEmailInput] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('userEmail') || gameState.userEmail || '';
+      return getAccountStorageItem('userEmail') || gameState.userEmail || '';
     }
     return gameState.userEmail || '';
   });
   const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('userEmail') || '';
+      const stored = getAccountStorageItem('userEmail') || '';
       return stored.toLowerCase() === ADMIN_EMAIL.toLowerCase();
     }
     return false;
