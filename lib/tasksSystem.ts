@@ -1,6 +1,8 @@
 
 'use client';
 
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';
+
 export interface PendingTaskItem {
   id: string;
   playerId: string;
@@ -147,7 +149,7 @@ export function getUsedLinks(): string[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(STORAGE_GLOBAL_USED_LINKS);
+    const raw = getAccountStorageItem(STORAGE_GLOBAL_USED_LINKS);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -164,7 +166,7 @@ export function recordUsedLink(link: string): void {
 
     if (!links.includes(normalized)) {
       links.push(normalized);
-      localStorage.setItem(
+      setAccountStorageItem(
         STORAGE_GLOBAL_USED_LINKS,
         JSON.stringify(links)
       );
@@ -188,7 +190,7 @@ export function getCompletedTasks(): Record<string, boolean> {
   if (typeof window === 'undefined') return {};
 
   try {
-    const raw = localStorage.getItem(STORAGE_COMPLETED_TASKS);
+    const raw = getAccountStorageItem(STORAGE_COMPLETED_TASKS);
     const parsed = raw ? JSON.parse(raw) : {};
 
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -222,7 +224,7 @@ export function getAdsWatchedCount(): number {
   if (typeof window === 'undefined') return 0;
 
   try {
-    const value = Number(localStorage.getItem(STORAGE_ADS_WATCHED) || 0);
+    const value = Number(getAccountStorageItem(STORAGE_ADS_WATCHED) || 0);
     return Number.isFinite(value)
       ? Math.min(30, Math.max(0, value))
       : 0;
@@ -237,7 +239,7 @@ export function incrementAdsWatched(): number {
   const next = Math.min(30, getAdsWatchedCount() + 1);
 
   try {
-    localStorage.setItem(STORAGE_ADS_WATCHED, String(next));
+    setAccountStorageItem(STORAGE_ADS_WATCHED, String(next));
     window.dispatchEvent(
       new CustomEvent('streetlife_ads_watched_changed', {
         detail: next,
@@ -253,7 +255,7 @@ export function incrementAdsWatched(): number {
 export function isAdsTaskClaimed(): boolean {
   if (typeof window === 'undefined') return false;
 
-  return localStorage.getItem(STORAGE_ADS_CLAIMED) === 'true';
+  return getAccountStorageItem(STORAGE_ADS_CLAIMED) === 'true';
 }
 
 /**
