@@ -1,7 +1,7 @@
 'use client';
 
-import React
-import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';
 import {
   ArrowLeft,
   Dices,
