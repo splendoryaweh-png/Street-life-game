@@ -39,6 +39,7 @@ import {
 } from '@/src/wallet/AdminWallet';
 import { playClickSound, playSuccessSound, playCoinSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';
 
 export interface PlayerWalletState {
   address: string;
@@ -70,12 +71,12 @@ export function getPlayerWallet(): PlayerWalletState {
     };
   }
   try {
-    const raw = localStorage.getItem(STORAGE_PLAYER_WALLET);
+    const raw = getAccountStorageItem(STORAGE_PLAYER_WALLET);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed.connected === 'boolean') {
-        const storedUsdt = localStorage.getItem(STORAGE_USDT_BALANCE);
-        const storedTon = localStorage.getItem(STORAGE_TON_BALANCE);
+        const storedUsdt = getAccountStorageItem(STORAGE_USDT_BALANCE);
+        const storedTon = getAccountStorageItem(STORAGE_TON_BALANCE);
         return {
           ...parsed,
           tonBalance: storedTon ? parseFloat(storedTon) || parsed.tonBalance || 0 : parsed.tonBalance || 0,
@@ -98,12 +99,12 @@ export function getPlayerWallet(): PlayerWalletState {
 export function savePlayerWallet(wallet: PlayerWalletState): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(STORAGE_PLAYER_WALLET, JSON.stringify(wallet));
+    setAccountStorageItem(STORAGE_PLAYER_WALLET, JSON.stringify(wallet));
     if (typeof wallet.usdtBalance === 'number') {
-      localStorage.setItem(STORAGE_USDT_BALANCE, wallet.usdtBalance.toString());
+      setAccountStorageItem(STORAGE_USDT_BALANCE, wallet.usdtBalance.toString());
     }
     if (typeof wallet.tonBalance === 'number') {
-      localStorage.setItem(STORAGE_TON_BALANCE, wallet.tonBalance.toString());
+      setAccountStorageItem(STORAGE_TON_BALANCE, wallet.tonBalance.toString());
     }
     window.dispatchEvent(new CustomEvent('streetlife_player_wallet_changed', { detail: wallet }));
   } catch (e) {
@@ -213,7 +214,7 @@ export function WalletComponent({
   // Player coins in reactive state
   const [coins, setCoins] = useState<number>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('streetlife_coins');
+      const stored = getAccountStorageItem('streetlife_coins');
       if (stored) {
         const p = parseInt(stored, 10);
         if (!isNaN(p)) return p;
@@ -225,7 +226,7 @@ export function WalletComponent({
   // Crypto Balances (USDT & TON)
   const [usdtBalance, setUsdtBalance] = useState<number>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_USDT_BALANCE);
+      const stored = getAccountStorageItem(STORAGE_USDT_BALANCE);
       if (stored) {
         const val = parseFloat(stored);
         if (!isNaN(val)) return val;
@@ -236,7 +237,7 @@ export function WalletComponent({
 
   const [tonBalance, setTonBalance] = useState<number>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_TON_BALANCE);
+      const stored = getAccountStorageItem(STORAGE_TON_BALANCE);
       if (stored) {
         const val = parseFloat(stored);
         if (!isNaN(val)) return val;
@@ -333,7 +334,7 @@ export function WalletComponent({
   useEffect(() => {
     const handleCoinsSync = () => {
       if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('streetlife_coins');
+        const stored = getAccountStorageItem('streetlife_coins');
         if (stored) {
           const p = parseInt(stored, 10);
           if (!isNaN(p)) setCoins(p);
@@ -437,7 +438,7 @@ export function WalletComponent({
     setCoins(updatedCoins);
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem('streetlife_coins', String(updatedCoins));
+        setAccountStorageItem('streetlife_coins', String(updatedCoins));
       } catch {}
     }
     if (onCoinsChange) {
@@ -459,13 +460,13 @@ export function WalletComponent({
       newUsdt = Number((usdtBalance + usdtValue).toFixed(4));
       setUsdtBalance(newUsdt);
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_USDT_BALANCE, newUsdt.toString());
+        setAccountStorageItem(STORAGE_USDT_BALANCE, newUsdt.toString());
       }
     } else {
       newTon = Number((tonBalance + tonAmount).toFixed(6));
       setTonBalance(newTon);
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_TON_BALANCE, newTon.toString());
+        setAccountStorageItem(STORAGE_TON_BALANCE, newTon.toString());
       }
     }
 
@@ -541,7 +542,7 @@ export function WalletComponent({
     setCoins(updatedCoins);
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem('streetlife_coins', String(updatedCoins));
+        setAccountStorageItem('streetlife_coins', String(updatedCoins));
       } catch {}
     }
     if (onCoinsChange) {
