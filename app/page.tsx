@@ -171,7 +171,7 @@ export default function StreetLifeApp() {
               referralsCount: verifiedReferralCount,
               hasClaimedWelcomeBonus: Boolean(profile.hasClaimedWelcomeBonus),
               appliedReferralCode: profile.appliedReferralCode || null,
-              inviterRewardCoins: Math.max(0, verifiedReferralCount - currentReferralState.referralsCount) * 100,
+              inviterRewardCoins: Math.max(0, verifiedReferralCount - currentReferralState.referralsCount) * 520,
             });
           }
           if (launchReferralCode) {
@@ -182,7 +182,7 @@ export default function StreetLifeApp() {
             });
             const claim = await claimResponse.json().catch(() => ({}));
             if (claimResponse.ok && claim.ok) {
-              saveCoins(getGameStateSnapshot().streetCoin + Number(claim.inviteeReward || 520));
+              // Invitees already start with 1,000 coins; referral claims add no invitee bonus.
               playSuccessSound();
               playCoinSound();
               setToastMessage(claim.message || 'Referral reward claimed.');
@@ -204,7 +204,7 @@ export default function StreetLifeApp() {
                 referralsCount: verifiedReferralCount,
                 hasClaimedWelcomeBonus: Boolean(refreshedProfile.hasClaimedWelcomeBonus),
                 appliedReferralCode: refreshedProfile.appliedReferralCode || null,
-                inviterRewardCoins: Math.max(0, verifiedReferralCount - currentReferralState.referralsCount) * 100,
+                inviterRewardCoins: Math.max(0, verifiedReferralCount - currentReferralState.referralsCount) * 520,
               });
             }
           }
@@ -317,7 +317,7 @@ export default function StreetLifeApp() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || 'Referral could not be claimed.');
-      saveCoins(getGameStateSnapshot().streetCoin + Number(result.inviteeReward || 520));
+      // Invitees already start with 1,000 coins; referral claims add no invitee bonus.
       const verifiedReferralCount = Math.max(0, Number(result.referralsCount ?? serverReferralsCount));
       const currentReferralState = getGameStateSnapshot();
       setServerReferralCode(String(result.referralCode || serverReferralCode || activeGameState.myReferralCode));
@@ -327,7 +327,7 @@ export default function StreetLifeApp() {
         referralsCount: verifiedReferralCount,
         hasClaimedWelcomeBonus: true,
         appliedReferralCode: String(result.appliedReferralCode || code),
-        inviterRewardCoins: Math.max(0, verifiedReferralCount - currentReferralState.referralsCount) * 100,
+        inviterRewardCoins: Math.max(0, verifiedReferralCount - currentReferralState.referralsCount) * 520,
       });
       playSuccessSound();
       playCoinSound();
