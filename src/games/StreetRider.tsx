@@ -36,6 +36,7 @@ import {
   playSirenSound,
 } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';
 
 export interface StreetRiderProps {
   onBack?: () => void;
@@ -304,7 +305,7 @@ export function StreetRider({
   // Coins & Deliveries State
   const [coins, setCoins] = useState<number>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('streetlife_coins');
+      const stored = getAccountStorageItem('streetlife_coins');
       if (stored) {
         const val = parseInt(stored, 10);
         if (!isNaN(val)) return val;
@@ -953,7 +954,7 @@ export function StreetRider({
 
               if (typeof window !== 'undefined') {
                 try {
-                  localStorage.setItem('streetlife_coins', String(newCoins));
+                  setAccountStorageItem('streetlife_coins', String(newCoins));
                 } catch {}
               }
               addGameCoins(50, 'Street Rider package delivery', 'rider_delivery');
