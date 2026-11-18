@@ -165,7 +165,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       const s = gameStateRef.current; const cars: any[] = []; const colors = ['#38BDF8', '#F97316', '#A855F7', '#EF4444', '#10B981', '#E2E8F0', '#FACC15'];
       newCity.roads.forEach((road, idx) => { if (idx < 10) { const isHoriz = road.direction === 'horizontal'; cars.push({ id: `car_${idx}`, x: isHoriz ? (idx * 380) % newCity.mapWidth : road.x + 30, y: isHoriz ? road.y + 40 : (idx * 380) % newCity.mapHeight, vx: isHoriz ? 2.8 : 0, vy: isHoriz ? 0 : 2.8, speed: 2.8, direction: road.direction, width: isHoriz ? 54 : 30, height: isHoriz ? 30 : 54, color: colors[idx % colors.length], isOccupied: false, hasDriver: true, driverType: 'civilian', health: 10, maxHealth: 10 }); } }); s.cars = cars;
       const civs: Civilian[] = []; const civColors = ['#94A3B8', '#CBD5E1', '#E2E8F0', '#F1F5F9', '#64748B'];
-      for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length] }); } s.civilians = civs;
+      for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length], health: 4, maxHealth: 4 }); } s.civilians = civs;
     }
     channel.on('broadcast', { event: 'game' }, ({ payload }: { payload: MultiplayerMessage }) => {
       const msg = payload; if (!msg || msg.senderId === myPlayerId) return; const s = gameStateRef.current;
@@ -268,7 +268,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       s.remotePlayers.forEach((rem, remId) => { rem.x += (rem.targetX - rem.x) * 0.25; rem.y += (rem.targetY - rem.y) * 0.25; if (now - rem.lastSeen > 8000) { s.remotePlayers.delete(remId); setActivePlayerCount(s.remotePlayers.size + 1); } });
       if (isHost && now - s.lastSpawnTime >= 5000) {
         s.lastSpawnTime = now; const edge = cityData.gangsterSpawnEdges[Math.floor(Math.random() * cityData.gangsterSpawnEdges.length)]; const isBus = Math.random() > 0.65;
-        s.gangsters.push({ id: `gangster_${now}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: 3, maxHealth: 3, speed: isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isBus ? 'bus' : 'motorcycle' });
+        s.gangsters.push({ id: `gangster_${now}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: 6, maxHealth: 6, speed: isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isBus ? 'bus' : 'motorcycle' });
       }
       if (p.isJumping) { p.jumpOffset += p.jumpVy; p.jumpVy -= 0.65; if (p.jumpOffset <= 0) { p.jumpOffset = 0; p.jumpVy = 0; p.isJumping = false; } }
       let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
@@ -296,13 +296,24 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           for (let gIdx = s.gangsters.length - 1; gIdx >= 0; gIdx--) {
             const g = s.gangsters[gIdx];
             if (distToSegment(g.x, g.y, l.x1, l.y1, l.x2, l.y2) < 38) {
-              g.health -= 1; // 3 shots
+              g.health -= 1; // 6 direct hits to defeat an enemy
               for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); }
               s.lasers.splice(lIdx, 1); hit = true;
               if (g.health <= 0) {
                 for (let sp = 0; sp < 14; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, color: sp % 2 ? '#ff0000' : '#ffaa00', life: 22 }); }
                 s.gangsters.splice(gIdx, 1); p.coins += 5; p.kills += 1; setHudCoins(p.coins); addGameCoins(5, '+5 SC', 'task_reward'); playSfx('coin');
               }
+              break;
+            }
+          }
+          if (hit) continue;
+          for (let civIdx = s.civilians.length - 1; civIdx >= 0; civIdx--) {
+            const civ = s.civilians[civIdx];
+            if (civ.state !== 'saved' && distToSegment(civ.x, civ.y, l.x1, l.y1, l.x2, l.y2) < 30) {
+              civ.health = (civ.health ?? 4) - 1;
+              s.lasers.splice(lIdx, 1); hit = true;
+              for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#FDE68A', life: 14 }); }
+              if (civ.health <= 0) s.civilians.splice(civIdx, 1);
               break;
             }
           }
@@ -332,12 +343,20 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           }
           if (hit) continue;
         } else {
-          // ENEMY HITS YOU - 3 SHOTS DIE
+          // A player takes ten enemy hits before being defeated. Death never closes the room.
           if (distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 32) {
-            if (!p.isCover) { p.hitCount = (p.hitCount || 0) + 1; p.health = Math.max(0, 100 - p.hitCount * 33); setHudHealth(p.health); } else { p.health = Math.max(0, p.health - 1); setHudHealth(p.health); }
+            p.hitCount = (p.hitCount || 0) + 1;
+            p.health = Math.max(0, p.health - (p.isCover ? 1 : 10));
+            if (p.hitCount >= 10) p.health = 0;
+            setHudHealth(p.health);
             s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#38BDF8', life: 14 }); }
-            if (p.health <= 0 || p.hitCount >= 3) { playSfx('siren'); onToast(t('player_down') + ' - 3 HITS!'); p.health = 100; p.hitCount = 0; p.x = 1900; p.y = 1800; setHudHealth(100); }
+            if (p.health <= 0 || p.hitCount >= 10) {
+              playSfx('siren'); onToast(t('player_down') + ' - 10 HITS!');
+              p.health = 100; p.hitCount = 0; p.x = 1900; p.y = 1800; p.inCarId = null;
+              setHudHealth(100); setHudInCar(false);
+              // Keep the existing room channel, host identity, and invite code active.
+            }
           }
         }
         if (l.life <= 0 && s.lasers[lIdx]) { s.lasers.splice(lIdx, 1); }
