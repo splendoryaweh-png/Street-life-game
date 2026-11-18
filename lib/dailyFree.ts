@@ -1,3 +1,5 @@
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';
+
 /**
  * Daily Free Rewards System (Prompt 12)
  * Manages daily retention rewards: login streak, free nitro, double coins,
@@ -32,7 +34,6 @@ export interface DailyClaimsDbRecord {
 }
 
 const STORAGE_KEY_CLAIMS_DB = 'street_daily_claims_db_v1';
-import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';
 const STORAGE_KEY_DEVICE_ID = 'street_device_id_v1';
 
 export function getOrCreateDeviceId(): string {
