@@ -60,7 +60,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, ...summary }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Referral service unavailable.';
-    return NextResponse.json({ error: message }, { status: 401 });
+    console.error('Referral profile request failed:', error);
+    const isTelegramAuthError = /initData|Telegram verification|session expired|Missing Telegram|Telegram user/i.test(message);
+    return NextResponse.json(
+      { error: isTelegramAuthError ? message : 'Referral service is temporarily unavailable.' },
+      { status: isTelegramAuthError ? 401 : 503, headers: { 'Cache-Control': 'no-store' } }
+    );
   }
 }
 
