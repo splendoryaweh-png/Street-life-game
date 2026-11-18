@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ArrowLeft,
   Dices,
@@ -68,10 +69,10 @@ export function StreetDiceMultiplayer({
 }: StreetDiceMultiplayerProps) {
   const [myId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      let saved = localStorage.getItem('street_multiplayer_player_id');
+      let saved = getAccountStorageItem('street_multiplayer_player_id');
       if (!saved) {
         saved = `p_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        localStorage.setItem('street_multiplayer_player_id', saved);
+        setAccountStorageItem('street_multiplayer_player_id', saved);
       }
       return saved;
     }
