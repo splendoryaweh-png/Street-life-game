@@ -309,7 +309,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           if (hit) continue;
           for (let civIdx = s.civilians.length - 1; civIdx >= 0; civIdx--) {
             const civ = s.civilians[civIdx];
-            if (civ.state !== 'saved' && distToSegment(civ.x, civ.y, l.x1, l.y1, l.x2, l.y2) < 30) {
+            if (distToSegment(civ.x, civ.y, l.x1, l.y1, l.x2, l.y2) < 30) {
               civ.health = (civ.health ?? 4) - 1;
               s.lasers.splice(lIdx, 1); hit = true;
               for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#FDE68A', life: 14 }); }
