@@ -1,5 +1,6 @@
 'use client';
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';, { useRef, useEffect, useState, useCallback } from 'react';
 import { Shield, Zap, Crosshair, RotateCcw, Volume2, VolumeX, Heart, Coins, Car, ShoppingBag, MapPin, X, ArrowLeft, Users, Copy, Check, Trophy, Flame, Radio, Send, Sparkles } from 'lucide-react';
 import { playShootSound, playReloadSound, playPickupSound, playCoinSound, playSuccessSound, playSirenSound, playClickSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
@@ -22,7 +23,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [customRoomInput, setCustomRoomInput] = useState<string>('');
   const [isHost, setIsHost] = useState<boolean>(false);
   const [myPlayerId] = useState<string>(() => `player_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`);
-  const [myPlayerName] = useState<string>(() => { if (typeof window !== 'undefined') { const saved = localStorage.getItem('streetlife_username'); if (saved) return saved; } return `Hustler_${Math.floor(100 + Math.random() * 900)}`; });
+  const [myPlayerName] = useState<string>(() => { if (typeof window !== 'undefined') { const saved = getAccountStorageItem('streetlife_username'); if (saved) return saved; } return `Hustler_${Math.floor(100 + Math.random() * 900)}`; });
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
   const [showInvitePanel, setShowInvitePanel] = useState<boolean>(false);
   const [myTeam, setMyTeam] = useState<'blue' | 'red'>('blue');
@@ -59,7 +60,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
 
   const createRoom = () => {
     playClickSound(); const code = `STREET${Math.floor(100000 + Math.random() * 900000)}`; setRoomCode(code); setIsHost(true); setShowInvitePanel(true);
-    try { const saved = JSON.parse(localStorage.getItem('gangstar_rooms') || '[]'); saved.push({ code, status: 'playing', createdAt: Date.now() }); localStorage.setItem('gangstar_rooms', JSON.stringify(saved.slice(-10))); } catch {}
+    try { const saved = JSON.parse(getAccountStorageItem('gangstar_rooms') || '[]'); saved.push({ code, status: 'playing', createdAt: Date.now() }); setAccountStorageItem('gangstar_rooms', JSON.stringify(saved.slice(-10))); } catch {}
     connectToRoom(code, true);
   };
   const joinRandomCity = () => {
