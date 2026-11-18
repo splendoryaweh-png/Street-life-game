@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, RotateCcw, Volume2, VolumeX, Sparkles, Trophy, Tv, AlertCircle } from 'lucide-react';
 import { playCoinSound, playSuccessSound, playClickSound, playPickupSound, playSirenSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
@@ -67,7 +68,7 @@ function createInitialBoard(): Tile[][] {
 export function StreetCrush({ onBack, onToast }: StreetCrushProps) {
   const [level, setLevel] = useState(() => {
     if (typeof window === 'undefined') return 1;
-    const saved = localStorage.getItem('streetlife_crush_level');
+    const saved = getAccountStorageItem('streetlife_crush_level');
     return saved ? Math.min(100, Math.max(1, parseInt(saved, 10))) : 1;
   });
 
@@ -143,7 +144,7 @@ export function StreetCrush({ onBack, onToast }: StreetCrushProps) {
     (lvlNum: number) => {
       setLevel(lvlNum);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('streetlife_crush_level', lvlNum.toString());
+        setAccountStorageItem('streetlife_crush_level', lvlNum.toString());
       }
       setBoard(createInitialBoard());
       setScore(0);
