@@ -1,7 +1,7 @@
 'use client';
 
-import React
-import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';
 import Link from 'next/link';
 import { TelegramUser, UserGameState, NavTab } from '@/types/game';
 import {
