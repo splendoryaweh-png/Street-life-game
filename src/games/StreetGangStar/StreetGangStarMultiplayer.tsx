@@ -44,6 +44,11 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const channelRef = useRef<any>(null);
   const directoryChannelRef = useRef<any>(null);
   const lastRemoteShotIdRef = useRef<string | null>(null);
+  const hiddenAtRef = useRef<number | null>(null);
+  const roomCodeRef = useRef(roomCode);
+  const isHostRef = useRef(isHost);
+  useEffect(() => { roomCodeRef.current = roomCode; }, [roomCode]);
+  useEffect(() => { isHostRef.current = isHost; }, [isHost]);
 
   const gameStateRef = useRef({
     player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: 1900, y: 1800, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false, hitCount: 0 },
@@ -124,7 +129,9 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       }>;
       // Presence can sync once before the host's directory track arrives.
       // Keep listening until the host appears or the verification times out.
-      const hostRoom = entries.find((entry) => entry.roomCode === cleaned && entry.isHost === true);
+      // A room remains joinable while ANY player is still connected, even if its host is temporarily offline.
+      const activeRoom = entries.find((entry) => entry.roomCode === cleaned && entry.playerId);
+      const hostRoom = activeRoom;
       if (!hostRoom) return;
       finished = true;
       window.clearTimeout(timeoutId);
@@ -424,6 +431,52 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     animId = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', handleResize); canvas.removeEventListener('mousemove', onMouseMove); canvas.removeEventListener('mousedown', onMouseDown); window.removeEventListener('mouseup', onMouseUp); };
   }, [inLobby, cityData, myPlayerId, myPlayerName, myTeam, isHost, shootPlayerLaser, playSfx, onToast, t]);
+
+  // Keep a multiplayer session recoverable while Telegram is backgrounded.
+  // The six-minute cutoff is evaluated when the app becomes visible again because
+  // mobile browsers may throttle timers while backgrounded.
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'hidden') {
+        if (hiddenAtRef.current === null) hiddenAtRef.current = Date.now();
+        return;
+      }
+      const hiddenAt = hiddenAtRef.current;
+      if (hiddenAt === null) return;
+      hiddenAtRef.current = null;
+      const awayFor = Date.now() - hiddenAt;
+      if (awayFor >= 6 * 60 * 1000) {
+        if (channelRef.current && supabase) {
+          await supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+        if (directoryChannelRef.current && supabase) {
+          await supabase.removeChannel(directoryChannelRef.current);
+          directoryChannelRef.current = null;
+        }
+        gameStateRef.current.isRunning = false;
+        setIsHost(false);
+        setRoomCode('');
+        setInLobby(true);
+        onToast('You were away for 6 minutes, so you left the district. You can rejoin with the room code while other players remain.');
+        return;
+      }
+      // Refresh presence after returning from Telegram's background state.
+      const code = roomCodeRef.current;
+      if (code && channelRef.current) {
+        try {
+          await channelRef.current.track({ playerId: myPlayerId, playerName: myPlayerName, joinedAt: Date.now() });
+        } catch { /* Supabase will resubscribe automatically if the socket was interrupted. */ }
+      }
+      if (code && directoryChannelRef.current) {
+        try {
+          await directoryChannelRef.current.track({ roomCode: code, playerId: myPlayerId, playerName: myPlayerName, isHost: isHostRef.current, createdAt: Date.now() });
+        } catch { /* The directory channel will refresh presence on reconnect. */ }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [myPlayerId, myPlayerName, onToast]);
 
   useEffect(() => () => {
     if (channelRef.current && supabase) {
