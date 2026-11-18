@@ -35,7 +35,7 @@ function getAccountStorageKey(key: string): string {
   return `streetLife_account_${telegramId}_${key}`;
 }
 
-function localStorage.getItem(key: string): string | null {
+function getAccountStorageItem(key: string): string | null {
   const scopedKey = getAccountStorageKey(key);
   const scopedValue = localStorage.getItem(scopedKey);
   if (scopedValue !== null) return scopedValue;
@@ -46,11 +46,11 @@ function localStorage.getItem(key: string): string | null {
   return legacyValue;
 }
 
-function localStorage.setItem(key: string, value: string): void {
+function setAccountStorageItem(key: string, value: string): void {
   localStorage.setItem(getAccountStorageKey(key), value);
 }
 
-function localStorage.removeItem(key: string): void {
+function removeAccountStorageItem(key: string): void {
   localStorage.removeItem(getAccountStorageKey(key));
 }
 
