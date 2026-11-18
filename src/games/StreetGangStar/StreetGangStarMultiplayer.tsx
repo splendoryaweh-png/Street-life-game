@@ -1,6 +1,6 @@
 'use client';
-import React
-import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';
 import { Shield, Zap, Crosshair, RotateCcw, Volume2, VolumeX, Heart, Coins, Car, ShoppingBag, MapPin, X, ArrowLeft, Users, Copy, Check, Trophy, Flame, Radio, Send, Sparkles } from 'lucide-react';
 import { playShootSound, playReloadSound, playPickupSound, playCoinSound, playSuccessSound, playSirenSound, playClickSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
