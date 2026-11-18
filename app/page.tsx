@@ -45,6 +45,12 @@ import { StreetRaceModal } from '@/components/StreetRaceModal';
 import { StreetRiderModal } from '@/components/StreetRiderModal';
 import { TransactionsModal } from '@/components/TransactionsModal';
 
+// Telegram injects WebApp identity before the Next.js client hydrates. Initialize it
+// before the game store subscribes, so account-scoped storage never hydrates as 'guest'.
+if (typeof window !== 'undefined') {
+  initTelegramWebApp();
+}
+
 let cachedTelegramUser: TelegramUser | null = null;
 let isTelegramChecked = false;
 
