@@ -43,6 +43,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [activePlayerCount, setActivePlayerCount] = useState<number>(1);
   const channelRef = useRef<any>(null);
   const directoryChannelRef = useRef<any>(null);
+  const lastRemoteShotIdRef = useRef<string | null>(null);
 
   const gameStateRef = useRef({
     player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: 1900, y: 1800, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false, hitCount: 0 },
@@ -175,7 +176,13 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         else { s.remotePlayers.set(msg.senderId, { id: msg.senderId, name: payload.name, x: payload.x, y: payload.y, targetX: payload.x, targetY: payload.y, facingAngle: payload.facingAngle, health: payload.health ?? 100, maxHealth: 3, team: payload.team, gun: payload.gun, avatarColor: payload.avatarColor, isCover: payload.isCover, inCarId: payload.inCarId, jumpOffset: payload.jumpOffset || 0, lastSeen: Date.now(), hitCount: 0 }); }
         setActivePlayerCount(s.remotePlayers.size + 1);
       } else if (msg.type === 'laser_fire') {
-        const p = msg.payload; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2, color: p.color, life: 7, maxLife: 7, isPlayer: false, damage: p.damage });
+        const p = msg.payload;
+        // Play one remote gunshot per trigger pull (shotguns send multiple laser beams).
+        if (p.shotId && lastRemoteShotIdRef.current !== p.shotId) {
+          lastRemoteShotIdRef.current = p.shotId;
+          playSfx('shoot');
+        }
+        s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2, color: p.color, life: 7, maxLife: 7, isPlayer: false, damage: p.damage });
       } else if (msg.type === 'reaction') {
         const rem = s.remotePlayers.get(msg.senderId); if (rem) { rem.lastReaction = { emoji: msg.payload.emoji, until: Date.now() + 2000 }; }
       } else if (msg.type === 'host_sync' && !hostStatus) { s.cars = msg.payload.cars || s.cars; s.civilians = msg.payload.civilians || s.civilians; s.gangsters = msg.payload.gangsters || s.gangsters; }
@@ -238,7 +245,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     spreadAngles.forEach((ang) => {
       const beamLength = 480; const endX = startX + Math.cos(ang) * beamLength; const endY = startY + Math.sin(ang) * beamLength;
       s.lasers.push({ id: `laser_${now}_${Math.random()}`, x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, life: 7, maxLife: 7, isPlayer: true, damage: wDef.damage });
-      broadcastGameMessage({ type: 'laser_fire', senderId: myPlayerId, payload: { x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, damage: wDef.damage, team: myTeam } });
+      broadcastGameMessage({ type: 'laser_fire', senderId: myPlayerId, payload: { x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, damage: wDef.damage, team: myTeam, shotId: `${myPlayerId}_${now}` } });
     });
   }, [handleReload, myPlayerId, myTeam, playSfx]);
 
