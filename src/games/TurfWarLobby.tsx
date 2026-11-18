@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';
 import { createRealtimeBroadcastChannel, RealtimeBroadcastChannel } from '@/lib/multiplayerRealtime';
 import { supabase } from '@/lib/supabase';
 import {
@@ -76,10 +77,10 @@ export function TurfWarLobby({
 }: TurfWarLobbyProps) {
   const [myId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      let saved = localStorage.getItem('street_turf_player_id');
+      let saved = getAccountStorageItem('street_turf_player_id');
       if (!saved) {
         saved = `turf_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        localStorage.setItem('street_turf_player_id', saved);
+        setAccountStorageItem('street_turf_player_id', saved);
       }
       return saved;
     }
@@ -92,7 +93,7 @@ export function TurfWarLobby({
         const tg = window.Telegram?.WebApp?.initDataUnsafe?.user?.username;
         if (tg) return `@${tg}`;
       } catch {}
-      const saved = localStorage.getItem('streetlife_username');
+      const saved = getAccountStorageItem('streetlife_username');
       if (saved) return saved;
     }
     return `Hustler_${Math.floor(100 + Math.random() * 900)}`;
