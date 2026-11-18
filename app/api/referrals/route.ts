@@ -94,8 +94,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       message: result.message,
-      inviteeReward: Number(result.invitee_reward || 520),
-      inviterReward: Number(result.inviter_reward || 100),
+      inviteeReward: Number(result.invitee_reward || 0),
+      inviterReward: Number(result.inviter_reward || 520),
       ...summary,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
