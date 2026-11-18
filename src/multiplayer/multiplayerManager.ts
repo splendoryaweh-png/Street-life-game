@@ -1,4 +1,5 @@
 import { createRealtimeBroadcastChannel, RealtimeBroadcastChannel } from '@/lib/multiplayerRealtime';
+import { getAccountStorageItem, setAccountStorageItem, removeAccountStorageItem } from '@/lib/storage';
 
 /**
  * Street Life Multiplayer Manager
@@ -454,7 +455,7 @@ export async function copyCode(code: string): Promise<boolean> {
 export function saveRejoin(code: string, playerId: string): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(
+    setAccountStorageItem(
       STORAGE_LAST_ROOM_KEY,
       JSON.stringify({
         code: code.toUpperCase().trim(),
@@ -471,7 +472,7 @@ export function saveRejoin(code: string, playerId: string): void {
 export function tryRejoin(): { code: string; playerId: string } | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(STORAGE_LAST_ROOM_KEY);
+    const raw = getAccountStorageItem(STORAGE_LAST_ROOM_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);
     const elapsed = Date.now() - (data.time || 0);
@@ -493,7 +494,7 @@ export function tryRejoin(): { code: string; playerId: string } | null {
 export function clearRejoin(): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.removeItem(STORAGE_LAST_ROOM_KEY);
+    removeAccountStorageItem(STORAGE_LAST_ROOM_KEY);
   } catch {}
 }
 
