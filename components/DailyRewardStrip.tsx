@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { getAccountStorageItem, setAccountStorageItem } from '@/lib/storage';
 import Link from 'next/link';
 import {
   Calendar,
@@ -59,9 +60,9 @@ export function DailyRewardStrip({
   useEffect(() => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const saved = localStorage.getItem(`streetlife_nitro_${today}`);
+      const saved = getAccountStorageItem(`streetlife_nitro_${today}`);
       if (saved !== null) setFreeNitroRemaining(parseInt(saved, 10));
-      const savedAds = localStorage.getItem(`streetlife_nitro_ads_${today}`);
+      const savedAds = getAccountStorageItem(`streetlife_nitro_ads_${today}`);
       if (savedAds !== null) setAdNitroWatchedToday(parseInt(savedAds, 10));
     } catch {}
   }, []);
@@ -115,8 +116,8 @@ export function DailyRewardStrip({
       setFreeNitroRemaining(nextNitro);
       if (typeof window !== 'undefined') {
         const today = new Date().toISOString().split('T')[0];
-        localStorage.setItem(`streetlife_nitro_ads_${today}`, nextWatched.toString());
-        localStorage.setItem(`streetlife_nitro_${today}`, nextNitro.toString());
+        setAccountStorageItem(`streetlife_nitro_ads_${today}`, nextWatched.toString());
+        setAccountStorageItem(`streetlife_nitro_${today}`, nextNitro.toString());
       }
       playCoinSound();
     } catch (error) {
