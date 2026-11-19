@@ -515,7 +515,12 @@ export function StudioBeats({
       }
 
       const mimeType = getBestMimeType(isVideoFreestyle);
-      const recorder = new MediaRecorder(finalStream, mimeType ? { mimeType } : undefined);
+      const recorderOptions: MediaRecorderOptions = {
+        audioBitsPerSecond: 48_000,
+        ...(mimeType ? { mimeType } : {}),
+        ...(isVideoFreestyle ? { videoBitsPerSecond: 800_000 } : {}),
+      };
+      const recorder = new MediaRecorder(finalStream, recorderOptions);
 
       mediaRecorderRef.current = recorder;
       recordedChunksRef.current = [];
