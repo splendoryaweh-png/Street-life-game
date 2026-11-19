@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyTelegramInitData } from '@/lib/taskAuth';
+import { createSupabaseServiceClient, verifyTelegramInitData } from '@/lib/taskAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -64,6 +64,27 @@ export async function POST(request: Request) {
         success: false,
         error: 'Telegram could not post your mix. Please try again or contact the administrator.',
       }, { status: 502 });
+    }
+
+    // Count only after Telegram confirms that the audio was actually posted.
+    // The service-role client keeps this tracking table private from players.
+    try {
+      const supabase = createSupabaseServiceClient();
+      const { error } = await supabase.from('studio_group_song_posts').upsert({
+        chat_id: String(telegramResult.result?.chat?.id ?? TARGET_GROUP),
+        telegram_message_id: Number(telegramResult.result?.message_id),
+        telegram_user_id: user.id,
+        username: user.username || null,
+        beat_name: beatName,
+        producer: producer || null,
+        duration_seconds: Number.isFinite(duration) && duration > 0 ? Math.min(60, Math.floor(duration)) : null,
+      }, { onConflict: 'chat_id,telegram_message_id', ignoreDuplicates: true });
+
+      if (error) {
+        console.error('STUDIO_SEND_MIX song-count tracking failed:', error.message);
+      }
+    } catch (trackingError) {
+      console.error('STUDIO_SEND_MIX song-count tracking exception:', trackingError);
     }
 
     return NextResponse.json({
