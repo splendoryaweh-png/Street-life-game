@@ -1754,6 +1754,15 @@ export function getDaysRemainingOnRent(): number {
   return Math.ceil(diff / (24 * 60 * 60 * 1000));
 }
 
+/** Start a fresh 30-day Studio rental when a new Studio level is unlocked. */
+export function startStudioRentFromNow(): number {
+  const expiry = Date.now() + DEFAULT_RENT_DURATION;
+  currentSnapshot = { ...currentSnapshot, rentExpiry: expiry };
+  persistState(currentSnapshot);
+  notifyListeners();
+  return expiry;
+}
+
 export function renewStudioRent(isLevel1Upgrade = false): { success: boolean; message: string; rentExpiry: number } {
   const now = Date.now();
   const baseExpiry = currentSnapshot.rentExpiry && currentSnapshot.rentExpiry > now ? currentSnapshot.rentExpiry : now;
