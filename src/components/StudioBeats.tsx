@@ -1289,7 +1289,7 @@ export function StudioBeats({
         {filteredBeats.map((beat) => {
           const isSelected = currentBeatId === beat.id;
           const isCurrentPlaying = isSelected && isPlaying;
-          const isUnlocked = isLongBeatUnlocked(beat, studioLevel);
+          const isUnlocked = !rentExpired && isLongBeatUnlocked(beat, studioLevel);
           const beatRecording = recordingsByBeat[beat.id];
           const isBeatRecordingActive = isRecording && recordingBeatId===beat.id;
 
