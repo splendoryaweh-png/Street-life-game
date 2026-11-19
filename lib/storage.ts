@@ -1731,9 +1731,16 @@ export function getRentExpiry(): number {
     const val = parseInt(stored, 10);
     if (!isNaN(val) && val > 0) return val;
   }
-  return currentSnapshot.rentExpiry && currentSnapshot.rentExpiry > 0
+
+  // Persist the first 30-day period once for this Telegram account.
+  // Without this write, every read would create a new rolling expiry.
+  const expiry = currentSnapshot.rentExpiry && currentSnapshot.rentExpiry > 0
     ? currentSnapshot.rentExpiry
     : Date.now() + DEFAULT_RENT_DURATION;
+  setAccountStorageItem('rentExpiry', String(expiry));
+  currentSnapshot = { ...currentSnapshot, rentExpiry: expiry };
+  persistState(currentSnapshot);
+  return expiry;
 }
 
 export function isStudioRentExpired(): boolean {
