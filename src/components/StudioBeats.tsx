@@ -636,7 +636,11 @@ export function StudioBeats({
         setIsRecording(false);
       };
 
-      recorder.start(100);
+      // Record one continuous MediaRecorder session. Short timesliced chunks can
+      // carry uneven container timestamps on mobile WebViews; concatenating those
+      // chunks may make the recorded preview drift even though live playback is in sync.
+      // The three-minute cap and 48 kbps audio bitrate keep the single final Blob small.
+      recorder.start();
       setIsRecording(true);
 
       // Begin playback after the recorder starts so the intro is not lost.
