@@ -142,8 +142,8 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
 
   // Handle beat selection with visual gold border & metadata persistence
   const handleSelectBeat = (beat: BeatDefinition) => {
-    if (rentExpired) {
-      onToast('🔒 Studio rent expired! Renew rent to unlock studio beats.');
+    if (rentExpired || !isBeatUnlocked(beat, playerStudioLevel)) {
+      onToast(rentExpired ? '🔒 Studio rent expired. Renew to unlock studio beats.' : '🔒 This beat is locked. Unlock its Studio level first.');
       return;
     }
     playClickSound();
@@ -198,8 +198,8 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
 
   // TEST BEAT HANDLER (Play/Pause Beat audio only)
   const handleTestBeat = (beat: BeatDefinition) => {
-    if (rentExpired) {
-      onToast('🔒 Studio rent expired! Renew rent to test or record beats.');
+    if (rentExpired || !isBeatUnlocked(beat, playerStudioLevel)) {
+      onToast(rentExpired ? '🔒 Studio rent expired. Renew to test beats.' : '🔒 This beat is locked. Unlock its Studio level first.');
       return;
     }
 
@@ -270,8 +270,8 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
   const recordingMimeTypeRef = useRef<string>('audio/webm');
 
   const handleStartRecord = async (beat: BeatDefinition) => {
-    if (rentExpired) {
-      onToast('🔒 Studio rent expired! Renew rent to test or record.');
+    if (rentExpired || !isBeatUnlocked(beat, playerStudioLevel)) {
+      onToast(rentExpired ? '🔒 Studio rent expired. Renew to record beats.' : '🔒 This beat is locked. Unlock its Studio level first.');
       return;
     }
     stopAllAudio();
@@ -426,6 +426,10 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
   // The recording is already a beat + vocal mix, so preview the exact file
   // that will be sent to Telegram (not two separately timed audio players).
   const handlePreviewMixed = (beat: BeatDefinition) => {
+    if (rentExpired || !isBeatUnlocked(beat, playerStudioLevel)) {
+      onToast(rentExpired ? '🔒 Studio rent expired. Renew to preview beats.' : '🔒 This beat is locked. Unlock its Studio level first.');
+      return;
+    }
     if (!recordedBlobUrl || recordedBeatId !== beat.id) {
       onToast('🎙️ Record your vocal over this beat first!');
       return;
@@ -452,6 +456,10 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
 
   // POST FINAL SONG: upload the actual recorded audio to the official Telegram group.
   const handlePostSong = async (beat: BeatDefinition) => {
+    if (rentExpired || !isBeatUnlocked(beat, playerStudioLevel)) {
+      onToast(rentExpired ? '🔒 Studio rent expired. Renew to post beats.' : '🔒 This beat is locked. Unlock its Studio level first.');
+      return;
+    }
     if (!hasPreviewed) {
       onToast('⚠️ Listen first before posting! Click PREVIEW to verify your mix.');
       return;
@@ -663,6 +671,7 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
         <StudioBeats
           gameState={gameState}
           telegramUserId={telegramUserId}
+          rentExpired={rentExpired}
           onToast={onToast}
           onSelectForRecording={handleSelectLongBeatForRecording}
         />
