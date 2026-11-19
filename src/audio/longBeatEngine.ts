@@ -108,7 +108,7 @@ export class LongBeatAudioEngine {
   private currentBeat: LongBeat | null = null;
   private isRunning: boolean = false;
   private isPaused: boolean = false;
-  private playbackRate: number = 1.0; // 0.5, 1.0, 1.5
+  private playbackRate: number = 0.85; // Slower default gives vocalists more room to match the groove
   private volume: number = 0.85;
   private isLooping: boolean = true;
 
