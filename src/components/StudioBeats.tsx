@@ -103,6 +103,7 @@ function getBestMimeType(isVideo: boolean): string {
 interface StudioBeatsProps {
   gameState?: UserGameState;
   telegramUserId?: string;
+  rentExpired?: boolean;
   onToast?: (msg: string) => void;
   onSelectForRecording?: (beat: LongBeat) => void;
   onUpgradeStudioLevel?: (newLevel: number) => void;
@@ -111,6 +112,7 @@ interface StudioBeatsProps {
 export function StudioBeats({
   gameState,
   telegramUserId = '',
+  rentExpired = false,
   onToast,
   onSelectForRecording,
   onUpgradeStudioLevel
@@ -307,6 +309,11 @@ export function StudioBeats({
 
   const handleRecordBeat = async (beat: LongBeat) => {
     playClickSound();
+
+    if (rentExpired) {
+      toast('🔒 Your 30-day Studio access has expired. Renew it in Vocal Booth & Rent before recording.');
+      return;
+    }
 
     // Enforce beat ownership at the recording action itself, not only in the catalog UI.
     // Level 1 (internal level 0) can record its three starter beats; locked beats
@@ -668,6 +675,11 @@ export function StudioBeats({
   const handlePreviewBeat = async (beat: LongBeat) => {
     playClickSound();
 
+    if (rentExpired) {
+      toast('🔒 Your 30-day Studio access has expired. Renew it in Vocal Booth & Rent before playing beats.');
+      return;
+    }
+
     if (!isLongBeatUnlocked(beat, studioLevel)) {
       setSelectedInspectBeat(beat);
       setIsUpgradeModalOpen(true);
@@ -738,6 +750,11 @@ export function StudioBeats({
 
   const handlePostBeat = async (beat: LongBeat) => {
     playClickSound();
+
+    if (rentExpired) {
+      toast('🔒 Your 30-day Studio access has expired. Renew it in Vocal Booth & Rent before posting.');
+      return;
+    }
 
     if (!isLongBeatUnlocked(beat, studioLevel)) {
       setSelectedInspectBeat(beat);
@@ -932,6 +949,11 @@ export function StudioBeats({
   const handleTogglePlay = (beat: LongBeat) => {
     playClickSound();
 
+    if (rentExpired) {
+      toast('🔒 Your 30-day Studio access has expired. Renew it in Vocal Booth & Rent before playing beats.');
+      return;
+    }
+
     if (!isLongBeatUnlocked(beat, studioLevel)) {
       setSelectedInspectBeat(beat);
       setIsUpgradeModalOpen(true);
@@ -949,6 +971,15 @@ export function StudioBeats({
     }
   };
 
+  useEffect(() => {
+    if (!rentExpired) return;
+    longBeatEngine.pause();
+    setIsPlaying(false);
+    previewAudioRef.current?.pause();
+    setIsPreviewPlaying(false);
+    setPreviewingBeatId(null);
+  }, [rentExpired]);
+
   const handleSkipSeconds = (delta: number) => {
     const nt = Math.max(0, Math.min(currentTime+delta, currentBeat.duration-1));
     longBeatEngine.seek(nt);
@@ -956,12 +987,14 @@ export function StudioBeats({
   };
 
   const handleNextBeat = () => {
+    if (rentExpired) return;
     const avail = LONG_BEATS_CATALOG.filter(b=>isLongBeatUnlocked(b,studioLevel));
     const idx = avail.findIndex(b=>b.id===currentBeatId);
     handleTogglePlay(avail[(idx+1)%avail.length]||avail[0]);
   };
 
   const handlePrevBeat = () => {
+    if (rentExpired) return;
     const avail = LONG_BEATS_CATALOG.filter(b=>isLongBeatUnlocked(b,studioLevel));
     const idx = avail.findIndex(b=>b.id===currentBeatId);
     handleTogglePlay(avail[(idx-1+avail.length)%avail.length]||avail[0]);
