@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   Shield,
+  Activity,
   Coins,
   Users,
   Clock,
