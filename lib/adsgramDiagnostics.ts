@@ -16,7 +16,11 @@ function createId(): string {
   try {
     return crypto.randomUUID();
   } catch {
-    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    // RFC 4122-shaped fallback for older embedded Telegram webviews.
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+      const random = Math.floor(Math.random() * 16);
+      return (char === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+    });
   }
 }
 
