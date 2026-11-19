@@ -15,6 +15,7 @@ import { longBeatEngine } from '../audio/longBeatEngine';
 import { UserGameState } from '@/types/game';
 import { playClickSound, playCoinSound, playSuccessSound } from '@/lib/sound';
 import { getHustlePlayerState, getPlayerStudioLevel } from '@/lib/hustleInventory';
+import { startStudioRentFromNow } from '@/lib/storage';
 
 function getTodayDateString(): string {
   const d = new Date();
@@ -859,6 +860,7 @@ export function StudioBeats({
     setUpgradedLevelOverride(level);
     if (telegramUserId) localStorage.setItem(studioStorageKey('streetlife_studio_level', telegramUserId), String(level));
     onUpgradeStudioLevel?.(level);
+    startStudioRentFromNow();
     playSuccessSound();
     toast(`🎉 Upgraded to ${levelInfo.name}! Your newly unlocked beats are ready to use.`);
     setIsUpgradeModalOpen(false);
