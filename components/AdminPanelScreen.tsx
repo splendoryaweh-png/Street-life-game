@@ -67,6 +67,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
   const [isBanned, setIsBanned] = useState<boolean>(!!gameState.isBanned);
   const [activeAdminTab, setActiveAdminTab] = useState<'general' | 'treasury' | 'withdrawals' | 'tasks' | 'leadership' | 'adsgram'>('general');
   const [registeredPlayerCount, setRegisteredPlayerCount] = useState<number | null>(null);
+  const [totalPostedSongs, setTotalPostedSongs] = useState<number | null>(null);
   const [playerCountError, setPlayerCountError] = useState(false);
 
   const refreshPlayerCount = useCallback(async () => {
@@ -83,10 +84,11 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
         cache: 'no-store',
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok || typeof result.totalPlayers !== 'number') {
-        throw new Error(result.error || 'Player count unavailable');
+      if (!response.ok || typeof result.totalPlayers !== 'number' || typeof result.totalSongs !== 'number') {
+        throw new Error(result.error || 'Admin statistics unavailable');
       }
       setRegisteredPlayerCount(result.totalPlayers);
+      setTotalPostedSongs(result.totalSongs);
       setPlayerCountError(false);
     } catch (error) {
       console.error('Could not load registered player count:', error);
@@ -354,12 +356,12 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
         <div className="p-3.5 rounded-2xl bg-[#141414] border border-white/10">
           <div className="flex items-center gap-1.5 text-gray-400 text-xs">
             <Music className="w-3.5 h-3.5 text-[#FFD700]" />
-            <span>Posted Songs</span>
+            <span>Stars Group Songs</span>
           </div>
           <div className="text-xl font-black text-cyan-400 font-mono mt-1">
-            {postedSongs.length} Tracks
+            {totalPostedSongs === null ? (playerCountError ? 'Unavailable' : 'Loading...') : `${totalPostedSongs.toLocaleString()} Songs`}
           </div>
-          <span className="text-[10px] text-gray-400">Saved to group</span>
+          <span className="text-[10px] text-gray-400">Confirmed Telegram group posts</span>
         </div>
       </div>
 
@@ -498,7 +500,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
             <Music className="w-4 h-4" />
-            <span>Community Posted Songs ({postedSongs.length})</span>
+            <span>This Device's Song Records ({postedSongs.length})</span>
           </h2>
           <a
             href="https://t.me/Streetlifestars"
