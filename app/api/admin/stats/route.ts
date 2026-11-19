@@ -34,8 +34,14 @@ export async function GET(request: Request) {
 
     if (error) throw error;
 
+    const { count: totalSongs, error: songsError } = await supabase
+      .from('studio_group_song_posts')
+      .select('id', { count: 'exact', head: true });
+
+    if (songsError) throw songsError;
+
     return NextResponse.json(
-      { ok: true, totalPlayers: count ?? 0 },
+      { ok: true, totalPlayers: count ?? 0, totalSongs: totalSongs ?? 0 },
       { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
     );
   } catch (error) {
