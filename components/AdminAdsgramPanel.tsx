@@ -31,7 +31,7 @@ const label: Record<string, string> = {
   ad_requested: 'Ad requested',
   sdk_loaded: 'SDK loaded',
   controller_initialized: 'Controller ready',
-  ad_started: 'Ad started',
+  ad_started: 'Rewarded ad show() called',
   ad_completed: 'Ad completed',
   ad_failed: 'Ad failed',
   reward_granted: 'Game reward granted',
@@ -81,7 +81,7 @@ export function AdminAdsgramPanel() {
 
   const metrics = report ? [
     { title: 'Ad requests', value: report.counts.requests, icon: Activity },
-    { title: 'Ads started', value: report.counts.started, icon: Play },
+    { title: 'Rewarded ad show calls', value: report.counts.started, icon: Play },
     { title: 'Ads completed', value: report.counts.completed, icon: CheckCircle2 },
     { title: 'Ad failures', value: report.counts.failed, icon: XCircle },
     { title: 'Unique players', value: report.counts.uniquePlayers, icon: Users },
@@ -93,8 +93,8 @@ export function AdminAdsgramPanel() {
       <div className="rounded-2xl border border-cyan-500/30 bg-[#101820] p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h2 className="font-black text-sm uppercase tracking-wide text-cyan-300">Adsgram monitoring</h2>
-            <p className="text-[11px] text-gray-400">Private admin evidence • Block ID {report?.blockId || '59485'}</p>
+            <h2 className="font-black text-sm uppercase tracking-wide text-cyan-300">Adsgram rewarded-ad monitoring</h2>
+            <p className="text-[11px] text-gray-400">Private admin evidence • Rewarded video • Block ID {report?.blockId || '59485'}</p>
           </div>
           <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-1 text-[9px] font-bold text-cyan-200">ADMIN ONLY</span>
         </div>
@@ -128,7 +128,7 @@ export function AdminAdsgramPanel() {
         </div>
 
         <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-[11px] text-amber-200">
-          This report records STREET LIFE SDK activity. It is not an Adsgram-certified impression or earnings report. Only Adsgram can confirm billable impressions and revenue.
+          This report records STREET LIFE rewarded-ad SDK activity. It is not an Adsgram-certified impression or earnings report. Only Adsgram can confirm billable impressions and revenue.
         </div>
         <div className="rounded-xl border border-white/10 bg-[#111] p-3 space-y-1 text-[10px] text-gray-400">
           <p>Total matching events: <strong className="text-white">{report.totalEvents.toLocaleString()}</strong> • Sessions: <strong className="text-white">{report.counts.uniqueSessions}</strong></p>
