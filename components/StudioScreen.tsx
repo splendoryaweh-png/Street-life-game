@@ -341,9 +341,8 @@ export function StudioScreen({ gameState, telegramUserId = '', onToast }: Studio
 
       const preferredTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
       const mimeType = preferredTypes.find((type) => MediaRecorder.isTypeSupported?.(type)) || '';
-      const recorder = mimeType
-        ? new MediaRecorder(destination.stream, { mimeType })
-        : new MediaRecorder(destination.stream);
+      const recorderOptions = { audioBitsPerSecond: 48_000, ...(mimeType ? { mimeType } : {}) };
+      const recorder = new MediaRecorder(destination.stream, recorderOptions);
       recordingMimeTypeRef.current = recorder.mimeType || mimeType || 'audio/webm';
 
       recorder.ondataavailable = (event) => {
