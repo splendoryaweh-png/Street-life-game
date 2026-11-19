@@ -4,7 +4,7 @@ import { createSupabaseServiceClient, verifyTelegramInitData } from '@/lib/taskA
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
 const TARGET_GROUP = '@Streetlifestars';
 
 export async function POST(request: Request) {
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Recording file is missing.' }, { status: 400 });
     }
     if (!audio.size || audio.size > MAX_AUDIO_BYTES) {
-      return NextResponse.json({ success: false, error: 'Recording must be between 1 byte and 20 MB.' }, { status: 413 });
+      return NextResponse.json({ success: false, error: 'Recording must be between 1 byte and 4 MB. Please record again; Studio now compresses audio for upload.' }, { status: 413 });
     }
     if (!audio.type.startsWith('audio/')) {
       return NextResponse.json({ success: false, error: 'Unsupported recording format.' }, { status: 415 });
