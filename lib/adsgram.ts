@@ -1,5 +1,7 @@
 'use client';
 
+import { recordAdsgramDiagnostic } from '@/lib/adsgramDiagnostics';
+
 /**
  * STREET LIFE — Central Adsgram Integration
  *
@@ -150,6 +152,7 @@ export async function getAdsgramController(): Promise<AdsgramController> {
 
   const pending = (async () => {
     const sdk = await loadAdsgramSDK();
+    recordAdsgramDiagnostic('sdk_loaded');
 
     if (!sdk || typeof sdk.init !== 'function') {
       throw new Error('Adsgram initialization is unavailable.');
@@ -165,6 +168,7 @@ export async function getAdsgramController(): Promise<AdsgramController> {
     }
 
     adsgramController = controller;
+    recordAdsgramDiagnostic('controller_initialized');
     return controller;
   })();
 
@@ -190,18 +194,45 @@ export async function showAdsgramRewardedAd(): Promise<AdsgramShowResult> {
 
   // Set the lock before the first await so two rapid calls cannot overlap.
   isShowingAd = true;
+  const startedAt = Date.now();
+  recordAdsgramDiagnostic('ad_requested');
 
   try {
     const controller = await getAdsgramController();
+    recordAdsgramDiagnostic('ad_started');
     const result = await controller.show();
 
     if (!result || result.done !== true || result.error === true) {
+      recordAdsgramDiagnostic('ad_failed', {
+        sdkState: result?.state,
+        done: result?.done,
+        error: result?.error,
+        description: result?.description || 'The advertisement was not completed.',
+        elapsedMs: Date.now() - startedAt,
+      });
       throw new Error(
         result?.description || 'The advertisement was not completed.'
       );
     }
 
+    recordAdsgramDiagnostic('ad_completed', {
+      sdkState: result.state,
+      done: result.done,
+      error: result.error,
+      description: result.description,
+      elapsedMs: Date.now() - startedAt,
+    });
+
     return result;
+  } catch (error) {
+    if (error instanceof Error) {
+      recordAdsgramDiagnostic('ad_failed', {
+        error: true,
+        description: error.message,
+        elapsedMs: Date.now() - startedAt,
+      });
+    }
+    throw error;
   } finally {
     isShowingAd = false;
   }
