@@ -139,7 +139,12 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       if (finished) return;
       finished = true;
       void client.removeChannel(lookup);
-      onToast('That district is not currently active. Ask someone still inside the room to stay connected, then try the same code again.');
+      // If nobody is left in the district, restore it under the same valid invite code.
+      // This lets the last player return home and later reopen their room without a new code.
+      setIsHost(true);
+      setRoomCode(cleaned);
+      connectToRoom(cleaned, true);
+      onToast('No players were online in that district, so it has been restored with your same invite code.');
     }, 10000);
     lookup.on('presence', { event: 'sync' }, () => { void checkInvitePresence(); });
     lookup.subscribe((status: string) => {
@@ -378,7 +383,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           if (hit) continue;
         } else {
           // A player takes ten enemy hits before being defeated. Death never closes the room.
-          if (distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 32) {
+          if (p.health > 0 && distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 32) {
             p.hitCount = (p.hitCount || 0) + 1;
             p.health = Math.max(0, p.health - (p.isCover ? 1 : 10));
             if (p.hitCount >= 10) p.health = 0;
