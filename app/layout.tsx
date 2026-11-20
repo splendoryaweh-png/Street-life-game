@@ -38,7 +38,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body suppressHydrationWarning className="min-h-screen bg-[#0A0A0A] text-white antialiased selection:bg-[#FFD700] selection:text-black overflow-x-hidden overflow-y-auto">
+      <body suppressHydrationWarning className="min-h-screen bg-[#0A0A0A] text-white antialiased selection:bg-[#FFD700] selection:text-black overflow-x-hidden overflow-y-auto [webkit-overflow-scrolling:touch]">
         <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
