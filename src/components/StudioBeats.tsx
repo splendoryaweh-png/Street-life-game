@@ -167,6 +167,7 @@ export function StudioBeats({
 
   const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);
   const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
+  const cameraSwitchingRef = useRef(false);
   const [cameraError, setCameraError] = useState('');
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const [activeVideoModalUrl, setActiveVideoModalUrl] = useState<string | null>(null);
@@ -287,73 +288,120 @@ export function StudioBeats({
     setIsRecording(false);
   }, []);
 
+  const openCameraStream = async (facing: 'user' | 'environment') => {
+    const baseVideo: MediaTrackConstraints = {
+      facingMode: { exact: facing },
+      width: { ideal: 1280 },
+      height: { ideal: 1920 },
+      frameRate: { ideal: 30, max: 30 }
+    };
+    // Request the requested physical direction first. Do not pick the first
+    // enumerated device: on iOS that ordering is not a reliable front/back map.
+    try {
+      return await navigator.mediaDevices.getUserMedia({ audio: true, video: baseVideo });
+    } catch (firstError) {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter(device => device.kind === 'videoinput');
+      const matchesFacing = (device: MediaDeviceInfo) => {
+        const label = device.label.toLowerCase();
+        return facing === 'user'
+          ? /front|user|facetime|selfie/.test(label)
+          : /back|rear|environment|wide|ultra/.test(label);
+      };
+      const preferred = videoInputs.find(matchesFacing);
+      if (preferred?.deviceId) {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: {
+            deviceId: { exact: preferred.deviceId },
+            width: { ideal: 1280 },
+            height: { ideal: 1920 },
+            frameRate: { ideal: 30, max: 30 }
+          }
+        });
+      }
+      // Some Telegram WebViews expose one camera constraint mode but no
+      // useful labels/device IDs until permission has been granted.
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 1920 } }
+        });
+      } catch {
+        throw firstError;
+      }
+    }
+  };
+
   const handleEnableCamera = async () => {
     playClickSound();
     setCameraError('');
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError('Camera access is not available in this browser. Open Street Life inside Telegram or Safari over HTTPS.');
+      setCameraError('Camera access is not available here. Open Street Life in Telegram or Safari over HTTPS.');
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: { facingMode: { ideal: cameraFacing }, width: { ideal: 1280 }, height: { ideal: 1920 } }
-      });
+      const stream = await openCameraStream('user');
       streamRef.current?.getTracks().forEach(track => track.stop());
       streamRef.current = stream;
+      setCameraFacing('user');
       setIsVideoFreestyle(true);
-      if (videoPreviewRef.current) {
-        videoPreviewRef.current.srcObject = stream;
-        await videoPreviewRef.current.play();
-      }
       try { window.Telegram?.WebApp?.expand?.(); } catch {}
     } catch (error) {
-      console.warn('Camera permission/access failed:', error);
+      console.warn('Front camera permission/access failed:', error);
       const name = error instanceof DOMException ? error.name : '';
       setCameraError(name === 'NotAllowedError'
         ? 'Camera permission was denied. Allow Camera and Microphone for Telegram in iPhone Settings, then try again.'
-        : name === 'NotFoundError'
-          ? 'No camera was found on this phone.'
-          : 'Could not open the camera. Check camera permission and try again.');
+        : name === 'NotFoundError' || name === 'OverconstrainedError'
+          ? 'The front camera could not be found. Check camera access and try again.'
+          : 'Could not open the front camera. Check camera permission and try again.');
       setIsVideoFreestyle(false);
     }
   };
 
   const handleSwitchCamera = async () => {
     playClickSound();
+    if (cameraSwitchingRef.current) return;
+    cameraSwitchingRef.current = true;
     setCameraError('');
     const oldStream = streamRef.current;
+    const currentTrack = oldStream?.getVideoTracks()[0];
+    const nextFacing: 'user' | 'environment' = cameraFacing === 'user' ? 'environment' : 'user';
     try {
-      const currentTrack = oldStream?.getVideoTracks()[0];
-      const currentDeviceId = currentTrack?.getSettings().deviceId;
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const cameras = devices.filter(device => device.kind === 'videoinput');
-      const alternate = cameras.find(device => device.deviceId && device.deviceId !== currentDeviceId);
-      const nextFacing = cameraFacing === 'user' ? 'environment' : 'user';
-      let nextStream: MediaStream;
-      try {
-        nextStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: alternate
-            ? { deviceId: { exact: alternate.deviceId }, width: { ideal: 1280 }, height: { ideal: 1920 } }
-            : { facingMode: { exact: nextFacing }, width: { ideal: 1280 }, height: { ideal: 1920 } }
-        });
-      } catch {
-        nextStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: { facingMode: { ideal: nextFacing }, width: { ideal: 1280 }, height: { ideal: 1920 } }
-        });
+      // iOS Safari supports applying facingMode to a live track on some devices.
+      // Try that first to preserve the current stream and its audio track.
+      if (currentTrack && currentTrack.readyState === 'live' && typeof currentTrack.applyConstraints === 'function') {
+        try {
+          await currentTrack.applyConstraints({ facingMode: { exact: nextFacing } });
+          const settings = currentTrack.getSettings();
+          if (settings.facingMode === nextFacing) {
+            setCameraFacing(nextFacing);
+            return;
+          }
+        } catch {
+          // Reopen with an explicit facingMode request below.
+        }
       }
+
+      const nextStream = await openCameraStream(nextFacing);
+      if (!nextStream.getVideoTracks().length) {
+        nextStream.getTracks().forEach(track => track.stop());
+        throw new Error('The requested camera did not return a video track.');
+      }
+      streamRef.current = nextStream;
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = nextStream;
         await videoPreviewRef.current.play();
       }
-      streamRef.current = nextStream;
       oldStream?.getTracks().forEach(track => track.stop());
       setCameraFacing(nextFacing);
     } catch (error) {
       console.warn('Switch camera failed:', error);
-      setCameraError('Could not switch camera. Check that both cameras are available and try again.');
+      setCameraError(nextFacing === 'environment'
+        ? 'Could not open the rear camera. Your phone or Telegram may be blocking the camera switch.'
+        : 'Could not return to the front camera. Please try again.');
+    } finally {
+      cameraSwitchingRef.current = false;
     }
   };
 
@@ -919,7 +967,7 @@ export function StudioBeats({
   const unlockPercentage = Math.round((unlockedCount / LONG_BEATS_CATALOG.length) * 100);
 
   return (
-    <div className="w-full flex flex-col space-y-4 pb-28 text-white select-none">
+    <div className="w-full h-full min-h-0 flex flex-col space-y-4 pb-28 text-white select-none overflow-y-auto overscroll-y-contain touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
 
       <div className="p-4 rounded-3xl bg-gradient-to-b from-[#18181b] to-[#0f0f12] border-2 border-[#FFD700]/50">
 
