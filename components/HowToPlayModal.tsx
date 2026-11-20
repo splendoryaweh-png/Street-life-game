@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '@/src/contexts/LanguageContext';
+import { portugueseGuide, portugueseVisualSteps } from './howToPlayPortuguese';
 import { X, Home, Gamepad2, Users, Coins, Mic2, ShieldCheck, ClipboardList, Wallet, ShoppingBag, UserCircle, Eye, Car, RotateCcw, Camera, CheckCircle2, HelpCircle } from 'lucide-react';
 
 type HowToPlayModalProps = {
@@ -243,8 +245,8 @@ const visualSteps: Record<string, [string, string, string, string]> = {
   fairplay: ['Protect your login', 'Share room codes safely', 'Follow game rules', 'Report problems']
 };
 
-function GuideIllustration({ id }: { id: string }) {
-  const steps = visualSteps[id] || visualSteps.start;
+function GuideIllustration({ id, labels }: { id: string; labels?: [string, string, string, string] }) {
+  const steps = labels || visualSteps[id] || visualSteps.start;
   return (
     <div className="my-3 rounded-xl border border-[#FFD700]/20 bg-[#09090b] p-2.5">
       <div className="flex items-center justify-between mb-2">
@@ -275,6 +277,11 @@ function GuideIllustration({ id }: { id: string }) {
 }
 
 export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
+  const { language } = useLanguage();
+  const isPortuguese = language === 'pt';
+  const displayChapters = isPortuguese
+    ? chapters.map((chapter) => ({ ...chapter, ...(portugueseGuide[chapter.id] || {}) }))
+    : chapters;
   if (!isOpen) return null;
 
   return (
@@ -292,9 +299,9 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
       >
         <header className="shrink-0 flex items-center justify-between gap-3 p-4 border-b border-white/10 bg-[#151517]">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#FFD700]">Street Life Player Handbook</p>
-            <h2 id="how-to-play-title" className="text-xl font-black text-white mt-1">Complete How to Play Guide</h2>
-            <p className="text-xs text-gray-400 mt-1">Step-by-step help for the whole app.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#FFD700]">{isPortuguese ? 'Manual do jogador Street Life' : 'Street Life Player Handbook'}</p>
+            <h2 id="how-to-play-title" className="text-xl font-black text-white mt-1">{isPortuguese ? 'Guia completo: como jogar' : 'Complete How to Play Guide'}</h2>
+            <p className="text-xs text-gray-400 mt-1">{isPortuguese ? 'Ajuda passo a passo para todo o aplicativo.' : 'Step-by-step help for the whole app.'}</p>
           </div>
           <button
             type="button"
@@ -307,9 +314,9 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
         </header>
 
         <div className="shrink-0 px-4 py-3 border-b border-white/10 bg-[#101012]">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Jump to a topic</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">{isPortuguese ? 'Ir para um tópico' : 'Jump to a topic'}</p>
           <div className="flex gap-2 overflow-x-auto pb-1 touch-pan-x">
-            {chapters.map((chapter) => (
+            {displayChapters.map((chapter) => (
               <a key={chapter.id} href={'#guide-' + chapter.id} className="shrink-0 rounded-full border border-white/15 bg-white/[0.05] px-3 py-2 text-[10px] font-bold text-gray-200">
                 {chapter.title.split('. ')[1]}
               </a>
@@ -318,7 +325,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y p-4 space-y-3 [WebkitOverflowScrolling:touch]">
-          {chapters.map(({ id, icon: Icon, title, color, intro, steps }) => (
+          {displayChapters.map(({ id, icon: Icon, title, color, intro, steps }) => (
             <article id={'guide-' + id} key={id} className="scroll-mt-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3.5">
               <div className="flex items-center gap-3 mb-2">
                 <div className={'w-10 h-10 shrink-0 rounded-xl bg-white/[0.06] flex items-center justify-center ' + color}>
@@ -327,7 +334,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
                 <h3 className="text-sm font-extrabold text-white">{title}</h3>
               </div>
               <p className="text-xs leading-relaxed text-gray-300 mb-2">{intro}</p>
-              <GuideIllustration id={id} />
+              <GuideIllustration id={id} labels={isPortuguese ? portugueseVisualSteps[id] : undefined} />
               <ol className="space-y-2 list-decimal pl-4 marker:text-[#FFD700]">
                 {steps.map((step, index) => (
                   <li key={index} className="text-xs leading-relaxed text-gray-300 pl-1">{step}</li>
@@ -338,12 +345,12 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
           <div className="rounded-2xl border border-[#FFD700]/25 bg-[#FFD700]/[0.06] p-3.5">
             <div className="flex items-center gap-2 text-[#FFD700] mb-1">
               <CheckCircle2 className="w-4 h-4" />
-              <p className="text-xs font-black">Video tutorials coming later</p>
+              <p className="text-xs font-black">{isPortuguese ? 'Tutoriais em vídeo em breve' : 'Video tutorials coming later'}</p>
             </div>
-            <p className="text-xs leading-relaxed text-gray-300">This guide is ready for video links. When you provide your tutorial links, they can be added to the matching chapters so players can read the steps and watch the demonstration.</p>
+            <p className="text-xs leading-relaxed text-gray-300">{isPortuguese ? 'Este guia poderá receber links de vídeo. Quando os links dos tutoriais estiverem disponíveis, eles poderão ser adicionados aos capítulos correspondentes.' : 'This guide is ready for video links. When you provide your tutorial links, they can be added to the matching chapters so players can read the steps and watch the demonstration.'}</p>
           </div>
           <p className="text-[10px] leading-relaxed text-gray-500 text-center px-2 pb-2">
-            Street Life features and requirements can change with updates. Follow the latest instructions and messages displayed in each screen.
+            {isPortuguese ? 'Os recursos e requisitos do Street Life podem mudar com as atualizações. Siga sempre as instruções e mensagens mais recentes exibidas em cada tela.' : 'Street Life features and requirements can change with updates. Follow the latest instructions and messages displayed in each screen.'}
           </p>
         </div>
 
@@ -353,7 +360,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
             onClick={onClose}
             className="w-full rounded-xl bg-[#FFD700] text-black font-black text-sm py-3 active:scale-[0.98] transition-transform"
           >
-            Got it — let’s play
+            {isPortuguese ? 'Entendi — vamos jogar' : 'Got it — let’s play'}
           </button>
         </footer>
       </section>
