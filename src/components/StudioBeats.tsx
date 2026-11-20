@@ -197,8 +197,7 @@ export function StudioBeats({
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const [isPostingMix, setIsPostingMix] = useState(false);
 
-  const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);  const [videoPreviewReady, setVideoPreviewReady] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
+  const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);  const [videoPreviewReady, setVideoPreviewReady] = useState(false);  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
   const [videoFilter, setVideoFilter] = useState<'natural' | 'warm' | 'glow' | 'vintage' | 'mono' | 'cool'>('natural');
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const videoCaptureRef = useRef<HTMLDivElement | null>(null);
@@ -337,8 +336,7 @@ export function StudioBeats({
     // Enforce beat ownership at the recording action itself, not only in the catalog UI.
     // Level 1 (internal level 0) can record its three starter beats; locked beats
     // cannot open the microphone or create a recording until their level is owned.
-    if (!(isLongBeatUnlocked(beat, studioLevel))) {
-      setSelectedInspectBeat(beat);
+    if (!(isLongBeatUnlocked(beat, studioLevel))) {      setSelectedInspectBeat(beat);
       toast(`🔒 Unlock Studio Level ${beat.requiredStudioLevel + 1} to record this beat.`);
       setIsUpgradeModalOpen(true);
       return;    }
@@ -647,7 +645,6 @@ export function StudioBeats({
         }
 
         const old = recordingsByBeat[beat.id];
-
         if (old?.url) {
           try { URL.revokeObjectURL(old.url); } catch {}
         }
@@ -947,8 +944,7 @@ export function StudioBeats({
     }
     if (beatRec.isVideo ? !beatRec.blob.type.startsWith('video/') : !beatRec.blob.type.startsWith('audio/')) {
       toast('This recording format is not supported. Please record again.');
-      return;
-    }
+      return;    }
     if (isPostingMix) return;
 
     const initData = (window as any).Telegram?.WebApp?.initData || '';
@@ -1247,8 +1243,7 @@ export function StudioBeats({
 
           <div className="space-y-4">
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
+            <div>              <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
                   <Music2 className="w-4 h-4 text-[#FFD700]"/>
                   <span className="text-xs font-bold text-white">BEAT VOLUME</span>
@@ -1461,15 +1456,15 @@ export function StudioBeats({
               controls={!isRecording && !videoPreviewReady && Boolean(recordedBlob?.type.startsWith('video/'))}
               className="w-full h-full object-cover bg-black"
               style={{
-                filter: ({
+                filter: videoPreviewReady ? ({
                   natural: 'none',
                   warm: 'saturate(1.12) sepia(0.12) contrast(1.04)',
                   glow: 'brightness(1.08) saturate(1.22) contrast(1.03)',
                   vintage: 'sepia(0.32) contrast(0.92) saturate(0.82)',
                   mono: 'grayscale(1) contrast(1.08)',
                   cool: 'saturate(1.08) hue-rotate(12deg) contrast(1.04)'
-                } as const)[videoFilter],
-                transform: cameraFacing === 'user' ? 'scaleX(-1)' : 'none'
+                } as const)[videoFilter] : 'none',
+                transform: videoPreviewReady && cameraFacing === 'user' ? 'scaleX(-1)' : 'none'
               }}
             />
             {isRecording && <div className="absolute top-3 left-3 rounded-full bg-red-600 px-3 py-1 text-xs font-black animate-pulse">● REC {formatRecordingTimer(recordingSeconds)}</div>}
