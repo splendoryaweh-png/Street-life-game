@@ -18,7 +18,7 @@ interface StreetGangStarMultiplayerProps { onBack: () => void; onToast: (msg: st
 
 export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', initialCountry = 'NG' }: StreetGangStarMultiplayerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const get3DPlayerSnapshot = useCallback(() => { const s = gameStateRef.current; const p = s.player; return { x: p.x, y: p.y, heading: p.facingAngle, isMoving: Math.abs(p.vx) + Math.abs(p.vy) > 0.2 || s.joystickMovement.isMoving, laserBeams: s.lasers }; }, []);
+  const get3DPlayerSnapshot = useCallback(() => { const s = gameStateRef.current; const p = s.player; return { x: p.x, y: p.y, heading: p.facingAngle, isMoving: Math.abs(p.vx) + Math.abs(p.vy) > 0.2 || s.joystickMovement.isMoving, laserBeams: s.lasers, civilians: s.civilians.map((c) => ({ id: c.id, x: c.x, y: c.y, heading: c.facingAngle, color: c.color, state: c.state })), gangsters: s.gangsters.map((g) => ({ id: g.id, x: g.x, y: g.y, heading: g.facingAngle, vehicleType: g.vehicleType, health: g.health, maxHealth: g.maxHealth })), cars: s.cars.map((c) => ({ id: c.id, x: c.x, y: c.y, heading: c.direction === 'horizontal' ? 0 : Math.PI / 2, width: c.width, height: c.height, color: c.color })), remotePlayers: Array.from(s.remotePlayers.values()).map((p) => ({ id: p.id, x: p.x, y: p.y, heading: p.facingAngle, color: p.avatarColor, team: p.team, health: p.health })) }; }, []);
   const t = useCallback((key: GangStarTextKey) => getGangStarText(language, key), [language]);
   const [inLobby, setInLobby] = useState<boolean>(true);
   const [roomCode, setRoomCode] = useState<string>('');
