@@ -64,7 +64,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length], health: 4, maxHealth: 4 }); } s.civilians = civs;
   }, [cityData]);
   const setupGame = useCallback(() => {
-    const s = gameStateRef.current; s.player.x = 1900; s.player.y = 1800; s.player.health = 100; s.player.ammo = WEAPONS.pistol.maxAmmo; s.player.maxAmmo = WEAPONS.pistol.maxAmmo; s.player.gun = 'pistol'; s.player.isCover = false; s.player.inCarId = null; s.gangsters = []; s.lasers = []; s.sparks = []; s.lastSpawnTime = Date.now(); s.isRunning = true;
+    const s = gameStateRef.current; const spawn = cityData.spawnPoints.find((point) => !isPointInsideBuilding(point.x, point.y, cityData.buildings, 18)) ?? (cityData.roads[0] ? { x: cityData.roads[0].x + cityData.roads[0].width / 2, y: cityData.roads[0].y + cityData.roads[0].height / 2 } : { x: cityData.mapWidth / 2, y: cityData.mapHeight / 2 }); s.player.x = spawn.x; s.player.y = spawn.y; s.player.health = 100; s.player.ammo = WEAPONS.pistol.maxAmmo; s.player.maxAmmo = WEAPONS.pistol.maxAmmo; s.player.gun = 'pistol'; s.player.isCover = false; s.player.inCarId = null; s.gangsters = []; s.lasers = []; s.sparks = []; s.lastSpawnTime = Date.now(); s.isRunning = true;
     setHudHealth(100); setHudAmmo(WEAPONS.pistol.maxAmmo); setHudMaxAmmo(WEAPONS.pistol.maxAmmo); setHudGun('pistol'); setHudInCover(false); setHudInCar(false); initTrafficAndCivilians();
   }, [initTrafficAndCivilians]);
   const handleStartFromIntro = () => { setShowIntro(false); setupGame(); };
@@ -75,8 +75,9 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       await showAdsgramRewardedAd();
       const s = gameStateRef.current;
       s.player.health = 100;
-      s.player.x = 1900;
-      s.player.y = 1800;
+      const spawn = cityData.spawnPoints.find((point) => !isPointInsideBuilding(point.x, point.y, cityData.buildings, 18)) ?? (cityData.roads[0] ? { x: cityData.roads[0].x + cityData.roads[0].width / 2, y: cityData.roads[0].y + cityData.roads[0].height / 2 } : { x: cityData.mapWidth / 2, y: cityData.mapHeight / 2 });
+      s.player.x = spawn.x;
+      s.player.y = spawn.y;
       s.player.inCarId = null;
       s.isRunning = true;
       setHudHealth(100);
