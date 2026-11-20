@@ -1221,7 +1221,7 @@ export function StudioBeats({
 
         {cameraError && <p role="alert" className="mt-2 text-xs font-semibold text-red-400">{cameraError}</p>}
         {isVideoFreestyle && (
-          <div className="fixed inset-0 z-[100] w-screen h-[100dvh] min-h-screen overflow-y-auto overscroll-y-contain touch-pan-y bg-black" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="fixed inset-0 z-[100] w-screen h-[100dvh] min-h-0 overflow-hidden bg-black">
             <video
               ref={videoPreviewRef}
               autoPlay
@@ -1229,39 +1229,44 @@ export function StudioBeats({
               muted
               className="absolute inset-0 w-full h-full object-cover" style={{ filter: activeVideoFilter, objectPosition: 'center center' }}
             />
-            <div className="absolute inset-x-0 top-0 z-[101] flex justify-center p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pointer-events-none">
-              <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold text-white/90">LIVE CAMERA</span>
-            </div>
-            {cameraError && <div role="alert" className="absolute top-10 left-3 right-3 z-[102] rounded-lg bg-red-950/90 p-2 text-xs font-semibold text-white">{cameraError}</div>}
-            <div className="absolute inset-x-0 bottom-0 z-[101] flex flex-col items-center gap-2 px-3 pt-3 pb-[max(0.65rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/85 via-black/45 to-transparent">
-              <div className="flex w-full max-w-sm items-center justify-center gap-2">
-                <button type="button" onClick={handleSwitchCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
-                  <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5"/> Flip</span>
-                </button>
-                <button type="button" onClick={() => handleRecordBeat(currentBeat)} disabled={dailyRecordCount >= dailyRecordLimit && !isRecording} className={"pointer-events-auto min-w-20 rounded-xl px-3 py-3 text-[11px] font-black uppercase shadow-xl active:scale-95 disabled:opacity-40 " + (isRecording ? 'bg-red-600 text-white' : 'bg-[#FFD700] text-black')} aria-label={isRecording ? 'Stop recording' : 'Start recording'}>
-                  {isRecording ? 'Stop' : 'Record'}
-                </button>
-                <button type="button" onClick={handlePreview} disabled={isRecording || (!recordedBlob && !recordingsByBeat[currentBeat.id])} className="pointer-events-auto rounded-xl bg-blue-600 px-3 py-3 text-[11px] font-black uppercase text-white disabled:opacity-40 active:scale-95">
-                  Preview
-                </button>
-                <button type="button" onClick={handlePost} disabled={isRecording || (!recordedBlob && !recordingsByBeat[currentBeat.id])} className="pointer-events-auto rounded-xl bg-emerald-500 px-3 py-3 text-[11px] font-black uppercase text-black disabled:opacity-40 active:scale-95">
-                  Post
-                </button>
-                <button type="button" onClick={handleDisableCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
-                  Close
-                </button>
-              </div>
-              <div className="w-full flex items-center justify-center gap-2 overflow-x-auto touch-pan-x pb-0.5">
-                {videoFilterOptions.map((filter) => (
-                  <button
-                    key={filter.id}
-                    type="button"
-                    onClick={() => setVideoFilter(filter.id)}
-                    className={"shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-bold transition-colors " + (videoFilter === filter.id ? 'border-[#FFD700] bg-[#FFD700] text-black' : 'border-white/35 bg-black/65 text-white')}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
+            <div className="absolute inset-0 overflow-y-auto overscroll-y-contain touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="relative flex min-h-[100dvh] flex-col">
+                <div className="relative z-[101] flex justify-center p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pointer-events-none">
+                  <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold text-white/90">LIVE CAMERA</span>
+                </div>
+                {cameraError && <div role="alert" className="relative z-[102] mx-3 mt-2 rounded-lg bg-red-950/90 p-2 text-xs font-semibold text-white">{cameraError}</div>}
+                <div className="min-h-[30vh] flex-1" aria-hidden="true" />
+                <div className="relative z-[101] flex flex-col items-center gap-2 px-3 pt-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/90 via-black/55 to-transparent">
+                  <div className="flex w-full max-w-sm flex-wrap items-center justify-center gap-2">
+                    <button type="button" onClick={handleSwitchCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
+                      <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5"/> Flip</span>
+                    </button>
+                    <button type="button" onClick={() => handleRecordBeat(currentBeat)} disabled={dailyRecordCount >= dailyRecordLimit && !isRecording} className={"pointer-events-auto min-w-20 rounded-xl px-3 py-3 text-[11px] font-black uppercase shadow-xl active:scale-95 disabled:opacity-40 " + (isRecording ? 'bg-red-600 text-white' : 'bg-[#FFD700] text-black')} aria-label={isRecording ? 'Stop recording' : 'Start recording'}>
+                      {isRecording ? 'Stop' : 'Record'}
+                    </button>
+                    <button type="button" onClick={handlePreview} disabled={isRecording || (!recordedBlob && !recordingsByBeat[currentBeat.id])} className="pointer-events-auto rounded-xl bg-blue-600 px-3 py-3 text-[11px] font-black uppercase text-white disabled:opacity-40 active:scale-95">
+                      Preview
+                    </button>
+                    <button type="button" onClick={handlePost} disabled={isRecording || (!recordedBlob && !recordingsByBeat[currentBeat.id])} className="pointer-events-auto rounded-xl bg-emerald-500 px-3 py-3 text-[11px] font-black uppercase text-black disabled:opacity-40 active:scale-95">
+                      Post
+                    </button>
+                    <button type="button" onClick={handleDisableCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
+                      Close
+                    </button>
+                  </div>
+                  <div className="w-full flex items-center justify-center gap-2 overflow-x-auto touch-pan-x pb-0.5">
+                    {videoFilterOptions.map((filter) => (
+                      <button
+                        key={filter.id}
+                        type="button"
+                        onClick={() => setVideoFilter(filter.id)}
+                        className={"shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-bold transition-colors " + (videoFilter === filter.id ? 'border-[#FFD700] bg-[#FFD700] text-black' : 'border-white/35 bg-black/65 text-white')}
+                      >
+                        {filter.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
