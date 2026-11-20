@@ -51,6 +51,31 @@ import { LongBeat } from '@/src/data/longBeatsData';
 import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import { getTelegramInitData } from '@/lib/telegram';
 
+const DAILY_STUDIO_RECORD_KEY = 'streetlife_record_count';
+
+function getDailyStudioRecordCount(): number {
+  try {
+    const raw = localStorage.getItem(DAILY_STUDIO_RECORD_KEY);
+    const saved = raw ? JSON.parse(raw) : null;
+    const today = new Date();
+    const date = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    return saved?.date === date && Number.isFinite(saved.count) ? saved.count : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function addDailyStudioRecord(): number {
+  const today = new Date();
+  const date = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const count = getDailyStudioRecordCount() + 1;
+  try {
+    localStorage.setItem(DAILY_STUDIO_RECORD_KEY, JSON.stringify({ date, count }));
+    window.dispatchEvent(new Event('streetlife:record-count-updated'));
+  } catch {}
+  return count;
+}
+
 // Pure JavaScript PCM 16-bit WAV vocal synthesizer
 function writeWavString(view: DataView, offset: number, string: string) {
   for (let i = 0; i < string.length; i++) {
@@ -357,6 +382,11 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
 
   // START MIC RECORDING OVER BEAT
   const handleStartRecord = async (beat: BeatDefinition) => {
+    const dailyLimit = 2 + Math.max(0, Math.min(4, playerStudioLevel));
+    if (getDailyStudioRecordCount() >= dailyLimit) {
+      onToast(`Daily studio recording limit reached (${dailyLimit}/${dailyLimit}). Upgrade your Studio to increase the daily limit.`);
+      return;
+    }
     if (rentExpired) {
       onToast('🔒 Studio rent expired! Renew rent to test or record.');
       return;
@@ -418,6 +448,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       } else {
         blob = createSyntheticVocalWavBlob(recordSecondsRef.current || 3);
       }
+      addDailyStudioRecord();
       const url = URL.createObjectURL(blob);
       setRecordedBlobUrl(url);
       setRecordedBeatId(beat.id);
@@ -519,6 +550,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       }
       if (recordingBeatId) {
         const blob = createSyntheticVocalWavBlob(recordSecondsRef.current || 3);
+        addDailyStudioRecord();
         const url = URL.createObjectURL(blob);
         setRecordedBlobUrl(url);
         setRecordedBeatId(recordingBeatId);
