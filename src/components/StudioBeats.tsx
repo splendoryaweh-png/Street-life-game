@@ -161,6 +161,12 @@ export function StudioBeats({
   const [isInspectModalOpen, setIsInspectModalOpen] = useState(false);
 
   const [dailyRecordCount, setDailyRecordCount] = useState(() => getStoredDailyRecordCount());
+
+  useEffect(() => {
+    const refreshDailyCount = () => setDailyRecordCount(getStoredDailyRecordCount());
+    window.addEventListener('streetlife:record-count-updated', refreshDailyCount);
+    return () => window.removeEventListener('streetlife:record-count-updated', refreshDailyCount);
+  }, []);
   const [showDailyLimitModal, setShowDailyLimitModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
