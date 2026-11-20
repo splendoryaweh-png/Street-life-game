@@ -9,6 +9,9 @@ export interface StreetGang3DEnvironmentProps {
   playerPosition?: { x: number; y: number };
   playerHeading?: number;
   className?: string;
+  playerColor?: string;
+  laserBeams?: Array<{ x1: number; y1: number; x2: number; y2: number; color: string; life: number; maxLife: number }>;
+  getPlayerSnapshot?: () => { x: number; y: number; heading: number; color?: string; isMoving?: boolean };
 }
 
 /**
@@ -24,10 +27,16 @@ export function StreetGang3DEnvironment({
   playerPosition,
   playerHeading = 0,
   className = '',
+  playerColor = '#38BDF8',
+  laserBeams = [],
+  getPlayerSnapshot,
 }: StreetGang3DEnvironmentProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const targetRef = useRef(playerPosition);
   const headingRef = useRef(playerHeading);
+  const beamsRef = useRef(laserBeams);
+  const snapshotRef = useRef(getPlayerSnapshot);
+  useEffect(() => { beamsRef.current = laserBeams; snapshotRef.current = getPlayerSnapshot; }, [laserBeams, getPlayerSnapshot]);
 
   useEffect(() => {
     targetRef.current = playerPosition;
@@ -64,6 +73,38 @@ export function StreetGang3DEnvironment({
 
     const world = new THREE.Group();
     scene.add(world);
+
+    // Third-person character and laser sidearm; combat remains non-graphic.
+    const playerRig = new THREE.Group();
+    const skin = new THREE.MeshStandardMaterial({ color: '#9b6748', roughness: 0.82 });
+    const clothing = new THREE.MeshStandardMaterial({ color: playerColor, roughness: 0.78 });
+    const darkCloth = new THREE.MeshStandardMaterial({ color: '#20252b', roughness: 0.9 });
+    const weaponMat = new THREE.MeshStandardMaterial({ color: '#303943', metalness: 0.72, roughness: 0.34 });
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(4.2, 7, 5, 10), clothing);
+    torso.position.y = 12; torso.castShadow = true; playerRig.add(torso);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(2.8, 14, 12), skin);
+    head.position.y = 20; head.castShadow = true; playerRig.add(head);
+    const legGeometry = new THREE.CapsuleGeometry(1.45, 5.5, 4, 8);
+    const leftLeg = new THREE.Mesh(legGeometry, darkCloth); leftLeg.position.set(-1.65, 4.2, 0);
+    const rightLeg = new THREE.Mesh(legGeometry, darkCloth); rightLeg.position.set(1.65, 4.2, 0);
+    playerRig.add(leftLeg, rightLeg);
+    const armGeometry = new THREE.CapsuleGeometry(1.25, 5.5, 4, 8);
+    const leftArm = new THREE.Mesh(armGeometry, clothing); leftArm.position.set(-5, 13, -1.8); leftArm.rotation.z = -0.38;
+    const rightArm = new THREE.Mesh(armGeometry, clothing); rightArm.position.set(5, 13, -2.2); rightArm.rotation.z = 0.38;
+    playerRig.add(leftArm, rightArm);
+    const laserGun = new THREE.Group();
+    const gunBody = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.8, 9), weaponMat); gunBody.position.set(0, 0, -2.8);
+    const gunBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 4, 8), weaponMat);
+    gunBarrel.rotation.x = Math.PI / 2; gunBarrel.position.z = -8;
+    laserGun.add(gunBody, gunBarrel); laserGun.position.set(5.4, 13, -5.2); playerRig.add(laserGun);
+    world.add(playerRig);
+
+    const beamGeometry = new THREE.CylinderGeometry(0.22, 0.22, 1, 6);
+    const beamPool: THREE.Mesh[] = [];
+    for (let i = 0; i < 24; i += 1) {
+      const beam = new THREE.Mesh(beamGeometry, new THREE.MeshBasicMaterial({ color: '#38BDF8', transparent: true, opacity: 0.9 }));
+      beam.visible = false; world.add(beam); beamPool.push(beam);
+    }
 
     const materials = {
       asphalt: new THREE.MeshStandardMaterial({ color: city.theme.asphaltColor, roughness: 0.96 }),
@@ -263,10 +304,29 @@ export function StreetGang3DEnvironment({
     let frame = 0;
     const animate = () => {
       frame = window.requestAnimationFrame(animate);
-      const target = targetRef.current ?? { x: 1900, y: 1800 };
-      const px = mapX(target.x);
-      const pz = mapZ(target.y);
-      const heading = headingRef.current;
+      const live = snapshotRef.current?.();
+      const target = live ?? targetRef.current ?? { x: 1900, y: 1800 };
+      const px = mapX(target.x), pz = mapZ(target.y);
+      const heading = live?.heading ?? headingRef.current;
+      playerRig.position.set(px, 0, pz);
+      playerRig.rotation.y = -heading;
+      const stride = live?.isMoving ? Math.sin(Date.now() * 0.012) * 0.42 : 0;
+      leftLeg.rotation.x = stride; rightLeg.rotation.x = -stride;
+      leftArm.rotation.x = -stride * 0.55; rightArm.rotation.x = stride * 0.55;
+      const activeBeams = beamsRef.current.slice(-beamPool.length);
+      beamPool.forEach((beam, index) => {
+        const source = activeBeams[index];
+        if (!source || source.life <= 0) { beam.visible = false; return; }
+        const start = new THREE.Vector3(mapX(source.x1), 13, mapZ(source.y1));
+        const end = new THREE.Vector3(mapX(source.x2), 2, mapZ(source.y2));
+        const delta = end.clone().sub(start);
+        beam.visible = true; beam.position.copy(start).add(end).multiplyScalar(0.5);
+        beam.scale.set(1, delta.length(), 1);
+        beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize());
+        const mat = beam.material as THREE.MeshBasicMaterial;
+        mat.color.set(source.color || '#38BDF8');
+        mat.opacity = Math.max(0.12, source.life / Math.max(1, source.maxLife));
+      });
       const distance = 34;
       const cameraOffsetX = Math.sin(heading) * distance;
       const cameraOffsetZ = Math.cos(heading) * distance;
@@ -287,6 +347,8 @@ export function StreetGang3DEnvironment({
           else material.dispose();
         }
       });
+      beamPool.forEach((beam) => (beam.material as THREE.Material).dispose());
+      beamGeometry.dispose(); skin.dispose(); clothing.dispose(); darkCloth.dispose(); weaponMat.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     };
