@@ -167,7 +167,16 @@ export function StudioBeats({
 
   const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);
   const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
+  const [videoFilter, setVideoFilter] = useState<'none' | 'warm' | 'mono' | 'cool' | 'vintage'>('none');
   const cameraSwitchingRef = useRef(false);
+  const videoFilterOptions = [
+    { id: 'none' as const, label: 'Normal', style: 'none' },
+    { id: 'warm' as const, label: 'Warm', style: 'sepia(0.22) saturate(1.25)' },
+    { id: 'mono' as const, label: 'B&W', style: 'grayscale(1)' },
+    { id: 'cool' as const, label: 'Cool', style: 'saturate(1.15) hue-rotate(12deg)' },
+    { id: 'vintage' as const, label: 'Vintage', style: 'sepia(0.38) contrast(1.08) saturate(0.82)' },
+  ];
+  const activeVideoFilter = videoFilterOptions.find(filter => filter.id === videoFilter)?.style || 'none';
   const [cameraError, setCameraError] = useState('');
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const [activeVideoModalUrl, setActiveVideoModalUrl] = useState<string | null>(null);
@@ -289,48 +298,40 @@ export function StudioBeats({
   }, []);
 
   const openCameraStream = async (facing: 'user' | 'environment') => {
-    const baseVideo: MediaTrackConstraints = {
-      facingMode: { exact: facing },
+    const base = {
       width: { ideal: 1280 },
       height: { ideal: 1920 },
       frameRate: { ideal: 30, max: 30 }
     };
-    // Request the requested physical direction first. Do not pick the first
-    // enumerated device: on iOS that ordering is not a reliable front/back map.
     try {
-      return await navigator.mediaDevices.getUserMedia({ audio: true, video: baseVideo });
-    } catch (firstError) {
+      return await navigator.mediaDevices.getUserMedia({
+        audio: true, video: { ...base, facingMode: { exact: facing } }
+      });
+    } catch {}
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        audio: true, video: { ...base, facingMode: { ideal: facing } }
+      });
+    } catch {}
+    // iOS often hides camera labels until permission has been granted.
+    try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoInputs = devices.filter(device => device.kind === 'videoinput');
-      const matchesFacing = (device: MediaDeviceInfo) => {
+      const cameras = devices.filter(device => device.kind === 'videoinput');
+      const matches = (device: MediaDeviceInfo) => {
         const label = device.label.toLowerCase();
         return facing === 'user'
           ? /front|user|facetime|selfie/.test(label)
           : /back|rear|environment|wide|ultra/.test(label);
       };
-      const preferred = videoInputs.find(matchesFacing);
+      const preferred = cameras.find(matches);
       if (preferred?.deviceId) {
         return await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: {
-            deviceId: { exact: preferred.deviceId },
-            width: { ideal: 1280 },
-            height: { ideal: 1920 },
-            frameRate: { ideal: 30, max: 30 }
-          }
+          audio: true, video: { ...base, deviceId: { exact: preferred.deviceId } }
         });
       }
-      // Some Telegram WebViews expose one camera constraint mode but no
-      // useful labels/device IDs until permission has been granted.
-      try {
-        return await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 1920 } }
-        });
-      } catch {
-        throw firstError;
-      }
-    }
+    } catch {}
+    // Last resort for Telegram's iOS WebView: request its default camera.
+    return await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
   };
 
   const handleEnableCamera = async () => {
@@ -365,41 +366,37 @@ export function StudioBeats({
     cameraSwitchingRef.current = true;
     setCameraError('');
     const oldStream = streamRef.current;
-    const currentTrack = oldStream?.getVideoTracks()[0];
-    const nextFacing: 'user' | 'environment' = cameraFacing === 'user' ? 'environment' : 'user';
+    const previousFacing = cameraFacing;
+    const nextFacing: 'user' | 'environment' = previousFacing === 'user' ? 'environment' : 'user';
     try {
-      // iOS Safari supports applying facingMode to a live track on some devices.
-      // Try that first to preserve the current stream and its audio track.
-      if (currentTrack && currentTrack.readyState === 'live' && typeof currentTrack.applyConstraints === 'function') {
-        try {
-          await currentTrack.applyConstraints({ facingMode: { exact: nextFacing } });
-          const settings = currentTrack.getSettings();
-          if (settings.facingMode === nextFacing) {
-            setCameraFacing(nextFacing);
-            return;
-          }
-        } catch {
-          // Reopen with an explicit facingMode request below.
-        }
-      }
-
+      // iOS may refuse to open the second lens while the first is still active.
+      oldStream?.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
       const nextStream = await openCameraStream(nextFacing);
       if (!nextStream.getVideoTracks().length) {
         nextStream.getTracks().forEach(track => track.stop());
-        throw new Error('The requested camera did not return a video track.');
+        throw new Error('No video track returned by the requested camera.');
       }
       streamRef.current = nextStream;
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = nextStream;
         await videoPreviewRef.current.play();
       }
-      oldStream?.getTracks().forEach(track => track.stop());
       setCameraFacing(nextFacing);
     } catch (error) {
       console.warn('Switch camera failed:', error);
-      setCameraError(nextFacing === 'environment'
-        ? 'Could not open the rear camera. Your phone or Telegram may be blocking the camera switch.'
-        : 'Could not return to the front camera. Please try again.');
+      try {
+        const restoredStream = await openCameraStream(previousFacing);
+        streamRef.current = restoredStream;
+        if (videoPreviewRef.current) {
+          videoPreviewRef.current.srcObject = restoredStream;
+          await videoPreviewRef.current.play();
+        }
+        setCameraFacing(previousFacing);
+      } catch (restoreError) {
+        console.warn('Could not restore previous camera:', restoreError);
+        setCameraError('Camera switching is blocked by this iPhone or Telegram session. Check Telegram camera permission, or open the game in Safari and try again.');
+      }
     } finally {
       cameraSwitchingRef.current = false;
     }
@@ -967,7 +964,7 @@ export function StudioBeats({
   const unlockPercentage = Math.round((unlockedCount / LONG_BEATS_CATALOG.length) * 100);
 
   return (
-    <div className="w-full h-full min-h-0 flex flex-col space-y-4 pb-28 text-white select-none overflow-y-auto overscroll-y-contain touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <div className="w-full min-h-0 h-auto flex flex-col space-y-4 pb-8 text-white select-none overflow-visible">
 
       <div className="p-4 rounded-3xl bg-gradient-to-b from-[#18181b] to-[#0f0f12] border-2 border-[#FFD700]/50">
 
@@ -1192,22 +1189,38 @@ export function StudioBeats({
               autoPlay
               playsInline
               muted
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover" style={{ filter: activeVideoFilter }}
             />
-            <div className="absolute inset-x-0 top-0 z-[101] flex items-center justify-between gap-3 p-4 pt-[max(1rem,env(safe-area-inset-top))]">
-              <span className="rounded-full bg-black/70 px-3 py-2 text-xs font-black text-white">LIVE CAMERA</span>
-              <button type="button" onClick={handleSwitchCamera} className="pointer-events-auto rounded-xl border border-white/30 bg-black/75 px-4 py-3 text-sm font-black text-white shadow-lg active:scale-95">
-                <span className="inline-flex items-center gap-2"><Camera className="h-4 w-4"/> Switch Camera</span>
-              </button>
-              <button type="button" onClick={handleDisableCamera} className="pointer-events-auto rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white shadow-lg active:scale-95">
-                Close
-              </button>
+            <div className="absolute inset-x-0 top-0 z-[101] flex justify-center p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pointer-events-none">
+              <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold text-white/90">LIVE CAMERA</span>
             </div>
-            {cameraError && <div role="alert" className="absolute top-20 left-4 right-4 z-[102] rounded-xl bg-red-950/90 p-3 text-sm font-semibold text-white">{cameraError}</div>}
-            <div className="absolute inset-x-0 bottom-0 z-[101] flex justify-center p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-              <button type="button" onClick={() => handleRecordBeat(currentBeat)} className={`pointer-events-auto rounded-full px-8 py-4 text-sm font-black uppercase shadow-2xl active:scale-95 ${isRecording ? 'bg-red-600 text-white' : 'bg-[#FFD700] text-black'}`}>
-                {isRecording ? 'Stop Recording' : 'Start Recording'}
-              </button>
+            {cameraError && <div role="alert" className="absolute top-10 left-3 right-3 z-[102] rounded-lg bg-red-950/90 p-2 text-xs font-semibold text-white">{cameraError}</div>}
+            <div className="absolute inset-x-0 bottom-0 z-[101] flex flex-col items-center gap-2 px-3 pt-3 pb-[max(0.65rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/85 via-black/45 to-transparent">
+              <div className="w-full flex items-center justify-center gap-2 overflow-x-auto touch-pan-x pb-0.5">
+                {videoFilterOptions.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => setVideoFilter(filter.id)}
+                    className={"shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-bold transition-colors " + (videoFilter === filter.id ? 'border-[#FFD700] bg-[#FFD700] text-black' : 'border-white/35 bg-black/65 text-white')}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex w-full max-w-xs items-center justify-center gap-5">
+                <button type="button" onClick={handleSwitchCamera} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white active:scale-95">
+                  <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5"/> Flip</span>
+                </button>
+                <button type="button" onClick={() => handleRecordBeat(currentBeat)} className={"pointer-events-auto h-12 min-w-12 rounded-full border-[3px] border-white p-1 shadow-xl active:scale-95 " + (isRecording ? 'bg-red-600' : 'bg-[#FFD700]')} aria-label={isRecording ? 'Stop recording' : 'Start recording'}>
+                  <span className={"flex h-full w-full items-center justify-center rounded-full text-[9px] font-black uppercase " + (isRecording ? 'text-white' : 'text-black')}>
+                    {isRecording ? 'Stop' : 'Rec'}
+                  </span>
+                </button>
+                <button type="button" onClick={handleDisableCamera} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white active:scale-95">
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
