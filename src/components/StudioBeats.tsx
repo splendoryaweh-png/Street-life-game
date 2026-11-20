@@ -299,9 +299,10 @@ export function StudioBeats({
 
   const openCameraStream = async (facing: 'user' | 'environment') => {
     const base = {
-      width: { ideal: 720 },
-      height: { ideal: 1280 },
-      frameRate: { ideal: 30, max: 30 }
+      width: { ideal: 720, max: 1280 },
+      height: { ideal: 1280, max: 1920 },
+      frameRate: { ideal: 30, max: 30 },
+      resizeMode: 'crop-and-scale' as const
     };
     try {
       return await navigator.mediaDevices.getUserMedia({
@@ -758,28 +759,38 @@ export function StudioBeats({
       return;
     }
 
+    const extension = beatRec.blob.type.includes('mp4') ? 'mp4' : 'webm';
+    const file = new File(
+      [beatRec.blob],
+      `StreetLife-${beat.name.replace(/\s+/g, '_')}-${Date.now()}.${extension}`,
+      { type: beatRec.blob.type || (beatRec.isVideo ? 'video/webm' : 'audio/webm') }
+    );
+
+    // Use the phone's share sheet to send the actual recording to a Telegram chat/group.
     try {
-      const a = document.createElement('a');
-      a.href = beatRec.url;
-      a.download =
-        `StreetLife-MIXED-${beat.name.replace(/\s+/g,'_')}-${Date.now()}.${beatRec.url.includes('mp4') ? 'mp4' : 'webm'}`;
-
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-
-      setTimeout(() => {
-        try { document.body.removeChild(a); } catch {}
-      }, 1000);
-
-    } catch (e) {
-      window.open(beatRec.url, '_blank');
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+        await navigator.share({ files: [file], title: `Street Life - ${beat.name}` });
+        playSuccessSound();
+        toast('Choose the Street Life group in the share sheet to post your recording.');
+        return;
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      console.warn('Native recording share failed:', error);
     }
 
-    setTimeout(() => {
+    // Fallback: download the recording and open the group for manual attachment.
+    const a = document.createElement('a');
+    a.href = beatRec.url;
+    a.download = file.name;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    window.setTimeout(() => {
+      try { document.body.removeChild(a); } catch {}
       window.open('https://t.me/Streetlifestars', '_blank');
-    }, 1500);
-
+    }, 700);
+    toast('Recording downloaded. Attach it in the Street Life Telegram group.');
     playSuccessSound();
   };
 
@@ -1189,7 +1200,7 @@ export function StudioBeats({
               autoPlay
               playsInline
               muted
-              className="fixed inset-0 w-full h-full object-cover" style={{ filter: activeVideoFilter, transform: 'translate3d(0,0,0)', backfaceVisibility: 'hidden', WebkitTransform: 'translate3d(0,0,0)' }}
+              className="absolute inset-0 w-full h-full object-cover" style={{ filter: activeVideoFilter, objectPosition: 'center center' }}
             />
             <div className="absolute inset-x-0 top-0 z-[101] flex justify-center p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pointer-events-none">
               <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold text-white/90">LIVE CAMERA</span>
@@ -1208,16 +1219,20 @@ export function StudioBeats({
                   </button>
                 ))}
               </div>
-              <div className="flex w-full max-w-xs items-center justify-center gap-5">
-                <button type="button" onClick={handleSwitchCamera} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white active:scale-95">
+              <div className="flex w-full max-w-sm items-center justify-center gap-2">
+                <button type="button" onClick={handleSwitchCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
                   <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5"/> Flip</span>
                 </button>
-                <button type="button" onClick={() => handleRecordBeat(currentBeat)} className={"pointer-events-auto h-12 min-w-12 rounded-full border-[3px] border-white p-1 shadow-xl active:scale-95 " + (isRecording ? 'bg-red-600' : 'bg-[#FFD700]')} aria-label={isRecording ? 'Stop recording' : 'Start recording'}>
-                  <span className={"flex h-full w-full items-center justify-center rounded-full text-[9px] font-black uppercase " + (isRecording ? 'text-white' : 'text-black')}>
-                    {isRecording ? 'Stop' : 'Record'}
-                  </span>
+                <button type="button" onClick={() => handleRecordBeat(currentBeat)} disabled={dailyRecordCount >= 2 && !isRecording} className={"pointer-events-auto min-w-20 rounded-xl px-3 py-3 text-[11px] font-black uppercase shadow-xl active:scale-95 disabled:opacity-40 " + (isRecording ? 'bg-red-600 text-white' : 'bg-[#FFD700] text-black')} aria-label={isRecording ? 'Stop recording' : 'Start recording'}>
+                  {isRecording ? 'Stop' : 'Record'}
                 </button>
-                <button type="button" onClick={handleDisableCamera} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white active:scale-95">
+                <button type="button" onClick={handlePreview} disabled={isRecording || (!recordedBlob && !recordingsByBeat[currentBeat.id])} className="pointer-events-auto rounded-xl bg-blue-600 px-3 py-3 text-[11px] font-black uppercase text-white disabled:opacity-40 active:scale-95">
+                  Preview
+                </button>
+                <button type="button" onClick={handlePost} disabled={isRecording || (!recordedBlob && !recordingsByBeat[currentBeat.id])} className="pointer-events-auto rounded-xl bg-emerald-500 px-3 py-3 text-[11px] font-black uppercase text-black disabled:opacity-40 active:scale-95">
+                  Post
+                </button>
+                <button type="button" onClick={handleDisableCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
                   Close
                 </button>
               </div>
