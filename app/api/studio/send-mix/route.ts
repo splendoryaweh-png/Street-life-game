@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: false,
         error: isVideo
-          ? 'Video must be smaller than 45 MB. Please record a shorter video and try again.'
+          ? 'Video must be smaller than 4 MB. Please record a shorter video and try again.'
           : 'Recording must be between 1 byte and 4 MB. Please record again; Studio now compresses audio for upload.'
       }, { status: 413 });
     }
