@@ -379,10 +379,11 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       if (isHost) {
         for (const gangster of s.gangsters) {
           const targets = [
-            { x: p.x, y: p.y },
-            ...Array.from(s.remotePlayers.values()).map((remote) => ({ x: remote.x, y: remote.y })),
+            { x: p.x, y: p.y, kind: 'player' as const },
+            ...Array.from(s.remotePlayers.values()).map((remote) => ({ x: remote.x, y: remote.y, kind: 'player' as const })),
+            ...s.civilians.map((civilian) => ({ x: civilian.x, y: civilian.y, kind: 'civilian' as const })),
           ];
-          let target: { x: number; y: number } | null = null;
+          let target: { x: number; y: number; kind: 'player' | 'civilian' } | null = null;
           let targetDistance = 520;
           for (const candidate of targets) {
             const distance = Math.hypot(candidate.x - gangster.x, candidate.y - gangster.y);
@@ -482,6 +483,25 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           }
           if (hit) continue;
         } else {
+          // The host owns civilian damage from enemy fire and synchronizes the result.
+          let civilianHit = false;
+          if (isHost) {
+            for (let civIdx = s.civilians.length - 1; civIdx >= 0; civIdx--) {
+              const civ = s.civilians[civIdx];
+              if (distToSegment(civ.x, civ.y, l.x1, l.y1, l.x2, l.y2) < 30) {
+                civ.health = Math.max(0, (civ.health ?? 3) - 1);
+                civ.state = 'scared';
+                civ.fleeUntil = Date.now() + 3500;
+                civ.facingAngle = Math.atan2(civ.y - l.y1, civ.x - l.x1);
+                for (let sp = 0; sp < 5; sp++) s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#FDE68A', life: 14 });
+                if (civ.health <= 0) s.civilians.splice(civIdx, 1);
+                s.lasers.splice(lIdx, 1);
+                civilianHit = true;
+                break;
+              }
+            }
+          }
+          if (civilianHit) continue;
           // A player takes ten enemy hits before being defeated. Death never closes the room.
           if (p.health > 0 && distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 32) {
             p.hitCount = (p.hitCount || 0) + 1;
