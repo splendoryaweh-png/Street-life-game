@@ -197,11 +197,15 @@ export function StudioBeats({
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const [isPostingMix, setIsPostingMix] = useState(false);
 
-  const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);
-  const [videoPreviewReady, setVideoPreviewReady] = useState(false);
+  const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);  const [videoPreviewReady, setVideoPreviewReady] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
+  const [videoFilter, setVideoFilter] = useState<'natural' | 'warm' | 'glow' | 'vintage' | 'mono' | 'cool'>('natural');
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const videoCaptureRef = useRef<HTMLDivElement | null>(null);
   const cameraPreviewStreamRef = useRef<MediaStream | null>(null);
+  const filteredVideoCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const filteredVideoStreamRef = useRef<MediaStream | null>(null);
+  const videoRenderFrameRef = useRef<number | null>(null);
   const [activeVideoModalUrl, setActiveVideoModalUrl] = useState<string | null>(null);
 
   const [recordingsByBeat, setRecordingsByBeat] = useState<Record<string, {
@@ -337,8 +341,7 @@ export function StudioBeats({
       setSelectedInspectBeat(beat);
       toast(`🔒 Unlock Studio Level ${beat.requiredStudioLevel + 1} to record this beat.`);
       setIsUpgradeModalOpen(true);
-      return;
-    }
+      return;    }
 
     if (isRecording && recordingBeatId === beat.id) {
       handleStopRecording();
@@ -364,7 +367,12 @@ export function StudioBeats({
             isVideoFreestyle
               ? {
                   audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
-                  video: { facingMode: { ideal: 'user' }, width: { ideal: 640 }, height: { ideal: 480 } }
+                  video: {
+                    facingMode: { ideal: cameraFacing },
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    frameRate: { ideal: 30, max: 30 }
+                  }
                 }
               : {
                   audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true }
@@ -522,10 +530,54 @@ export function StudioBeats({
       let finalStream: MediaStream = dest.stream;
 
       if (isVideoFreestyle && micStream.getVideoTracks().length > 0) {
-        finalStream = new MediaStream([
-          ...dest.stream.getAudioTracks(),
-          ...micStream.getVideoTracks()
-        ]);
+        const sourceVideo = videoPreviewRef.current;
+        if (sourceVideo && typeof document !== 'undefined') {
+          const canvas = document.createElement('canvas');
+          canvas.width = 640;
+          canvas.height = 480;
+          const context = canvas.getContext('2d', { alpha: false });
+          if (context && typeof canvas.captureStream === 'function') {
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = 'high';
+            const filters: Record<typeof videoFilter, string> = {
+              natural: 'none',
+              warm: 'saturate(1.12) sepia(0.12) contrast(1.04)',
+              glow: 'brightness(1.08) saturate(1.22) contrast(1.03)',
+              vintage: 'sepia(0.32) contrast(0.92) saturate(0.82)',
+              mono: 'grayscale(1) contrast(1.08)',
+              cool: 'saturate(1.08) hue-rotate(12deg) contrast(1.04)'
+            };
+            const drawFilteredFrame = () => {
+              if (sourceVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && sourceVideo.videoWidth > 0) {
+                context.save();
+                context.filter = filters[videoFilter];
+                if (cameraFacing === 'user') {
+                  context.translate(canvas.width, 0);
+                  context.scale(-1, 1);
+                }
+                context.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
+                context.restore();
+              }
+              videoRenderFrameRef.current = requestAnimationFrame(drawFilteredFrame);
+            };
+            drawFilteredFrame();
+            const filteredStream = canvas.captureStream(30);
+            filteredVideoCanvasRef.current = canvas;
+            filteredVideoStreamRef.current = filteredStream;
+            const videoTrack = filteredStream.getVideoTracks()[0];
+            if (videoTrack) {
+              try { await videoTrack.applyConstraints({ frameRate: { ideal: 30, max: 30 } }); } catch {}
+            }
+            finalStream = new MediaStream([
+              ...dest.stream.getAudioTracks(),
+              ...filteredStream.getVideoTracks()
+            ]);
+          } else {
+            finalStream = new MediaStream([...dest.stream.getAudioTracks(), ...micStream.getVideoTracks()]);
+          }
+        } else {
+          finalStream = new MediaStream([...dest.stream.getAudioTracks(), ...micStream.getVideoTracks()]);
+        }
       }
 
       const mimeType = getBestMimeType(isVideoFreestyle);
@@ -553,6 +605,11 @@ export function StudioBeats({
         streamRef.current?.getTracks().forEach(t => t.stop());
         streamRef.current = null;
         cameraPreviewStreamRef.current = null;
+        if (videoRenderFrameRef.current !== null) cancelAnimationFrame(videoRenderFrameRef.current);
+        videoRenderFrameRef.current = null;
+        filteredVideoStreamRef.current?.getTracks().forEach(track => track.stop());
+        filteredVideoStreamRef.current = null;
+        filteredVideoCanvasRef.current = null;
         setVideoPreviewReady(false);
         if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
 
@@ -647,7 +704,6 @@ export function StudioBeats({
 
         playSuccessSound();
         toast(`🎤 Mixed track ready on "${beat.name}"! Beat + Voice aligned - Tap Preview!`);
-
         setRecordingBeatId(null);
         setIsRecording(false);
       };
@@ -699,6 +755,44 @@ export function StudioBeats({
 
   const handleRecordClick = async () => handleRecordBeat(currentBeat);
 
+  const handleSwitchCamera = async () => {
+    if (isRecording) {
+      toast('Stop recording before switching cameras.');
+      return;
+    }
+    const nextFacing = cameraFacing === 'user' ? 'environment' : 'user';
+    const oldStream = cameraPreviewStreamRef.current;
+    cameraPreviewStreamRef.current = null;
+    oldStream?.getTracks().forEach(track => track.stop());
+    setVideoPreviewReady(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
+        video: {
+          facingMode: { ideal: nextFacing },
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 30, max: 30 }
+        }
+      });
+      cameraPreviewStreamRef.current = stream;
+      streamRef.current = stream;
+      setCameraFacing(nextFacing);
+      setVideoPreviewReady(true);
+      const video = videoPreviewRef.current;
+      if (video) {
+        video.srcObject = stream;
+        await video.play().catch(() => {});
+      }
+      toast(nextFacing === 'user' ? 'Front camera selected.' : 'Back camera selected.');
+    } catch (error) {
+      const name = error instanceof Error ? error.name : '';
+      toast(name === 'NotAllowedError'
+        ? 'Camera permission is blocked. Allow camera access in your browser settings.'
+        : 'Could not switch camera. Your phone may not support the other camera in this browser.');
+    }
+  };
+
   const handleToggleVideoFreestyle = async () => {
     playClickSound();
     if (isVideoFreestyle) {
@@ -719,7 +813,12 @@ export function StudioBeats({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
-        video: { facingMode: { ideal: 'user' }, width: { ideal: 640 }, height: { ideal: 480 } }
+        video: {
+                    facingMode: { ideal: cameraFacing },
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    frameRate: { ideal: 30, max: 30 }
+                  }
       });
       cameraPreviewStreamRef.current = stream;
       setVideoPreviewReady(true);
@@ -947,8 +1046,7 @@ export function StudioBeats({
     const unbindSection = longBeatEngine.onSectionChange(setCurrentSection);
 
     const unbindEnd = longBeatEngine.onEnd(() => {
-      setIsPlaying(false);
-      setCurrentTime(0);
+      setIsPlaying(false);      setCurrentTime(0);
     });
 
     return () => {
@@ -1247,8 +1345,7 @@ export function StudioBeats({
           </div>
 
           <p className="text-[10px] text-gray-400 mt-3 text-center">
-            Adjust each slider independently. Changes apply to the recording mix.
-          </p>
+            Adjust each slider independently. Changes apply to the recording mix.          </p>
         </div>
 
         <div className="mb-3.5 bg-black/60 p-3 rounded-2xl border border-white/10">
@@ -1362,7 +1459,18 @@ export function StudioBeats({
               playsInline
               muted={isRecording || videoPreviewReady || !recordedBlob?.type.startsWith('video/')}
               controls={!isRecording && !videoPreviewReady && Boolean(recordedBlob?.type.startsWith('video/'))}
-              className="w-full h-full object-contain bg-black"
+              className="w-full h-full object-cover bg-black"
+              style={{
+                filter: ({
+                  natural: 'none',
+                  warm: 'saturate(1.12) sepia(0.12) contrast(1.04)',
+                  glow: 'brightness(1.08) saturate(1.22) contrast(1.03)',
+                  vintage: 'sepia(0.32) contrast(0.92) saturate(0.82)',
+                  mono: 'grayscale(1) contrast(1.08)',
+                  cool: 'saturate(1.08) hue-rotate(12deg) contrast(1.04)'
+                } as const)[videoFilter],
+                transform: cameraFacing === 'user' ? 'scaleX(-1)' : 'none'
+              }}
             />
             {isRecording && <div className="absolute top-3 left-3 rounded-full bg-red-600 px-3 py-1 text-xs font-black animate-pulse">● REC {formatRecordingTimer(recordingSeconds)}</div>}
             {!isRecording && !videoPreviewReady && !recordedBlob?.type.startsWith('video/') && (
@@ -1370,6 +1478,38 @@ export function StudioBeats({
                 <p className="text-sm text-white/70">Your camera preview will appear here. Choose a beat and start recording.</p>
               </div>
             )}
+          </div>
+          <div className="flex items-center justify-between gap-2 pt-3">
+            <span className="text-[10px] font-black uppercase tracking-wider text-white/70">Camera & look</span>
+            <button
+              type="button"
+              onClick={handleSwitchCamera}
+              disabled={isRecording || !videoPreviewReady}
+              className="rounded-xl bg-white/10 px-3 py-2 text-[11px] font-black uppercase disabled:opacity-40"
+            >
+              {cameraFacing === 'user' ? '↻ Switch to back' : '↻ Switch to front'}
+            </button>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-2">
+            {([
+              ['natural', 'Natural'],
+              ['warm', 'Warm'],
+              ['glow', 'Glow'],
+              ['vintage', 'Vintage'],
+              ['mono', 'B&W'],
+              ['cool', 'Cool']
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setVideoFilter(value)}
+                disabled={isRecording}
+                aria-pressed={videoFilter === value}
+                className={`rounded-lg px-2 py-2 text-[10px] font-black uppercase border ${videoFilter === value ? 'border-amber-300 bg-amber-300 text-black' : 'border-white/15 bg-white/5 text-white'} disabled:opacity-50`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3">
             <button type="button" onClick={() => isRecording ? handleStopRecording() : handleRecordClick()} disabled={!isRecording && dailyRecordCount >= 2} className={`rounded-xl py-3 text-xs font-black uppercase ${isRecording ? 'bg-red-600 text-white' : 'bg-gradient-to-r from-red-600 to-rose-500 text-white'}`}>
