@@ -502,7 +502,17 @@ export function subscribeGameState(listener: () => void) {
       // Generate deviceId & myReferralCode if missing
       const deviceId = loadedData.deviceId || generateDeviceId();
       const myReferralCode = loadedData.myReferralCode || generateReferralCode();
-      const streetCoin = typeof loadedData.streetCoin === 'number' && !isNaN(loadedData.streetCoin) ? loadedData.streetCoin : 1000;
+      const storedStreetCoin = typeof loadedData.streetCoin === 'number' && Number.isSafeInteger(loadedData.streetCoin) && loadedData.streetCoin >= 0
+        ? loadedData.streetCoin
+        : 1000;
+      const checksumRentExpiryRaw = localStorage.getItem('rentExpiry') || String(loadedData.rentExpiry || 0);
+      const checksumRentExpiry = parseInt(checksumRentExpiryRaw, 10);
+      const storedCoinChecksum = localStorage.getItem('streetLife_checksum');
+      const checksumIsValid = !storedCoinChecksum || !Number.isFinite(checksumRentExpiry) || checksumRentExpiry <= 0
+        || storedCoinChecksum === calculateChecksum(storedStreetCoin, checksumRentExpiry);
+      // Fall back to the canonical 1,000-coin starting balance if a saved balance
+      // has been altered or corrupted without a matching integrity checksum.
+      const streetCoin = checksumIsValid ? storedStreetCoin : 1000;
       const hasPlayedToday = !!loadedData.hasPlayedToday;
       const dailyStreak = loadedData.dailyStreak || 1;
       const lastClaimDate = loadedData.lastClaimDate || null;
