@@ -11,7 +11,7 @@ export interface StreetGang3DEnvironmentProps {
   className?: string;
   playerColor?: string;
   laserBeams?: Array<{ x1: number; y1: number; x2: number; y2: number; color: string; life: number; maxLife: number }>;
-  getPlayerSnapshot?: () => { x: number; y: number; heading: number; color?: string; isMoving?: boolean };
+  getPlayerSnapshot?: () => { x: number; y: number; heading: number; color?: string; isMoving?: boolean; laserBeams?: Array<{ x1: number; y1: number; x2: number; y2: number; color: string; life: number; maxLife: number }> };
 }
 
 /**
@@ -313,7 +313,7 @@ export function StreetGang3DEnvironment({
       const stride = live?.isMoving ? Math.sin(Date.now() * 0.012) * 0.42 : 0;
       leftLeg.rotation.x = stride; rightLeg.rotation.x = -stride;
       leftArm.rotation.x = -stride * 0.55; rightArm.rotation.x = stride * 0.55;
-      const activeBeams = beamsRef.current.slice(-beamPool.length);
+      const activeBeams = (live?.laserBeams ?? beamsRef.current).slice(-beamPool.length);
       beamPool.forEach((beam, index) => {
         const source = activeBeams[index];
         if (!source || source.life <= 0) { beam.visible = false; return; }
