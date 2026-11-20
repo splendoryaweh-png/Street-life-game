@@ -5,6 +5,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 45 * 1024 * 1024;
 const TARGET_GROUP = '@Streetlifestars';
 
 export async function POST(request: Request) {
@@ -13,18 +14,26 @@ export async function POST(request: Request) {
     const user = verifyTelegramInitData(initData);
 
     const form = await request.formData();
-    const audio = form.get('audio');
+    const mediaType = String(form.get('mediaType') || 'audio');
+    const isVideo = mediaType === 'video';
+    const media = form.get(isVideo ? 'video' : 'audio');
     const beatName = String(form.get('beatName') || 'STREET LIFE freestyle').slice(0, 100);
     const producer = String(form.get('producer') || '').slice(0, 100);
     const duration = Number(form.get('durationSeconds') || 0);
 
-    if (!(audio instanceof File)) {
+    if (!(media instanceof File)) {
       return NextResponse.json({ success: false, error: 'Recording file is missing.' }, { status: 400 });
     }
-    if (!audio.size || audio.size > MAX_AUDIO_BYTES) {
-      return NextResponse.json({ success: false, error: 'Recording must be between 1 byte and 4 MB. Please record again; Studio now compresses audio for upload.' }, { status: 413 });
+    const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_AUDIO_BYTES;
+    if (!media.size || media.size > maxBytes) {
+      return NextResponse.json({
+        success: false,
+        error: isVideo
+          ? 'Video must be smaller than 45 MB. Please record a shorter video and try again.'
+          : 'Recording must be between 1 byte and 4 MB. Please record again; Studio now compresses audio for upload.'
+      }, { status: 413 });
     }
-    if (!audio.type.startsWith('audio/')) {
+    if (isVideo ? !media.type.startsWith('video/') : !media.type.startsWith('audio/')) {
       return NextResponse.json({ success: false, error: 'Unsupported recording format.' }, { status: 415 });
     }
 
@@ -35,24 +44,39 @@ export async function POST(request: Request) {
     }
 
     const caption = [
-      '🎙️ STREET LIFE STUDIO — NEW MIX',
+      isVideo ? '📹 STREET LIFE STUDIO — NEW VIDEO FREESTYLE' : '🎙️ STREET LIFE STUDIO — NEW MIX',
       `👤 Player ID: ${user.id}`,
       `🎵 Beat: ${beatName}`,
       producer ? `🎧 Producer: ${producer}` : '',
-      Number.isFinite(duration) && duration > 0 ? `⏱️ Duration: ${Math.min(60, Math.floor(duration))} seconds` : '',
+      Number.isFinite(duration) && duration > 0 ? `⏱️ Duration: ${Math.min(180, Math.floor(duration))} seconds` : '',
     ].filter(Boolean).join('\n');
 
     const telegramForm = new FormData();
     telegramForm.set('chat_id', TARGET_GROUP);
     telegramForm.set('caption', caption);
-    telegramForm.set('audio', audio, audio.name || 'street-life-mix.webm');
+    telegramForm.set(isVideo ? 'video' : 'audio', media, media.name || (isVideo ? 'street-life-freestyle.webm' : 'street-life-mix.webm'));
 
-    const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendAudio`, {
+    let telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/${isVideo ? 'sendVideo' : 'sendAudio'}`, {
       method: 'POST',
       body: telegramForm,
       cache: 'no-store',
     });
-    const telegramResult = await telegramResponse.json().catch(() => null);
+    let telegramResult = await telegramResponse.json().catch(() => null);
+
+    // Telegram's playable-video endpoint prefers MPEG-4. If a browser records
+    // WebM, preserve the recording and still deliver it to the group as a file.
+    if (isVideo && (!telegramResponse.ok || !telegramResult?.ok)) {
+      const documentForm = new FormData();
+      documentForm.set('chat_id', TARGET_GROUP);
+      documentForm.set('caption', caption);
+      documentForm.set('document', media, media.name || 'street-life-freestyle.webm');
+      telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {
+        method: 'POST',
+        body: documentForm,
+        cache: 'no-store',
+      });
+      telegramResult = await telegramResponse.json().catch(() => null);
+    }
 
     if (!telegramResponse.ok || !telegramResult?.ok) {
       console.error('STUDIO_SEND_MIX Telegram API failure:', {
@@ -77,7 +101,7 @@ export async function POST(request: Request) {
         username: user.username || null,
         beat_name: beatName,
         producer: producer || null,
-        duration_seconds: Number.isFinite(duration) && duration > 0 ? Math.min(60, Math.floor(duration)) : null,
+        duration_seconds: Number.isFinite(duration) && duration > 0 ? Math.min(180, Math.floor(duration)) : null,
       }, { onConflict: 'chat_id,telegram_message_id', ignoreDuplicates: true });
 
       if (error) {
