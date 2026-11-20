@@ -354,7 +354,7 @@ export default function StreetLifeApp() {
       <main
         className={`w-full max-w-md mx-auto ${
           isChromeHidden ? 'pt-3 pb-16' : 'pt-14 pb-28'
-        } flex-1 flex flex-col min-h-screen overflow-y-auto transition-all duration-300`}
+        } flex-1 flex flex-col min-h-0 overflow-visible transition-all duration-300`}
       >
         {activeTab === 'STUDIO' ? (
           <StudioScreen
@@ -443,7 +443,7 @@ export default function StreetLifeApp() {
             }}
           />
         ) : (
-          <div className="w-full flex-1 min-h-[calc(100dvh-5rem)] overflow-y-auto pb-40 pt-4 px-4 overscroll-contain space-y-4">
+          <div className="w-full flex-1 min-h-[calc(100dvh-5rem)] pb-40 pt-4 px-4 space-y-4">
             {/* CENTER LOGO */}
             <CenterLogo />
 
