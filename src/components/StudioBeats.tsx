@@ -520,7 +520,7 @@ export function StudioBeats({
       const recorderOptions: MediaRecorderOptions = {
         audioBitsPerSecond: 48_000,
         ...(mimeType ? { mimeType } : {}),
-        ...(isVideoFreestyle ? { videoBitsPerSecond: 800_000 } : {}),
+        ...(isVideoFreestyle ? { videoBitsPerSecond: 350_000 } : {}),
       };
       const recorder = new MediaRecorder(finalStream, recorderOptions);
 
@@ -561,8 +561,9 @@ export function StudioBeats({
           mixedAudioContextRef.current = null;
         }
 
-        if (finalSecs < 60) {
-          toast('⚠️ Need at least 1 minute - Not counted');
+        const minimumSeconds = isVideo ? 5 : 60;
+        if (finalSecs < minimumSeconds) {
+          toast(isVideo ? '⚠️ Record at least 5 seconds before stopping.' : '⚠️ Need at least 1 minute - Not counted');
           setRecordingBeatId(null);
           setIsRecording(false);
           return;
@@ -665,13 +666,14 @@ export function StudioBeats({
         const sec = recordingSecondsRef.current;
         setRecordingSeconds(sec);
 
-        if (sec >= 180) {
+        const maxDuration = isVideoFreestyle ? 60 : 180;
+        if (sec >= maxDuration) {
           if (timerRef.current) clearInterval(timerRef.current);
           if (mediaRecorderRef.current?.state === 'recording') {
             mediaRecorderRef.current.stop();
           }
           setIsRecording(false);
-          toast('⏱️ Max 3:00 reached');
+          toast(isVideoFreestyle ? '⏱️ Max video length of 1:00 reached' : '⏱️ Max 3:00 reached');
         }
       }, 1000);
 
@@ -1252,7 +1254,7 @@ export function StudioBeats({
           <div className="space-y-1.5 mb-2.5">
             <div className="flex items-center justify-between text-[11px] font-mono">
               <span className={`font-bold ${recordingSeconds<60?'text-red-400':'text-emerald-400'}`}>
-                Recording: {formatRecordingTimer(recordingSeconds)} / Min 1:00 / Max 3:00
+                Recording: {formatRecordingTimer(recordingSeconds)} / Min {isVideoFreestyle ? '0:05' : '1:00'} / Max {isVideoFreestyle ? '1:00' : '3:00'}
               </span>
             </div>
 
