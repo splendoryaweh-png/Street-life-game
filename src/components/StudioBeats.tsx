@@ -14,6 +14,8 @@ import {
 import { longBeatEngine } from '../audio/longBeatEngine';
 import { UserGameState } from '@/types/game';
 import { playClickSound, playCoinSound, playSuccessSound } from '@/lib/sound';
+import { getTelegramInitData } from '@/lib/telegram';
+import { savePostedSong, GROUP_TELEGRAM } from '@/lib/storage';
 
 function getTodayDateString(): string {
   const d = new Date();
@@ -117,6 +119,7 @@ export function StudioBeats({
   const [spentCoinsDelta, setSpentCoinsDelta] = useState(0);
   const studioLevel = upgradedLevelOverride !== null ? upgradedLevelOverride : gameState?.studioLevel ?? 0;
   const playerCoins = Math.max(0, (gameState?.streetCoin ?? 50000) - spentCoinsDelta);
+  const dailyRecordLimit = 2 + Math.max(0, Math.min(4, studioLevel));
 
   const [currentBeatId, setCurrentBeatId] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -425,7 +428,7 @@ export function StudioBeats({
 
     if (isRecording) handleStopRecording();
 
-    if (getStoredDailyRecordCount() >= 2) {
+    if (getStoredDailyRecordCount() >= dailyRecordLimit) {
       setShowDailyLimitModal(true);
       return;
     }
@@ -759,39 +762,59 @@ export function StudioBeats({
       return;
     }
 
-    const extension = beatRec.blob.type.includes('mp4') ? 'mp4' : 'webm';
-    const file = new File(
-      [beatRec.blob],
-      `StreetLife-${beat.name.replace(/\s+/g, '_')}-${Date.now()}.${extension}`,
-      { type: beatRec.blob.type || (beatRec.isVideo ? 'video/webm' : 'audio/webm') }
-    );
-
-    // Use the phone's share sheet to send the actual recording to a Telegram chat/group.
-    try {
-      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-        await navigator.share({ files: [file], title: `Street Life - ${beat.name}` });
-        playSuccessSound();
-        toast('Choose the Street Life group in the share sheet to post your recording.');
-        return;
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
-      console.warn('Native recording share failed:', error);
+    const initData = getTelegramInitData();
+    if (!initData) {
+      toast('Open STREET LIFE from Telegram before posting your recording.');
+      return;
     }
 
-    // Fallback: download the recording and open the group for manual attachment.
-    const a = document.createElement('a');
-    a.href = beatRec.url;
-    a.download = file.name;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    window.setTimeout(() => {
-      try { document.body.removeChild(a); } catch {}
-      window.open('https://t.me/Streetlifestars', '_blank');
-    }, 700);
-    toast('Recording downloaded. Attach it in the Street Life Telegram group.');
-    playSuccessSound();
+    try {
+      const fileResponse = await fetch(beatRec.url);
+      if (!fileResponse.ok) throw new Error('Could not read your recording.');
+      const blob = await fileResponse.blob();
+      if (!blob.size) throw new Error('Your recording is empty.');
+      const isVideo = beatRec.isVideo;
+      const maxSize = isVideo ? 50 * 1024 * 1024 : 20 * 1024 * 1024;
+      if (blob.size > maxSize) throw new Error(`Recording is too large. Maximum size is ${isVideo ? '50' : '20'} MB.`);
+      if (isVideo && !blob.type.startsWith('video/')) throw new Error('The video recording format is not supported on this device.');
+
+      const extension = blob.type.includes('mp4') ? (isVideo ? 'mp4' : 'm4a') : blob.type.includes('wav') ? 'wav' : 'webm';
+      const file = new File([blob], `street-life-${beat.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}.${extension}`, { type: blob.type || (isVideo ? 'video/webm' : 'audio/webm') });
+      const form = new FormData();
+      form.append(isVideo ? 'video' : 'audio', file);
+      form.append('beatName', beat.name);
+      form.append('producer', beat.producer || '');
+      form.append('durationSeconds', String(beatRec.durationSec || 0));
+
+      const response = await fetch('/api/studio/send-mix', {
+        method: 'POST',
+        headers: { 'x-telegram-init-data': initData },
+        body: form,
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Telegram could not receive your recording. Please try again.');
+      }
+
+      const displayName = gameState?.telegramUser?.first_name
+        ? `${gameState.telegramUser.first_name} ${gameState.telegramUser.last_name || ''}`.trim()
+        : 'Street Hustler';
+      savePostedSong({
+        beatId: beat.id,
+        beatName: beat.name,
+        producer: beat.producer,
+        userName: displayName,
+        userId: String(gameState?.telegramUser?.id || 'telegram-player'),
+        durationSeconds: beatRec.durationSec || 0,
+      });
+
+      playSuccessSound();
+      toast('Your recording was successfully posted to Street Life Stars!');
+      window.open(GROUP_TELEGRAM, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('STREET LIFE studio post failed:', error);
+      toast(error instanceof Error ? error.message : 'Posting failed. Please try again.');
+    }
   };
 
   const handlePost = () => handlePostBeat(currentBeat);
@@ -1110,7 +1133,7 @@ export function StudioBeats({
             </div>
 
             <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-[#FFD700] text-xs font-mono font-black border border-[#FFD700]/30">
-              Daily: {dailyRecordCount}/2
+              Daily: {dailyRecordCount}/{dailyRecordLimit}
             </span>
           </div>
 
@@ -1132,7 +1155,7 @@ export function StudioBeats({
           <div className="grid grid-cols-3 gap-2 mt-3">
             <button
               onClick={()=>{
-                if (dailyRecordCount>=2 && !isRecording) {
+                if (dailyRecordCount>=dailyRecordLimit && !isRecording) {
                   setShowDailyLimitModal(true);
                   return;
                 }
@@ -1306,7 +1329,7 @@ export function StudioBeats({
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-[#16161a] border-2 border-red-500/70 rounded-3xl p-6 text-center">
             <h3 className="text-lg font-black text-white uppercase mb-2">Daily Limit Reached</h3>
-            <p className="text-sm font-bold text-amber-300">2 songs per day</p>
+            <p className="text-sm font-bold text-amber-300">{dailyRecordLimit} recordings per day</p>
             <button
               onClick={()=>setShowDailyLimitModal(false)}
               className="w-full mt-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-[#FFD700] text-black font-black text-xs uppercase"
