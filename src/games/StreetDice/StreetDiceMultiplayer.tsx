@@ -42,6 +42,7 @@ import {
 } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
 import confetti from 'canvas-confetti';
+import { supabase } from '@/lib/supabase';
 
 interface StreetDiceMultiplayerProps {
   onBack: () => void;
@@ -130,9 +131,14 @@ export function StreetDiceMultiplayer({
   const botTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const joinHostTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const roomStateRequestedRef = useRef<string | null>(null);
+  const roomStateRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Host creates room
   const handleHostCreate = () => {
+    if (!supabase) {
+      onToast('Online multiplayer is not connected right now. Please try again later.');
+      return;
+    }
     playClickSound();
     const code = createRoom('dice', myId, myName, '👑');
     const room = getRoom(code);
@@ -148,8 +154,12 @@ export function StreetDiceMultiplayer({
   // Player joins room
   const handlePlayerJoin = (codeToJoin?: string) => {
     const targetCode = (codeToJoin || inputJoinCode).toUpperCase().trim();
-    if (!targetCode) {
-      onToast('Enter a valid room code!');
+    if (!/^STREET[0-9]{6}$/.test(targetCode)) {
+      onToast('Enter the full 12-character room code, for example STREET123456.');
+      return;
+    }
+    if (!supabase) {
+      onToast('Online multiplayer is not connected right now. Please try again later.');
       return;
     }
 
@@ -534,9 +544,7 @@ export function StreetDiceMultiplayer({
           clearTimeout(joinHostTimeoutRef.current);
           joinHostTimeoutRef.current = null;
         }
-        if (data.status === 'playing' && phase === 'lobby') {
-          setPhase('playing');
-        }
+        if (data.status === 'playing') setPhase('playing');
       } else if (type === 'update') {
         const action = data?.action;
 
@@ -550,6 +558,7 @@ export function StreetDiceMultiplayer({
           }
         } else if (action === 'room_state_snapshot' && data.room?.code === roomCode) {
           setPlayers(data.room.players || []);
+          if (roomStateRetryRef.current) { clearInterval(roomStateRetryRef.current); roomStateRetryRef.current = null; }
           if (data.room.hostId && (data.room.players || []).some((player: PlayerInRoom) => player.id === data.room.hostId) && joinHostTimeoutRef.current) {
             clearTimeout(joinHostTimeoutRef.current);
             joinHostTimeoutRef.current = null;
@@ -559,7 +568,7 @@ export function StreetDiceMultiplayer({
           if (!joiningPlayer) return;
           const current = getRoom(roomCode);
           const alreadyJoined = current?.players.some((p) => p.id === joiningPlayer.id);
-          if (!alreadyJoined && (current?.players.length || players.length) >= 4) {
+          if (!alreadyJoined && (current?.players.length || 0) >= 4) {
             sendUpdate(roomCode, myId, { action: 'join_rejected', playerId: joiningPlayer.id, reason: 'Room is full.' });
             return;
           }
@@ -591,8 +600,11 @@ export function StreetDiceMultiplayer({
           setHasRolled(false);
           setIsRolling(false);
           setTimer(30);
-          const p = players[data.turnIndex];
-          if (p) setEventMessage(`${p.name}'s turn!`);
+          setPlayers((currentPlayers) => {
+            const p = currentPlayers[data.turnIndex];
+            if (p) setEventMessage(`${p.name}'s turn!`);
+            return currentPlayers;
+          });
         } else if (action === 'player_left') {
           // If player left, convert to bot immediately
           setPlayers((prev) =>
@@ -609,15 +621,25 @@ export function StreetDiceMultiplayer({
     // Ask the host for its authoritative local room snapshot after our
     // Realtime listener is registered; the host's original create event
     // may have been sent before this invitee connected.
-    if (!isHost && roomStateRequestedRef.current !== roomCode) {
+    if (!isHost) {
       roomStateRequestedRef.current = roomCode;
+      // Broadcast is transient, so retry the host snapshot request until the
+      // host replies. This avoids losing the one request during channel startup.
       sendUpdate(roomCode, myId, { action: 'request_room_state', playerId: myId });
+      if (roomStateRetryRef.current) clearInterval(roomStateRetryRef.current);
+      roomStateRetryRef.current = setInterval(() => {
+        sendUpdate(roomCode, myId, { action: 'request_room_state', playerId: myId });
+      }, 1800);
     }
 
     return () => {
       unsubscribe();
+      if (roomStateRetryRef.current) {
+        clearInterval(roomStateRetryRef.current);
+        roomStateRetryRef.current = null;
+      }
     };
-  }, [roomCode, phase, players, isHost, myId, onToast]);
+  }, [roomCode, isHost, myId, onToast]);
 
   // Leave room cleanly
   const handleLeaveRoom = () => {
@@ -704,7 +726,7 @@ export function StreetDiceMultiplayer({
               <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. STREET542"
+                  placeholder="STREET123456"
                   value={inputJoinCode}
                   onChange={(e) => setInputJoinCode(e.target.value.toUpperCase())}
                   maxLength={12}
