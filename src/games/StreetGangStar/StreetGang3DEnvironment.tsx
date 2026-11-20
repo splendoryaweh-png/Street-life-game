@@ -11,7 +11,7 @@ export interface StreetGang3DEnvironmentProps {
   className?: string;
   playerColor?: string;
   laserBeams?: Array<{ x1: number; y1: number; x2: number; y2: number; color: string; life: number; maxLife: number }>;
-  getPlayerSnapshot?: () => { x: number; y: number; heading: number; color?: string; isMoving?: boolean; laserBeams?: Array<{ x1: number; y1: number; x2: number; y2: number; color: string; life: number; maxLife: number }> };
+  getPlayerSnapshot?: () => { x: number; y: number; heading: number; color?: string; isMoving?: boolean; laserBeams?: Array<{ x1: number; y1: number; x2: number; y2: number; color: string; life: number; maxLife: number }>; civilians?: Array<{ id: string; x: number; y: number; heading: number; color: string; state?: string }>; gangsters?: Array<{ id: string; x: number; y: number; heading: number; vehicleType: string; health: number; maxHealth: number }>; cars?: Array<{ id: string; x: number; y: number; heading: number; width: number; height: number; color: string }>; remotePlayers?: Array<{ id: string; x: number; y: number; heading: number; color: string; team: string; health: number }> };
 }
 
 /**
@@ -105,6 +105,13 @@ export function StreetGang3DEnvironment({
       const beam = new THREE.Mesh(beamGeometry, new THREE.MeshBasicMaterial({ color: '#38BDF8', transparent: true, opacity: 0.9 }));
       beam.visible = false; world.add(beam); beamPool.push(beam);
     }
+
+    const actorRoot = new THREE.Group(); world.add(actorRoot);
+    const humanActors = new Map<string, THREE.Group>();
+    const carActors = new Map<string, THREE.Mesh>();
+    const actorMaterials = new Map<string, THREE.Material>();
+    const getActorMaterial = (key: string, color: string) => { let material = actorMaterials.get(key); if (!material) { material = new THREE.MeshStandardMaterial({ color, roughness: 0.82 }); actorMaterials.set(key, material); } return material; };
+    const createHumanActor = (key: string, color: string) => { const group = new THREE.Group(); const torso = new THREE.Mesh(new THREE.CapsuleGeometry(3.2, 6, 4, 8), getActorMaterial(`${key}-body`, color)); torso.position.y = 9; torso.castShadow = true; const head = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 8), getActorMaterial(`${key}-skin`, '#9b6748')); head.position.y = 16; group.add(torso, head); actorRoot.add(group); humanActors.set(key, group); return group; };
 
     const materials = {
       asphalt: new THREE.MeshStandardMaterial({ color: city.theme.asphaltColor, roughness: 0.96 }),
@@ -313,6 +320,11 @@ export function StreetGang3DEnvironment({
       const stride = live?.isMoving ? Math.sin(Date.now() * 0.012) * 0.42 : 0;
       leftLeg.rotation.x = stride; rightLeg.rotation.x = -stride;
       leftArm.rotation.x = -stride * 0.55; rightArm.rotation.x = stride * 0.55;
+      const syncHumanActors = (items: Array<{ id: string; x: number; y: number; heading: number; color: string }>, prefix: string) => { const active = new Set<string>(); items.forEach((item) => { const key = `${prefix}:${item.id}`; active.add(key); const actor = humanActors.get(key) ?? createHumanActor(key, item.color); actor.position.set(mapX(item.x), 0, mapZ(item.y)); actor.rotation.y = -item.heading; }); for (const [key, actor] of humanActors) { if (key.startsWith(`${prefix}:`) && !active.has(key)) { actorRoot.remove(actor); actor.traverse((node) => { if (node instanceof THREE.Mesh) node.geometry.dispose(); }); humanActors.delete(key); } } };
+      syncHumanActors((live?.civilians ?? []).filter((c) => c.state !== 'saved').map((c) => ({ ...c, color: c.state === 'scared' ? '#D6DCE2' : c.color })), 'civilian');
+      syncHumanActors((live?.gangsters ?? []).map((g) => ({ ...g, color: '#9F2525' })), 'gangster');
+      syncHumanActors((live?.remotePlayers ?? []).map((p) => ({ ...p, color: p.color || (p.team === 'blue' ? '#0284C7' : '#991B1B') })), 'remote');
+      const liveCars = live?.cars ?? []; const activeCars = new Set<string>(); liveCars.forEach((car) => { activeCars.add(car.id); let mesh = carActors.get(car.id); if (!mesh) { mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), getActorMaterial(`car-${car.id}`, car.color)); mesh.castShadow = true; mesh.receiveShadow = true; actorRoot.add(mesh); carActors.set(car.id, mesh); } mesh.position.set(mapX(car.x), 5, mapZ(car.y)); mesh.scale.set(car.width, 8, car.height); mesh.rotation.y = -car.heading; }); for (const [id, mesh] of carActors) { if (!activeCars.has(id)) { actorRoot.remove(mesh); mesh.geometry.dispose(); carActors.delete(id); } }
       const activeBeams = (live?.laserBeams ?? beamsRef.current).slice(-beamPool.length);
       beamPool.forEach((beam, index) => {
         const source = activeBeams[index];
