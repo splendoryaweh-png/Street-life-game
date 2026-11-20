@@ -10,6 +10,7 @@ import { WEAPONS, WeaponType, CityCar, Civilian, Gangster, LaserBeam, SparkParti
 import { GangChat } from './GangChat';
 import { StreetJoystick } from './StreetJoystick';
 import { supabase } from '@/lib/supabase';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 
 export interface RemotePlayer { id: string; name: string; x: number; y: number; targetX: number; targetY: number; facingAngle: number; health: number; maxHealth: number; team: 'blue' | 'red'; gun: WeaponType; avatarColor: string; isCover: boolean; inCarId: string | null; jumpOffset?: number; lastReaction?: { emoji: string; until: number }; lastSeen: number; hitCount?: number; }
 export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert'; senderId: string; payload: any; }
@@ -20,7 +21,9 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const t = useCallback((key: GangStarTextKey) => getGangStarText(language, key), [language]);
   const [inLobby, setInLobby] = useState<boolean>(true);
   const [roomCode, setRoomCode] = useState<string>('');
-  const [customRoomInput, setCustomRoomInput] = useState<string>('');
+  const [customRoomInput, setCustomRoomInput] = useState<string>(() => getAccountStorageItem('gangstar_last_room_code') || '');
+  const [showDeathModal, setShowDeathModal] = useState<boolean>(false);
+  const [isAdLoading, setIsAdLoading] = useState<boolean>(false);
   const [isHost, setIsHost] = useState<boolean>(false);
   const [myPlayerId] = useState<string>(() => `player_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`);
   const [myPlayerName] = useState<string>(() => { if (typeof window !== 'undefined') { const saved = getAccountStorageItem('streetlife_username'); if (saved) return saved; } return `Hustler_${Math.floor(100 + Math.random() * 900)}`; });
@@ -123,7 +126,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       }>;
       // Presence can sync once before the host's directory track arrives.
       // Keep listening until the host appears or the verification times out.
-      const hostRoom = entries.find((entry) => entry.roomCode === cleaned && entry.isHost === true);
+      const hostRoom = entries.find((entry) => entry.roomCode === cleaned);
       if (!hostRoom) return;
       finished = true;
       window.clearTimeout(timeoutId);
@@ -136,7 +139,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       if (finished) return;
       finished = true;
       void client.removeChannel(lookup);
-      onToast('That invite code could not be found. Make sure the host is still in the district and share the displayed code again.');
+      onToast('That district is not currently active. Ask someone still inside the room to stay connected, then try the same code again.');
     }, 10000);
     lookup.on('presence', { event: 'sync' }, () => { void checkInvitePresence(); });
     lookup.subscribe((status: string) => {
@@ -157,10 +160,15 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     const client = supabase;
     if (!client) { onToast('Online multiplayer is unavailable: the live game connection is not configured.'); return; }
     if (channelRef.current) { void client.removeChannel(channelRef.current); channelRef.current = null; }
+    setAccountStorageItem('gangstar_last_room_code', code);
     const channelName = `gangstar_${code}`;
     const channel = client.channel(channelName, { config: { broadcast: { self: false }, presence: { key: myPlayerId } } });
     channelRef.current = channel;
     const newCity = getRandomCityByCountry(initialCountry, code); setCityData(newCity);
+    const safeSpawns = newCity.spawnPoints.filter((point) => !isPointInsideBuilding(point.x, point.y, newCity.buildings, 18));
+    const playerSlot = Array.from(myPlayerId).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const safeSpawn = safeSpawns[playerSlot % Math.max(1, safeSpawns.length)] ?? (newCity.roads[0] ? { x: newCity.roads[0].x + newCity.roads[0].width / 2, y: newCity.roads[0].y + newCity.roads[0].height / 2 } : { x: newCity.mapWidth / 2, y: newCity.mapHeight / 2 });
+    gameStateRef.current.player.x = safeSpawn.x; gameStateRef.current.player.y = safeSpawn.y; gameStateRef.current.player.health = 100; gameStateRef.current.player.hitCount = 0; gameStateRef.current.player.inCarId = null;
     if (hostStatus) {
       const s = gameStateRef.current; const cars: any[] = []; const colors = ['#38BDF8', '#F97316', '#A855F7', '#EF4444', '#10B981', '#E2E8F0', '#FACC15'];
       newCity.roads.forEach((road, idx) => { if (idx < 10) { const isHoriz = road.direction === 'horizontal'; cars.push({ id: `car_${idx}`, x: isHoriz ? (idx * 380) % newCity.mapWidth : road.x + 30, y: isHoriz ? road.y + 40 : (idx * 380) % newCity.mapHeight, vx: isHoriz ? 2.8 : 0, vy: isHoriz ? 0 : 2.8, speed: 2.8, direction: road.direction, width: isHoriz ? 54 : 30, height: isHoriz ? 30 : 54, color: colors[idx % colors.length], isOccupied: false, hasDriver: true, driverType: 'civilian', health: 10, maxHealth: 10 }); } }); s.cars = cars;
@@ -201,6 +209,30 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     });
   };
 
+  const handleWatchAdToRevive = async () => {
+    if (isAdLoading) return;
+    setIsAdLoading(true);
+    try {
+      await showAdsgramRewardedAd();
+      const s = gameStateRef.current;
+      const safeSpawns = cityData.spawnPoints.filter((point) => !isPointInsideBuilding(point.x, point.y, cityData.buildings, 18));
+      const playerSlot = Array.from(myPlayerId).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+      const spawn = safeSpawns[playerSlot % Math.max(1, safeSpawns.length)] ?? (cityData.roads[0] ? { x: cityData.roads[0].x + cityData.roads[0].width / 2, y: cityData.roads[0].y + cityData.roads[0].height / 2 } : { x: cityData.mapWidth / 2, y: cityData.mapHeight / 2 });
+      s.player.health = 100; s.player.hitCount = 0; s.player.x = spawn.x; s.player.y = spawn.y; s.player.inCarId = null;
+      setHudHealth(100); setHudInCar(false); setShowDeathModal(false);
+      onToast('Rewarded ad completed. Full energy restored!');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'The ad could not be completed. Please try again.');
+    } finally {
+      setIsAdLoading(false);
+    }
+  };
+  const handleDeathReturnHome = () => {
+    setAccountStorageItem('gangstar_last_room_code', roomCode);
+    setShowDeathModal(false);
+    onBack();
+  };
+
   const broadcastGameMessage = (message: MultiplayerMessage) => {
     if (channelRef.current) {
       void channelRef.current.send({ type: 'broadcast', event: 'game', payload: message });
@@ -229,7 +261,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   }, [cityData.buildings, onToast, playSfx, t]);
   const handleJump = useCallback(() => { const s = gameStateRef.current; const p = s.player; if (p.isJumping || p.inCarId) return; p.isJumping = true; p.jumpVy = 8.5; playPickupSound(); onToast('LEAP JUMP! 🚀'); }, [onToast]);
   const shootPlayerLaser = useCallback(() => {
-    const s = gameStateRef.current; const p = s.player; if (p.isReloading) return; if (p.ammo <= 0) { handleReload(); return; }
+    const s = gameStateRef.current; const p = s.player; if (p.health <= 0) return; if (p.isReloading) return; if (p.ammo <= 0) { handleReload(); return; }
     const wDef = WEAPONS[p.gun]; const now = Date.now(); if (now - p.lastShootTime < wDef.fireRateMs) return;
     p.lastShootTime = now; p.ammo -= 1; setHudAmmo(p.ammo); playSfx('shoot');
     const startX = p.inCarId ? (s.cars.find((c) => c.id === p.inCarId)?.x || p.x) : p.x + Math.cos(p.facingAngle) * 22;
@@ -273,12 +305,14 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       if (p.isJumping) { p.jumpOffset += p.jumpVy; p.jumpVy -= 0.65; if (p.jumpOffset <= 0) { p.jumpOffset = 0; p.jumpVy = 0; p.isJumping = false; } }
       let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
       const isSprinting = s.keys.shift || s.isRunActive;
+      if (p.health > 0) {
       if (p.inCarId) {
         const car = s.cars.find((c) => c.id === p.inCarId); if (car) { const driveSpeed = isSprinting ? 7.5 : 5.0; if (s.joystickMovement.isMoving) { car.x += s.joystickMovement.dx * driveSpeed; car.y += s.joystickMovement.dy * driveSpeed; } else { if (s.keys.w) car.y -= driveSpeed; if (s.keys.s) car.y += driveSpeed; if (s.keys.a) car.x -= driveSpeed; if (s.keys.d) car.x += driveSpeed; } car.x = Math.max(80, Math.min(cityData.mapWidth - 80, car.x)); car.y = Math.max(80, Math.min(cityData.mapHeight - 80, car.y)); p.x = car.x; p.y = car.y; }
       } else {
         const moveSpeed = isSprinting ? p.speed * 1.65 : p.speed; let dx = 0; let dy = 0;
         if (s.joystickMovement.isMoving) { dx = s.joystickMovement.dx; dy = s.joystickMovement.dy; if (!s.isMouseActive) { p.facingAngle = Math.atan2(dy, dx); } } else { if (s.keys.w) dy -= 1; if (s.keys.s) dy += 1; if (s.keys.a) dx -= 1; if (s.keys.d) dx += 1; if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; } }
         const nextX = p.x + dx * moveSpeed; const nextY = p.y + dy * moveSpeed; const hit = isPointInsideBuilding(nextX, nextY, cityData.buildings, 12); if (!hit.inside || hit.nearDoor || p.jumpOffset > 15) { p.x = Math.max(40, Math.min(cityData.mapWidth - 40, nextX)); p.y = Math.max(40, Math.min(cityData.mapHeight - 40, nextY)); }
+      }
       }
       const cameraX = Math.max(0, Math.min(cityData.mapWidth - s.screenDim.w, p.x - s.screenDim.w / 2)); const cameraY = Math.max(0, Math.min(cityData.mapHeight - s.screenDim.h, p.y - s.screenDim.h / 2));
       if (s.isMouseActive) { const playerScreenX = p.x - cameraX; const playerScreenY = p.y - cameraY; p.facingAngle = Math.atan2(s.mousePos.y - playerScreenY, s.mousePos.x - playerScreenX); }
@@ -351,11 +385,13 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             setHudHealth(p.health);
             s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#38BDF8', life: 14 }); }
-            if (p.health <= 0 || p.hitCount >= 10) {
+            if ((p.health <= 0 || p.hitCount >= 10) && !showDeathModal) {
               playSfx('siren'); onToast(t('player_down') + ' - 10 HITS!');
-              p.health = 100; p.hitCount = 0; p.x = 1900; p.y = 1800; p.inCarId = null;
-              setHudHealth(100); setHudInCar(false);
-              // Keep the existing room channel, host identity, and invite code active.
+              p.health = 0; p.hitCount = 10; p.inCarId = null;
+              s.keys = { w: false, a: false, s: false, d: false, shift: false, mouseLeft: false };
+              s.joystickMovement = { dx: 0, dy: 0, isMoving: false };
+              setHudHealth(0); setHudInCar(false); setShowDeathModal(true);
+              // Keep this player's room channel alive while the death choices are shown.
             }
           }
         }
@@ -512,6 +548,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         <button onClick={() => { playSfx('click'); setShowTeamModal(true); }} type="button" className="p-2 rounded-2xl bg-black/85 border border-white/20 text-white font-black text-xs uppercase active:scale-95 cursor-pointer hover:border-[#FFD700] backdrop-blur-md"><Users className="w-4 h-4" /></button>
       </div>
 
+      {showDeathModal && (<div className="absolute inset-0 z-[120] flex items-center justify-center bg-black/85 backdrop-blur-md p-4"><div className="w-full max-w-sm rounded-3xl border-2 border-red-500/70 bg-[#11131C] p-6 text-center shadow-[0_0_40px_rgba(239,68,68,0.25)]"><div className="text-5xl mb-3">💀</div><h2 className="text-xl font-black uppercase tracking-wide text-white">You Died</h2><p className="mt-2 text-sm text-gray-300">Your energy is empty. Watch a rewarded ad to restore full energy, or return home. Your district code will be saved so you can rejoin while the room is still active.</p><div className="mt-5 space-y-3"><button onClick={handleWatchAdToRevive} disabled={isAdLoading} type="button" className="w-full rounded-xl bg-[#FFD700] px-4 py-3.5 text-xs font-black uppercase text-black disabled:opacity-60">{isAdLoading ? 'Loading Rewarded Ad…' : '▶ Watch Ad — Restore Full Energy'}</button><button onClick={handleDeathReturnHome} type="button" className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3.5 text-xs font-black uppercase text-white">Go Back to Home Page</button></div></div></div>)}
       <GangChat roomCode={roomCode} playerId={myPlayerId} playerName={myPlayerName} playerTeam={myTeam} onToast={onToast} />
       <StreetJoystick onMove={(movement) => { gameStateRef.current.joystickMovement = movement; if (movement.isMoving) { gameStateRef.current.isMouseActive = false; } }} onJump={handleJump} onShoot={shootPlayerLaser} onRunToggle={(running) => { gameStateRef.current.isRunActive = running; }} onHijackOrEnterCar={handleToggleCar} isNearCar={hudIsNearCar} isInCar={hudInCar} isCover={hudInCover} onCoverToggle={handleToggleCover} onReload={handleReload} ammo={hudAmmo} maxAmmo={hudMaxAmmo} />
       {showTeamModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-white/20 p-5 shadow-2xl text-left animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><h3 className="text-sm font-black uppercase text-white">{t('team_join')}</h3><button onClick={() => setShowTeamModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="space-y-3"><button onClick={() => { setMyTeam('blue'); gameStateRef.current.player.team = 'blue'; setShowTeamModal(false); playSfx('click'); onToast('Blue Team!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left ${myTeam === 'blue' ? 'bg-sky-950/60 border-sky-400' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-sky-400">{t('team_blue')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_blue_desc')}</p></button><button onClick={() => { setMyTeam('red'); gameStateRef.current.player.team = 'red'; setShowTeamModal(false); playSfx('click'); onToast('Red Team!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left ${myTeam === 'red' ? 'bg-red-950/60 border-red-500' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-red-400">{t('team_red')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_red_desc')}</p></button></div></div></div>)}
