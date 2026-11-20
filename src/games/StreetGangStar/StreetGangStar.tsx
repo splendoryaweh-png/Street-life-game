@@ -103,7 +103,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   const shootPlayerLaser = useCallback(() => {
     const s = gameStateRef.current; const p = s.player; if (p.isReloading) return; if (p.ammo <= 0) { handleReload(); return; } const wDef = WEAPONS[s.player.gun]; const now = Date.now(); if (now - p.lastShootTime < wDef.fireRateMs) return; p.lastShootTime = now; p.ammo -= 1; setHudAmmo(p.ammo); playSfx('shoot');
     const startX = p.inCarId ? (s.cars.find((c) => c.id === p.inCarId)?.x || p.x) : p.x + Math.cos(p.facingAngle) * 22; const startY = p.inCarId ? (s.cars.find((c) => c.id === p.inCarId)?.y || p.y) : p.y + Math.sin(p.facingAngle) * 22; const baseAngle = p.facingAngle; const spreadAngles = wDef.spread === 3 ? [baseAngle - 0.14, baseAngle, baseAngle + 0.14] : [baseAngle];
-    spreadAngles.forEach((ang) => { const beamLength = 450; const endX = startX + Math.cos(ang) * beamLength; const endY = startY + Math.sin(ang) * beamLength; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, life: 7, maxLife: 7, isPlayer: true, damage: wDef.damage }); });
+    spreadAngles.forEach((ang) => { const beamLength = 450; const endX = startX + Math.cos(ang) * beamLength; const endY = startY + Math.sin(ang) * beamLength; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, life: 12, maxLife: 12, isPlayer: true, damage: wDef.damage }); });
   }, [handleReload, playSfx]);
   const handleBuyWeapon = (wKey: WeaponType) => { const s = gameStateRef.current; const wDef = WEAPONS[wKey]; if (s.player.coins < wDef.price) { onToast(t('insufficient_coins')); return; } s.player.coins -= wDef.price; s.unlockedGuns[wKey] = true; s.player.gun = wKey; s.player.ammo = wDef.maxAmmo; s.player.maxAmmo = wDef.maxAmmo; setHudCoins(s.player.coins); setHudGun(wKey); setHudAmmo(wDef.maxAmmo); setHudMaxAmmo(wDef.maxAmmo); playSfx('success'); onToast(`${t('purchased')} ${t(wDef.nameKey)}`); setShowShopModal(false); };
   useEffect(() => {
@@ -166,7 +166,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       for (let gIdx = s.gangsters.length - 1; gIdx >= 0; gIdx--) {
         const g = s.gangsters[gIdx]; let targetX = p.x; let targetY = p.y; let targetDist = Math.hypot(p.x - g.x, p.y - g.y); for (const c of s.civilians) { const cDist = Math.hypot(c.x - g.x, c.y - g.y); if (cDist < targetDist) { targetDist = cDist; targetX = c.x; targetY = c.y; } }
         const aimAngle = Math.atan2(targetY - g.y, targetX - g.x); g.facingAngle = aimAngle; g.x += Math.cos(aimAngle) * g.speed; g.y += Math.sin(aimAngle) * g.speed;
-        if (targetDist < 260 && now - g.lastShootTime >= 650) { g.lastShootTime = now; const beamLen = 320; const laserEndX = g.x + Math.cos(aimAngle) * beamLen; const laserEndY = g.y + Math.sin(aimAngle) * beamLen; s.lasers.push({ id: `laser_g_${now}_${Math.random()}`, x1: g.x + Math.cos(aimAngle) * 16, y1: g.y + Math.sin(aimAngle) * 16, x2: laserEndX, y2: laserEndY, color: '#EF4444', life: 6, maxLife: 6, isPlayer: false, damage: 10 }); if (targetDist < 350) { playSfx('shoot'); } }
+        if (targetDist < 260 && now - g.lastShootTime >= 650) { g.lastShootTime = now; const beamLen = 320; const laserEndX = g.x + Math.cos(aimAngle) * beamLen; const laserEndY = g.y + Math.sin(aimAngle) * beamLen; s.lasers.push({ id: `laser_g_${now}_${Math.random()}`, x1: g.x + Math.cos(aimAngle) * 16, y1: g.y + Math.sin(aimAngle) * 16, x2: laserEndX, y2: laserEndY, color: '#EF4444', life: 12, maxLife: 12, isPlayer: false, damage: 10 }); if (targetDist < 350) { playSfx('shoot'); } }
       }
 
       // ===== FIXED HIT LOGIC START =====
@@ -273,7 +273,22 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
         ctx.fillStyle = '#000'; ctx.fillRect(g.x - 16, g.y - 34, 32, 5); ctx.fillStyle = g.vehicleType === 'bus' ? '#FACC15' : '#EF4444'; ctx.fillRect(g.x - 16, g.y - 34, 32 * (g.health / g.maxHealth), 5);
       });
       s.sparks.forEach((sp) => { ctx.fillStyle = sp.color; ctx.beginPath(); ctx.arc(sp.x, sp.y, 2.8, 0, Math.PI * 2); ctx.fill(); });
-      s.lasers.forEach((l) => { ctx.save(); ctx.strokeStyle = l.color; ctx.shadowColor = l.color; ctx.shadowBlur = 14; ctx.lineWidth = l.isPlayer ? 3.8 : 2.8; ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke(); ctx.restore(); });
+      s.lasers.forEach((l) => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0.35, l.life / l.maxLife);
+        ctx.strokeStyle = l.color;
+        ctx.shadowColor = l.color;
+        ctx.shadowBlur = l.isPlayer ? 24 : 20;
+        ctx.lineWidth = l.isPlayer ? 5 : 4;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha *= 0.9;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = l.isPlayer ? 1.8 : 1.3;
+        ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+        ctx.restore();
+      });
       if (!p.inCarId) {
         ctx.save(); ctx.translate(p.x, p.y - (p.jumpOffset || 0)); ctx.fillStyle = 'rgba(0,0,0,0.4)'; const shadowScale = Math.max(0.4, 1 - (p.jumpOffset || 0) / 45); ctx.beginPath(); ctx.ellipse(0, 12, 14 * shadowScale, 7 * shadowScale, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
         drawHuman(ctx, p.x, p.y - (p.jumpOffset || 0), p.facingAngle, avatarColor, 'player', true, p.isCover);
