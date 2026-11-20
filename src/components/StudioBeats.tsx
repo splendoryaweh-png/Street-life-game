@@ -719,7 +719,7 @@ export function StudioBeats({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
-        video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        video: { facingMode: { ideal: 'user' }, width: { ideal: 640 }, height: { ideal: 480 } }
       });
       cameraPreviewStreamRef.current = stream;
       setVideoPreviewReady(true);
@@ -1343,17 +1343,6 @@ export function StudioBeats({
           </button>
         </div>
 
-        {isRecording && isVideoFreestyle && (
-          <div className="mt-3 relative rounded-2xl overflow-hidden bg-black border-2 border-red-500 aspect-video">
-            <video
-              ref={videoPreviewRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover scale-x-[-1]"
-            />
-          </div>
-        )}
       </div>
 
       {isVideoFreestyle && (
