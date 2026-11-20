@@ -126,14 +126,17 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       }>;
       // Presence can sync once before the host's directory track arrives.
       // Keep listening until the host appears or the verification times out.
-      const hostRoom = entries.find((entry) => entry.roomCode === cleaned);
-      if (!hostRoom) return;
+      const roomMembers = entries.filter((entry) => entry.roomCode === cleaned);
+      if (roomMembers.length === 0) return;
+      // If the previous host has left, the returning/joining player takes over
+      // so the district's shared world simulation continues running.
+      const takeOverAsHost = !roomMembers.some((entry) => entry.isHost === true);
       finished = true;
       window.clearTimeout(timeoutId);
       await client.removeChannel(lookup);
-      setIsHost(false);
+      setIsHost(takeOverAsHost);
       setRoomCode(cleaned);
-      connectToRoom(cleaned, false);
+      connectToRoom(cleaned, takeOverAsHost);
     };
     const timeoutId = window.setTimeout(() => {
       if (finished) return;
