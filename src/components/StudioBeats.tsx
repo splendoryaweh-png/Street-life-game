@@ -1357,15 +1357,15 @@ export function StudioBeats({
           <div className="relative flex-1 min-h-0 rounded-2xl overflow-hidden bg-[#101014] border border-white/15">
             <video
               ref={videoPreviewRef}
-              src={!isRecording && recordedBlob?.type.startsWith('video/') ? (recordedUrl || undefined) : undefined}
+              src={!isRecording && !videoPreviewReady && recordedBlob?.type.startsWith('video/') ? (recordedUrl || undefined) : undefined}
               autoPlay
               playsInline
-              muted={isRecording || !recordedBlob?.type.startsWith('video/')}
-              controls={!isRecording && Boolean(recordedBlob?.type.startsWith('video/'))}
+              muted={isRecording || videoPreviewReady || !recordedBlob?.type.startsWith('video/')}
+              controls={!isRecording && !videoPreviewReady && Boolean(recordedBlob?.type.startsWith('video/'))}
               className="w-full h-full object-contain bg-black"
             />
             {isRecording && <div className="absolute top-3 left-3 rounded-full bg-red-600 px-3 py-1 text-xs font-black animate-pulse">● REC {formatRecordingTimer(recordingSeconds)}</div>}
-            {!isRecording && !recordedBlob?.type.startsWith('video/') && (
+            {!isRecording && !videoPreviewReady && !recordedBlob?.type.startsWith('video/') && (
               <div className="absolute inset-0 flex items-center justify-center text-center p-6 pointer-events-none">
                 <p className="text-sm text-white/70">Your camera preview will appear here. Choose a beat and start recording.</p>
               </div>
