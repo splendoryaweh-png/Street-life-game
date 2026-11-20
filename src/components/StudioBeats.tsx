@@ -739,7 +739,7 @@ export function StudioBeats({
 
   const handlePreview = () => handlePreviewBeat(currentBeat);
 
-  const handlePostBeat = (beat: LongBeat) => {
+  const handlePostBeat = async (beat: LongBeat) => {
     playClickSound();
 
     const beatRec =
@@ -749,7 +749,7 @@ export function StudioBeats({
             blob: recordedBlob!,
             url: recordedUrl!,
             durationSec: recordingSeconds,
-            isVideo: false,
+            isVideo: isVideoFreestyle,
             beatName: beat.name
           }
         : null);
