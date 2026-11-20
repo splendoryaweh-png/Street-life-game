@@ -5,26 +5,30 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const TARGET_GROUP = '@Streetlifestars';
 
 export async function POST(request: Request) {
   try {
     const initData = request.headers.get('x-telegram-init-data') || '';
     const user = verifyTelegramInitData(initData);
-
     const form = await request.formData();
     const audio = form.get('audio');
+    const video = form.get('video');
+    const recording = video instanceof File ? video : audio;
+    const isVideo = video instanceof File;
     const beatName = String(form.get('beatName') || 'STREET LIFE freestyle').slice(0, 100);
     const producer = String(form.get('producer') || '').slice(0, 100);
     const duration = Number(form.get('durationSeconds') || 0);
 
-    if (!(audio instanceof File)) {
+    if (!(recording instanceof File)) {
       return NextResponse.json({ success: false, error: 'Recording file is missing.' }, { status: 400 });
     }
-    if (!audio.size || audio.size > MAX_AUDIO_BYTES) {
-      return NextResponse.json({ success: false, error: 'Recording must be between 1 byte and 20 MB.' }, { status: 413 });
+    const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_AUDIO_BYTES;
+    if (!recording.size || recording.size > maxBytes) {
+      return NextResponse.json({ success: false, error: `Recording must be between 1 byte and ${isVideo ? '50' : '20'} MB.` }, { status: 413 });
     }
-    if (!audio.type.startsWith('audio/')) {
+    if (isVideo ? !recording.type.startsWith('video/') : !recording.type.startsWith('audio/')) {
       return NextResponse.json({ success: false, error: 'Unsupported recording format.' }, { status: 415 });
     }
 
@@ -35,19 +39,20 @@ export async function POST(request: Request) {
     }
 
     const caption = [
-      '🎙️ STREET LIFE STUDIO — NEW MIX',
+      isVideo ? '🎬 STREET LIFE VIDEO FREESTYLE' : '🎙️ STREET LIFE STUDIO — NEW MIX',
       `👤 Player ID: ${user.id}`,
       `🎵 Beat: ${beatName}`,
       producer ? `🎧 Producer: ${producer}` : '',
-      Number.isFinite(duration) && duration > 0 ? `⏱️ Duration: ${Math.min(60, Math.floor(duration))} seconds` : '',
+      Number.isFinite(duration) && duration > 0 ? `⏱️ Duration: ${Math.min(isVideo ? 180 : 240, Math.floor(duration))} seconds` : '',
     ].filter(Boolean).join('\n');
 
     const telegramForm = new FormData();
     telegramForm.set('chat_id', TARGET_GROUP);
     telegramForm.set('caption', caption);
-    telegramForm.set('audio', audio, audio.name || 'street-life-mix.webm');
+    telegramForm.set(isVideo ? 'video' : 'audio', recording, recording.name || (isVideo ? 'street-life-video.mp4' : 'street-life-mix.webm'));
 
-    const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendAudio`, {
+    const method = isVideo ? 'sendVideo' : 'sendAudio';
+    const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
       method: 'POST',
       body: telegramForm,
       cache: 'no-store',
@@ -62,18 +67,15 @@ export async function POST(request: Request) {
       });
       return NextResponse.json({
         success: false,
-        error: 'Telegram could not post your mix. Please try again or contact the administrator.',
+        error: 'Telegram could not post your recording. Please try again or contact the administrator.',
       }, { status: 502 });
     }
 
-    return NextResponse.json({
-      success: true,
-      messageId: telegramResult.result?.message_id,
-    });
+    return NextResponse.json({ success: true, messageId: telegramResult.result?.message_id });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unable to send mix.';
+    const message = error instanceof Error ? error.message : 'Unable to send recording.';
     const status = /initData|Telegram verification|session expired|Missing Telegram/i.test(message) ? 401 : 500;
     console.error('STUDIO_SEND_MIX error:', message);
-    return NextResponse.json({ success: false, error: status === 401 ? 'Telegram session expired. Reopen STREET LIFE from the bot and try again.' : 'Unable to send your mix right now.' }, { status });
+    return NextResponse.json({ success: false, error: status === 401 ? 'Telegram session expired. Reopen STREET LIFE from the bot and try again.' : 'Unable to send your recording right now.' }, { status });
   }
 }
