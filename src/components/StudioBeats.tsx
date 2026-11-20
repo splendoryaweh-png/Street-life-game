@@ -205,6 +205,7 @@ export function StudioBeats({
   const filteredVideoCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const filteredVideoStreamRef = useRef<MediaStream | null>(null);
   const videoRenderFrameRef = useRef<number | null>(null);
+  const videoFrameCallbackModeRef = useRef<'video' | 'animation' | null>(null);
   const [activeVideoModalUrl, setActiveVideoModalUrl] = useState<string | null>(null);
 
   const [recordingsByBeat, setRecordingsByBeat] = useState<Record<string, {
@@ -325,6 +326,64 @@ export function StudioBeats({
     setIsRecording(false);
   }, []);
 
+  // Prefer an explicitly selected physical camera. Some mobile WebViews ignore
+  // facingMode: { ideal }, so verify the selected track and fall back to deviceId.
+  const getVideoFreestyleStream = async (facing: 'user' | 'environment') => {
+    const audio = {
+      echoCancellation: true,
+      noiseSuppression: noiseReductionEnabled,
+      autoGainControl: true
+    };
+    const videoBase = {
+      width: { ideal: 640 },
+      height: { ideal: 480 },
+      frameRate: { ideal: 30, max: 30 }
+    };
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio,
+        video: { ...videoBase, facingMode: { exact: facing } }
+      });
+    } catch {
+      // Older Safari/Telegram WebViews may reject exact facingMode.
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio,
+        video: { ...videoBase, facingMode: { ideal: facing } }
+      });
+    }
+
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const wanted = devices.find((device) => device.kind === 'videoinput' && (
+        facing === 'user'
+          ? /front|user|facetime|前置/i.test(device.label)
+          : /back|rear|environment|后置/i.test(device.label)
+      ));
+      const currentTrack = stream.getVideoTracks()[0];
+      const currentDeviceId = currentTrack?.getSettings().deviceId;
+      if (wanted?.deviceId && wanted.deviceId !== currentDeviceId) {
+        const selectedStream = await navigator.mediaDevices.getUserMedia({
+          audio,
+          video: { ...videoBase, deviceId: { exact: wanted.deviceId } }
+        });
+        stream.getTracks().forEach((track) => track.stop());
+        stream = selectedStream;
+      }
+    } catch (error) {
+      // Keep the facingMode-selected stream if device enumeration is restricted.
+      console.debug('Camera device selection fallback:', error);
+    }
+
+    const track = stream.getVideoTracks()[0];
+    if (track) {
+      try {
+        await track.applyConstraints({ frameRate: { ideal: 30, max: 30 } });
+      } catch {}
+    }
+    return stream;
+  };
+
   const handleRecordBeat = async (beat: LongBeat) => {
     playClickSound();
 
@@ -361,21 +420,11 @@ export function StudioBeats({
       let micStream: MediaStream | null = isVideoFreestyle ? cameraPreviewStreamRef.current : null;
       if (!micStream) {
         try {
-          micStream = await navigator.mediaDevices.getUserMedia(
-            isVideoFreestyle
-              ? {
-                  audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
-                  video: {
-                    facingMode: { ideal: cameraFacing },
-                    width: { ideal: 640 },
-                    height: { ideal: 480 },
-                    frameRate: { ideal: 30, max: 30 }
-                  }
-                }
-              : {
-                  audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true }
-                }
-          );
+          micStream = isVideoFreestyle
+            ? await getVideoFreestyleStream(cameraFacing)
+            : await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true }
+              });
         } catch (e) {
           console.warn('microphone/camera permission denied', e);
         }
@@ -556,9 +605,27 @@ export function StudioBeats({
                 context.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
                 context.restore();
               }
-              videoRenderFrameRef.current = requestAnimationFrame(drawFilteredFrame);
+              const videoWithFrameCallback = sourceVideo as HTMLVideoElement & {
+                requestVideoFrameCallback?: (callback: () => void) => number;
+              };
+              if (videoWithFrameCallback.requestVideoFrameCallback) {
+                videoRenderFrameRef.current = videoWithFrameCallback.requestVideoFrameCallback(drawFilteredFrame);
+                videoFrameCallbackModeRef.current = 'video';
+              } else {
+                videoRenderFrameRef.current = requestAnimationFrame(drawFilteredFrame);
+                videoFrameCallbackModeRef.current = 'animation';
+              }
             };
-            drawFilteredFrame();
+            const videoWithFrameCallback = sourceVideo as HTMLVideoElement & {
+              requestVideoFrameCallback?: (callback: () => void) => number;
+            };
+            if (videoWithFrameCallback.requestVideoFrameCallback) {
+              videoRenderFrameRef.current = videoWithFrameCallback.requestVideoFrameCallback(drawFilteredFrame);
+              videoFrameCallbackModeRef.current = 'video';
+            } else {
+              videoRenderFrameRef.current = requestAnimationFrame(drawFilteredFrame);
+              videoFrameCallbackModeRef.current = 'animation';
+            }
             const filteredStream = canvas.captureStream(30);
             filteredVideoCanvasRef.current = canvas;
             filteredVideoStreamRef.current = filteredStream;
@@ -603,8 +670,16 @@ export function StudioBeats({
         streamRef.current?.getTracks().forEach(t => t.stop());
         streamRef.current = null;
         cameraPreviewStreamRef.current = null;
-        if (videoRenderFrameRef.current !== null) cancelAnimationFrame(videoRenderFrameRef.current);
+        if (videoRenderFrameRef.current !== null) {
+          const sourceVideo = videoPreviewRef.current as (HTMLVideoElement & { cancelVideoFrameCallback?: (id: number) => void }) | null;
+          if (videoFrameCallbackModeRef.current === 'video' && sourceVideo?.cancelVideoFrameCallback) {
+            sourceVideo.cancelVideoFrameCallback(videoRenderFrameRef.current);
+          } else {
+            cancelAnimationFrame(videoRenderFrameRef.current);
+          }
+        }
         videoRenderFrameRef.current = null;
+        videoFrameCallbackModeRef.current = null;
         filteredVideoStreamRef.current?.getTracks().forEach(track => track.stop());
         filteredVideoStreamRef.current = null;
         filteredVideoCanvasRef.current = null;
@@ -763,15 +838,7 @@ export function StudioBeats({
     oldStream?.getTracks().forEach(track => track.stop());
     setVideoPreviewReady(false);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
-        video: {
-          facingMode: { ideal: nextFacing },
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          frameRate: { ideal: 30, max: 30 }
-        }
-      });
+      const stream = await getVideoFreestyleStream(nextFacing);
       cameraPreviewStreamRef.current = stream;
       streamRef.current = stream;
       setCameraFacing(nextFacing);
@@ -808,15 +875,7 @@ export function StudioBeats({
     }
     setIsVideoFreestyle(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
-        video: {
-                    facingMode: { ideal: cameraFacing },
-                    width: { ideal: 640 },
-                    height: { ideal: 480 },
-                    frameRate: { ideal: 30, max: 30 }
-                  }
-      });
+      const stream = await getVideoFreestyleStream(cameraFacing);
       cameraPreviewStreamRef.current = stream;
       setVideoPreviewReady(true);
       toast('📷 Camera and microphone are ready. Record your video freestyle.');
