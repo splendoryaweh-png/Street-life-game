@@ -328,59 +328,48 @@ export function StudioBeats({
 
   // Prefer an explicitly selected physical camera. Some mobile WebViews ignore
   // facingMode: { ideal }, so verify the selected track and fall back to deviceId.
-  const getVideoFreestyleStream = async (facing: 'user' | 'environment') => {
-    const audio = {
-      echoCancellation: true,
-      noiseSuppression: noiseReductionEnabled,
-      autoGainControl: true
-    };
-    const videoBase = {
-      width: { ideal: 640 },
-      height: { ideal: 480 },
-      frameRate: { ideal: 30, max: 30 }
-    };
+  const getVideoFreestyleStream = async (facing: 'user' | 'environment', excludeDeviceId?: string) => {
+    const audio = { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true };
+    const videoBase = { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30, max: 30 } };
+    const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+    const cameras = devices.filter((device) => device.kind === 'videoinput' && device.deviceId);
+    const facingPattern = facing === 'user' ? /front|user|facetime|前置/i : /back|rear|environment|后置/i;
+    const preferred = cameras.find((device) => facingPattern.test(device.label) && device.deviceId !== excludeDeviceId);
+    const alternate = cameras.find((device) => device.deviceId !== excludeDeviceId);
+    const requestedDevice = preferred || (excludeDeviceId ? alternate : undefined);
     let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio,
-        video: { ...videoBase, facingMode: { exact: facing } }
-      });
-    } catch {
-      // Older Safari/Telegram WebViews may reject exact facingMode.
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio,
-        video: { ...videoBase, facingMode: { ideal: facing } }
-      });
-    }
-
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const wanted = devices.find((device) => device.kind === 'videoinput' && (
-        facing === 'user'
-          ? /front|user|facetime|前置/i.test(device.label)
-          : /back|rear|environment|后置/i.test(device.label)
-      ));
-      const currentTrack = stream.getVideoTracks()[0];
-      const currentDeviceId = currentTrack?.getSettings().deviceId;
-      if (wanted?.deviceId && wanted.deviceId !== currentDeviceId) {
-        const selectedStream = await navigator.mediaDevices.getUserMedia({
-          audio,
-          video: { ...videoBase, deviceId: { exact: wanted.deviceId } }
-        });
-        stream.getTracks().forEach((track) => track.stop());
-        stream = selectedStream;
-      }
-    } catch (error) {
-      // Keep the facingMode-selected stream if device enumeration is restricted.
-      console.debug('Camera device selection fallback:', error);
-    }
-
-    const track = stream.getVideoTracks()[0];
-    if (track) {
+    if (requestedDevice?.deviceId) {
       try {
-        await track.applyConstraints({ frameRate: { ideal: 30, max: 30 } });
-      } catch {}
+        stream = await navigator.mediaDevices.getUserMedia({ audio, video: { ...videoBase, deviceId: { exact: requestedDevice.deviceId } } });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ audio, video: { ...videoBase, facingMode: { exact: facing } } });
+      }
+    } else {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio, video: { ...videoBase, facingMode: { exact: facing } } });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ audio, video: { ...videoBase, facingMode: { ideal: facing } } });
+      }
     }
+    const actualDeviceId = stream.getVideoTracks()[0]?.getSettings().deviceId;
+    if (excludeDeviceId && actualDeviceId === excludeDeviceId) {
+      const other = cameras.find((device) => device.deviceId && device.deviceId !== excludeDeviceId);
+      if (other?.deviceId) {
+        try {
+          const replacement = await navigator.mediaDevices.getUserMedia({ audio, video: { ...videoBase, deviceId: { exact: other.deviceId } } });
+          stream.getTracks().forEach((track) => track.stop());
+          stream = replacement;
+        } catch {
+          stream.getTracks().forEach((track) => track.stop());
+          throw new Error('Telegram kept the current camera selected; the other camera could not be opened.');
+        }
+      } else {
+        stream.getTracks().forEach((track) => track.stop());
+        throw new Error('The other camera is not available in this Telegram browser.');
+      }
+    }
+    const track = stream.getVideoTracks()[0];
+    if (track) { try { await track.applyConstraints({ frameRate: { ideal: 30, max: 30 } }); } catch {} }
     return stream;
   };
 
@@ -834,26 +823,23 @@ export function StudioBeats({
     }
     const nextFacing = cameraFacing === 'user' ? 'environment' : 'user';
     const oldStream = cameraPreviewStreamRef.current;
-    cameraPreviewStreamRef.current = null;
-    oldStream?.getTracks().forEach(track => track.stop());
-    setVideoPreviewReady(false);
+    const oldDeviceId = oldStream?.getVideoTracks()[0]?.getSettings().deviceId;
     try {
-      const stream = await getVideoFreestyleStream(nextFacing);
+      const stream = await getVideoFreestyleStream(nextFacing, oldDeviceId);
+      const video = videoPreviewRef.current;
+      if (video) { video.srcObject = stream; await video.play(); }
       cameraPreviewStreamRef.current = stream;
       streamRef.current = stream;
       setCameraFacing(nextFacing);
       setVideoPreviewReady(true);
-      const video = videoPreviewRef.current;
-      if (video) {
-        video.srcObject = stream;
-        await video.play().catch(() => {});
-      }
+      oldStream?.getTracks().forEach(track => track.stop());
       toast(nextFacing === 'user' ? 'Front camera selected.' : 'Back camera selected.');
     } catch (error) {
       const name = error instanceof Error ? error.name : '';
+      const message = error instanceof Error ? error.message : '';
       toast(name === 'NotAllowedError'
         ? 'Camera permission is blocked. Allow camera access in your browser settings.'
-        : 'Could not switch camera. Your phone may not support the other camera in this browser.');
+        : message || 'Could not switch camera. The other camera may be unavailable in Telegram.');
     }
   };
 
