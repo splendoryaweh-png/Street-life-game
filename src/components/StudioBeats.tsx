@@ -299,8 +299,8 @@ export function StudioBeats({
 
   const openCameraStream = async (facing: 'user' | 'environment') => {
     const base = {
-      width: { ideal: 1280 },
-      height: { ideal: 1920 },
+      width: { ideal: 720 },
+      height: { ideal: 1280 },
       frameRate: { ideal: 30, max: 30 }
     };
     try {
@@ -1189,7 +1189,7 @@ export function StudioBeats({
               autoPlay
               playsInline
               muted
-              className="absolute inset-0 w-full h-full object-cover" style={{ filter: activeVideoFilter }}
+              className="fixed inset-0 w-full h-full object-cover" style={{ filter: activeVideoFilter, transform: 'translate3d(0,0,0)', backfaceVisibility: 'hidden', WebkitTransform: 'translate3d(0,0,0)' }}
             />
             <div className="absolute inset-x-0 top-0 z-[101] flex justify-center p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pointer-events-none">
               <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold text-white/90">LIVE CAMERA</span>
@@ -1214,7 +1214,7 @@ export function StudioBeats({
                 </button>
                 <button type="button" onClick={() => handleRecordBeat(currentBeat)} className={"pointer-events-auto h-12 min-w-12 rounded-full border-[3px] border-white p-1 shadow-xl active:scale-95 " + (isRecording ? 'bg-red-600' : 'bg-[#FFD700]')} aria-label={isRecording ? 'Stop recording' : 'Start recording'}>
                   <span className={"flex h-full w-full items-center justify-center rounded-full text-[9px] font-black uppercase " + (isRecording ? 'text-white' : 'text-black')}>
-                    {isRecording ? 'Stop' : 'Rec'}
+                    {isRecording ? 'Stop' : 'Record'}
                   </span>
                 </button>
                 <button type="button" onClick={handleDisableCamera} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white active:scale-95">
