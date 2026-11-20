@@ -19,7 +19,7 @@ export const WEAPONS: Record<WeaponType, WeaponDef> = {
 };
 export interface LaserBeam { id: string; x1: number; y1: number; x2: number; y2: number; color: string; life: number; maxLife: number; isPlayer: boolean; damage: number; }
 export interface CityCar { id: string; x: number; y: number; vx: number; vy: number; speed: number; direction: 'horizontal' | 'vertical'; width: number; height: number; color: string; isOccupied: boolean; hasDriver: boolean; driverType: 'civilian' | 'player' | 'gangster' | null; health: number; maxHealth: number; }
-export interface Civilian { id: string; x: number; y: number; vx: number; vy: number; speed: number; facingAngle: number; state: 'walking' | 'scared' | 'saved'; color: string; health?: number; maxHealth?: number; }
+export interface Civilian { id: string; x: number; y: number; vx: number; vy: number; speed: number; facingAngle: number; state: 'walking' | 'scared' | 'saved'; color: string; health?: number; maxHealth?: number; fleeUntil?: number; }
 export interface Gangster { id: string; type: 'fighter_motor' | 'fighter_bus'; x: number; y: number; vx: number; vy: number; health: number; maxHealth: number; speed: number; facingAngle: number; gun: WeaponType; lastShootTime: number; vehicleType: 'motorcycle' | 'bus'; }
 export interface SparkParticle { x: number; y: number; vx: number; vy: number; color: string; life: number; }
 interface StreetGangStarProps { onBack: () => void; onToast: (msg: string) => void; language?: string; initialCountry?: string; }
@@ -61,7 +61,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     const s = gameStateRef.current; const cars: CityCar[] = []; const colors = ['#38BDF8', '#F97316', '#A855F7', '#EF4444', '#10B981', '#E2E8F0', '#FACC15'];
     cityData.roads.forEach((road, idx) => { if (idx < 10) { const isHoriz = road.direction === 'horizontal'; const carW = isHoriz ? 54 : 30; const carH = isHoriz ? 30 : 54; const startX = isHoriz ? (idx * 380) % cityData.mapWidth : road.x + 30; const startY = isHoriz ? road.y + 40 : (idx * 380) % cityData.mapHeight; const speed = 2.4 + (idx % 3) * 0.5; cars.push({ id: `car_${idx}`, x: startX, y: startY, vx: isHoriz ? speed : 0, vy: isHoriz ? 0 : speed, speed, direction: road.direction, width: carW, height: carH, color: colors[idx % colors.length], isOccupied: false, hasDriver: true, driverType: 'civilian', health: 10, maxHealth: 10 }); } });
     s.cars = cars; const civs: Civilian[] = []; const civColors = ['#94A3B8', '#CBD5E1', '#E2E8F0', '#F1F5F9', '#64748B'];
-    for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length], health: 4, maxHealth: 4 }); } s.civilians = civs;
+    for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length], health: 3, maxHealth: 3 }); } s.civilians = civs;
   }, [cityData]);
   const setupGame = useCallback(() => {
     const s = gameStateRef.current; const spawn = cityData.spawnPoints.find((point) => !isPointInsideBuilding(point.x, point.y, cityData.buildings, 18).inside) ?? (cityData.roads[0] ? { x: cityData.roads[0].x + cityData.roads[0].width / 2, y: cityData.roads[0].y + cityData.roads[0].height / 2 } : { x: cityData.mapWidth / 2, y: cityData.mapHeight / 2 }); s.player.x = spawn.x; s.player.y = spawn.y; s.player.health = 100; s.player.ammo = WEAPONS.pistol.maxAmmo; s.player.maxAmmo = WEAPONS.pistol.maxAmmo; s.player.gun = 'pistol'; s.player.isCover = false; s.player.inCarId = null; s.gangsters = []; s.lasers = []; s.sparks = []; s.lastSpawnTime = Date.now(); s.isRunning = true;
@@ -140,7 +140,28 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       s.cars.forEach((car) => { if (!car.isOccupied) { if (car.direction === 'horizontal') { car.x += car.vx; if (car.x > cityData.mapWidth + 80) car.x = -80; if (car.x < -80) car.x = cityData.mapWidth + 80; } else { car.y += car.vy; if (car.y > cityData.mapHeight + 80) car.y = -80; if (car.y < -80) car.y = cityData.mapHeight + 80; } } });
       s.civilians.forEach((civ) => {
         let threatNear = false; let threatX = 0; let threatY = 0; for (const g of s.gangsters) { const d = Math.hypot(g.x - civ.x, g.y - civ.y); if (d < 110) { threatNear = true; threatX = g.x; threatY = g.y; break; } }
-        if (threatNear) { civ.state = 'scared'; const awayAngle = Math.atan2(civ.y - threatY, civ.x - threatX); civ.x += Math.cos(awayAngle) * 2.8; civ.y += Math.sin(awayAngle) * 2.8; civ.facingAngle = awayAngle; } else { if (civ.state === 'scared') { civ.state = 'saved'; setCiviliansSavedCount((c) => c + 1); p.coins += 2; setHudCoins(p.coins); } civ.x += Math.cos(civ.facingAngle) * civ.speed; civ.y += Math.sin(civ.facingAngle) * civ.speed; if (Math.random() < 0.02) { civ.facingAngle += (Math.random() - 0.5) * 1.5; } } civ.x = Math.max(80, Math.min(cityData.mapWidth - 80, civ.x)); civ.y = Math.max(80, Math.min(cityData.mapHeight - 80, civ.y));
+        if (civ.fleeUntil && now < civ.fleeUntil) {
+          const fleeSpeed = civ.health === 1 ? 4.5 : 2.8;
+          civ.x += Math.cos(civ.facingAngle) * fleeSpeed;
+          civ.y += Math.sin(civ.facingAngle) * fleeSpeed;
+        } else if (civ.fleeUntil) {
+          civ.fleeUntil = undefined;
+          civ.state = 'walking';
+          civ.speed = 1.2;
+        } else if (threatNear) {
+          civ.state = 'scared';
+          const awayAngle = Math.atan2(civ.y - threatY, civ.x - threatX);
+          civ.x += Math.cos(awayAngle) * 2.8;
+          civ.y += Math.sin(awayAngle) * 2.8;
+          civ.facingAngle = awayAngle;
+        } else {
+          if (civ.state === 'scared') { civ.state = 'saved'; setCiviliansSavedCount((c) => c + 1); p.coins += 2; setHudCoins(p.coins); }
+          civ.x += Math.cos(civ.facingAngle) * civ.speed;
+          civ.y += Math.sin(civ.facingAngle) * civ.speed;
+          if (Math.random() < 0.02) civ.facingAngle += (Math.random() - 0.5) * 1.5;
+        }
+        civ.x = Math.max(80, Math.min(cityData.mapWidth - 80, civ.x));
+        civ.y = Math.max(80, Math.min(cityData.mapHeight - 80, civ.y));
       });
       for (let gIdx = s.gangsters.length - 1; gIdx >= 0; gIdx--) {
         const g = s.gangsters[gIdx]; let targetX = p.x; let targetY = p.y; let targetDist = Math.hypot(p.x - g.x, p.y - g.y); for (const c of s.civilians) { const cDist = Math.hypot(c.x - g.x, c.y - g.y); if (cDist < targetDist) { targetDist = cDist; targetX = c.x; targetY = c.y; } }
@@ -177,7 +198,10 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
           for (let civIdx = s.civilians.length - 1; civIdx >= 0; civIdx--) {
             const civ = s.civilians[civIdx];
             if (distToSegment(civ.x, civ.y, l.x1, l.y1, l.x2, l.y2) < 30) {
-              civ.health = (civ.health ?? 4) - 1;
+              civ.health = (civ.health ?? 3) - 1;
+              civ.state = 'scared';
+              civ.fleeUntil = Date.now() + 3500;
+              civ.facingAngle = Math.atan2(civ.y - l.y1, civ.x - l.x1);
               s.lasers.splice(lIdx, 1); hit = true;
               for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#FDE68A', life: 14 }); }
               if (civ.health <= 0) s.civilians.splice(civIdx, 1);
