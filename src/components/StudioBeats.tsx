@@ -166,6 +166,8 @@ export function StudioBeats({
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
 
   const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
+  const [cameraError, setCameraError] = useState('');
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const [activeVideoModalUrl, setActiveVideoModalUrl] = useState<string | null>(null);
 
@@ -276,6 +278,88 @@ export function StudioBeats({
     setIsRecording(false);
   }, []);
 
+  const handleEnableCamera = async () => {
+    playClickSound();
+    setCameraError('');
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Camera access is not available in this browser. Open Street Life inside Telegram or Safari over HTTPS.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { facingMode: { ideal: cameraFacing }, width: { ideal: 1280 }, height: { ideal: 1920 } }
+      });
+      streamRef.current?.getTracks().forEach(track => track.stop());
+      streamRef.current = stream;
+      setIsVideoFreestyle(true);
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = stream;
+        await videoPreviewRef.current.play();
+      }
+      try { window.Telegram?.WebApp?.expand?.(); } catch {}
+    } catch (error) {
+      console.warn('Camera permission/access failed:', error);
+      const name = error instanceof DOMException ? error.name : '';
+      setCameraError(name === 'NotAllowedError'
+        ? 'Camera permission was denied. Allow Camera and Microphone for Telegram in iPhone Settings, then try again.'
+        : name === 'NotFoundError'
+          ? 'No camera was found on this phone.'
+          : 'Could not open the camera. Check camera permission and try again.');
+      setIsVideoFreestyle(false);
+    }
+  };
+
+  const handleSwitchCamera = async () => {
+    playClickSound();
+    setCameraError('');
+    const oldStream = streamRef.current;
+    try {
+      const currentTrack = oldStream?.getVideoTracks()[0];
+      const currentDeviceId = currentTrack?.getSettings().deviceId;
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter(device => device.kind === 'videoinput');
+      const alternate = cameras.find(device => device.deviceId && device.deviceId !== currentDeviceId);
+      const nextFacing = cameraFacing === 'user' ? 'environment' : 'user';
+      let nextStream: MediaStream;
+      try {
+        nextStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: alternate
+            ? { deviceId: { exact: alternate.deviceId }, width: { ideal: 1280 }, height: { ideal: 1920 } }
+            : { facingMode: { exact: nextFacing }, width: { ideal: 1280 }, height: { ideal: 1920 } }
+        });
+      } catch {
+        nextStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: { facingMode: { ideal: nextFacing }, width: { ideal: 1280 }, height: { ideal: 1920 } }
+        });
+      }
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = nextStream;
+        await videoPreviewRef.current.play();
+      }
+      streamRef.current = nextStream;
+      oldStream?.getTracks().forEach(track => track.stop());
+      setCameraFacing(nextFacing);
+    } catch (error) {
+      console.warn('Switch camera failed:', error);
+      setCameraError('Could not switch camera. Check that both cameras are available and try again.');
+    }
+  };
+
+  const handleDisableCamera = () => {
+    if (isRecording) {
+      toast('Stop recording before closing the camera.');
+      return;
+    }
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+    if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
+    setIsVideoFreestyle(false);
+    setCameraError('');
+  };
+
   const handleRecordBeat = async (beat: LongBeat) => {
     playClickSound();
 
@@ -299,13 +383,17 @@ export function StudioBeats({
       let micStream: MediaStream | null = null;
 
       try {
-        micStream = await navigator.mediaDevices.getUserMedia(
-          isVideoFreestyle
-            ? { audio: true, video: { facingMode: 'user' } }
-            : { audio: true }
-        );
+        const existingCameraStream = isVideoFreestyle ? streamRef.current : null;
+        micStream = existingCameraStream?.active && existingCameraStream.getAudioTracks().some(track => track.readyState === 'live')
+          ? existingCameraStream
+          : await navigator.mediaDevices.getUserMedia(
+              isVideoFreestyle
+                ? { audio: true, video: { facingMode: { ideal: cameraFacing } } }
+                : { audio: true }
+            );
       } catch (e) {
-        console.warn('mic denied', e);
+        console.warn('mic/camera permission denied', e);
+        setCameraError('Please allow camera and microphone access in your phone settings, then try again.');
       }
 
       if (!micStream) {
@@ -399,10 +487,11 @@ export function StudioBeats({
         const finalSecs = recordingSecondsRef.current;
         const isVideo = isVideoFreestyle;
 
-        streamRef.current?.getTracks().forEach(t => t.stop());
-        streamRef.current = null;
-
-        if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
+        if (!isVideoFreestyle) {
+          streamRef.current?.getTracks().forEach(t => t.stop());
+          streamRef.current = null;
+          if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
+        }
 
         if (beatAudioRef.current) {
           try {
@@ -1030,22 +1119,39 @@ export function StudioBeats({
           </div>
 
           <button
-            onClick={()=>setIsVideoFreestyle(!isVideoFreestyle)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase ${isVideoFreestyle?'bg-red-500 text-white':'bg-[#FFD700] text-black'}`}
+            type="button"
+            onClick={isVideoFreestyle ? handleDisableCamera : handleEnableCamera}
+            className={`px-3 py-2 rounded-xl text-xs font-black uppercase pointer-events-auto active:scale-95 ${isVideoFreestyle?'bg-red-500 text-white':'bg-[#FFD700] text-black'}`}
           >
-            {isVideoFreestyle?'Camera ON':'Enable Camera'}
+            {isVideoFreestyle ? 'Close Camera' : 'Enable Camera'}
           </button>
         </div>
 
-        {isRecording && isVideoFreestyle && (
-          <div className="mt-3 relative rounded-2xl overflow-hidden bg-black border-2 border-red-500 aspect-video">
+        {cameraError && <p role="alert" className="mt-2 text-xs font-semibold text-red-400">{cameraError}</p>}
+        {isVideoFreestyle && (
+          <div className="fixed inset-0 z-[100] w-screen h-[100dvh] min-h-screen overflow-hidden bg-black">
             <video
               ref={videoPreviewRef}
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover scale-x-[-1]"
+              className="absolute inset-0 w-full h-full object-cover"
             />
+            <div className="absolute inset-x-0 top-0 z-[101] flex items-center justify-between gap-3 p-4 pt-[max(1rem,env(safe-area-inset-top))]">
+              <span className="rounded-full bg-black/70 px-3 py-2 text-xs font-black text-white">LIVE CAMERA</span>
+              <button type="button" onClick={handleSwitchCamera} className="pointer-events-auto rounded-xl border border-white/30 bg-black/75 px-4 py-3 text-sm font-black text-white shadow-lg active:scale-95">
+                <span className="inline-flex items-center gap-2"><Camera className="h-4 w-4"/> Switch Camera</span>
+              </button>
+              <button type="button" onClick={handleDisableCamera} className="pointer-events-auto rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white shadow-lg active:scale-95">
+                Close
+              </button>
+            </div>
+            {cameraError && <div role="alert" className="absolute top-20 left-4 right-4 z-[102] rounded-xl bg-red-950/90 p-3 text-sm font-semibold text-white">{cameraError}</div>}
+            <div className="absolute inset-x-0 bottom-0 z-[101] flex justify-center p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+              <button type="button" onClick={() => handleRecordBeat(currentBeat)} className={`pointer-events-auto rounded-full px-8 py-4 text-sm font-black uppercase shadow-2xl active:scale-95 ${isRecording ? 'bg-red-600 text-white' : 'bg-[#FFD700] text-black'}`}>
+                {isRecording ? 'Stop Recording' : 'Start Recording'}
+              </button>
+            </div>
           </div>
         )}
       </div>
