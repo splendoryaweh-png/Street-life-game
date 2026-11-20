@@ -143,6 +143,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       // This lets the last player return home and later reopen their room without a new code.
       setIsHost(true);
       setRoomCode(cleaned);
+      setShowInvitePanel(true);
       connectToRoom(cleaned, true);
       onToast('No players were online in that district, so it has been restored with your same invite code.');
     }, 10000);
