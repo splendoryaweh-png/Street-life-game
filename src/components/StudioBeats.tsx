@@ -270,6 +270,8 @@ export function StudioBeats({
       if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
 
       streamRef.current?.getTracks().forEach(t => t.stop());
+      cameraPreviewStreamRef.current?.getTracks().forEach(t => t.stop());
+      cameraPreviewStreamRef.current = null;
       previewAudioRef.current?.pause();
 
       if (beatAudioRef.current) {
@@ -681,6 +683,47 @@ export function StudioBeats({
   };
 
   const handleRecordClick = async () => handleRecordBeat(currentBeat);
+
+  const handleToggleVideoFreestyle = async () => {
+    playClickSound();
+    if (isVideoFreestyle) {
+      if (isRecording) handleStopRecording();
+      else {
+        cameraPreviewStreamRef.current?.getTracks().forEach(track => track.stop());
+        cameraPreviewStreamRef.current = null;
+        setVideoPreviewReady(false);
+      }
+      setIsVideoFreestyle(false);
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast('Camera and microphone recording are not supported in this browser. Open STREET LIFE in an updated browser.');
+      return;
+    }
+    setIsVideoFreestyle(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
+        video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      cameraPreviewStreamRef.current = stream;
+      setVideoPreviewReady(true);
+      toast('📷 Camera and microphone are ready. Record your video freestyle.');
+      requestAnimationFrame(() => {
+        const capture = videoCaptureRef.current;
+        if (capture?.requestFullscreen) void capture.requestFullscreen().catch(() => {});
+      });
+    } catch (error) {
+      cameraPreviewStreamRef.current?.getTracks().forEach(track => track.stop());
+      cameraPreviewStreamRef.current = null;
+      setVideoPreviewReady(false);
+      setIsVideoFreestyle(false);
+      const name = error instanceof Error ? error.name : '';
+      toast(name === 'NotAllowedError' || name === 'PermissionDeniedError'
+        ? 'Please allow camera and microphone access in your browser settings, then try again.'
+        : 'Could not open the camera. Check camera permissions and try again.');
+    }
+  };
 
   const handlePreviewBeat = async (beat: LongBeat) => {
     playClickSound();
@@ -1295,6 +1338,44 @@ export function StudioBeats({
           </div>
         )}
       </div>
+
+      {isVideoFreestyle && (
+        <div ref={videoCaptureRef} className="fixed inset-0 z-[140] bg-black text-white flex flex-col p-3 sm:p-5" style={{ minHeight: '100dvh' }}>
+          <div className="flex items-center justify-between gap-3 pb-3">
+            <div>
+              <p className="text-sm font-black uppercase text-[#FFD700]">STREET LIFE VIDEO FREESTYLE</p>
+              <p className="text-xs text-gray-400">{isRecording ? 'Recording your freestyle with the beat' : 'Camera and microphone ready'}</p>
+            </div>
+            <button type="button" onClick={handleToggleVideoFreestyle} className="rounded-xl bg-white/10 px-4 py-2 text-xs font-black uppercase">Close</button>
+          </div>
+          <div className="relative flex-1 min-h-0 rounded-2xl overflow-hidden bg-[#101014] border border-white/15">
+            <video
+              ref={videoPreviewRef}
+              src={!isRecording && recordedBlob?.type.startsWith('video/') ? (recordedUrl || undefined) : undefined}
+              autoPlay
+              playsInline
+              muted={isRecording || !recordedBlob?.type.startsWith('video/')}
+              controls={!isRecording && Boolean(recordedBlob?.type.startsWith('video/'))}
+              className="w-full h-full object-contain bg-black"
+            />
+            {isRecording && <div className="absolute top-3 left-3 rounded-full bg-red-600 px-3 py-1 text-xs font-black animate-pulse">● REC {formatRecordingTimer(recordingSeconds)}</div>}
+            {!isRecording && !recordedBlob?.type.startsWith('video/') && (
+              <div className="absolute inset-0 flex items-center justify-center text-center p-6 pointer-events-none">
+                <p className="text-sm text-white/70">Your camera preview will appear here. Choose a beat and start recording.</p>
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3">
+            <button type="button" onClick={() => isRecording ? handleStopRecording() : handleRecordClick()} disabled={!isRecording && dailyRecordCount >= 2} className={`rounded-xl py-3 text-xs font-black uppercase ${isRecording ? 'bg-red-600 text-white' : 'bg-gradient-to-r from-red-600 to-rose-500 text-white'}`}>
+              {isRecording ? 'Stop Recording' : 'Start Recording'}
+            </button>
+            <button type="button" onClick={() => handlePreviewBeat(currentBeat)} disabled={!recordedBlob && !recordingsByBeat[currentBeat.id]} className="rounded-xl py-3 bg-blue-600 text-white text-xs font-black uppercase disabled:opacity-40">Preview</button>
+            <button type="button" onClick={() => handlePostBeat(currentBeat)} disabled={isRecording || (!recordedBlob && !recordingsByBeat[currentBeat.id]) || isPostingMix} className="rounded-xl py-3 bg-emerald-500 text-black text-xs font-black uppercase disabled:opacity-40">{isPostingMix ? 'Posting…' : 'Post to Group'}</button>
+            <button type="button" onClick={handleToggleVideoFreestyle} disabled={isRecording} className="rounded-xl py-3 bg-white/10 text-white text-xs font-black uppercase disabled:opacity-40">Exit Camera</button>
+          </div>
+          <p className="pt-2 text-center text-[10px] text-gray-500">Allow camera and microphone access when your browser asks. Keep this screen open while recording.</p>
+        </div>
+      )}
 
       <div className="space-y-3">
         {filteredBeats.map((beat) => {
