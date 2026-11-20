@@ -26,7 +26,7 @@ export interface SparkParticle { x: number; y: number; vx: number; vy: number; c
 interface StreetGangStarProps { onBack: () => void; onToast: (msg: string) => void; language?: string; initialCountry?: string; }
 export function StreetGangStar({ onBack, onToast, language = 'en', initialCountry = 'NG' }: StreetGangStarProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const get3DPlayerSnapshot = useCallback(() => { const s = gameStateRef.current; const p = s.player; return { x: p.x, y: p.y, heading: p.facingAngle, isMoving: Math.abs(p.vx) + Math.abs(p.vy) > 0.2 || s.joystickMovement.isMoving, laserBeams: s.lasers }; }, []);
+  const get3DPlayerSnapshot = useCallback(() => { const s = gameStateRef.current; const p = s.player; return { x: p.x, y: p.y, heading: p.facingAngle, isMoving: Math.abs(p.vx) + Math.abs(p.vy) > 0.2 || s.joystickMovement.isMoving, laserBeams: s.lasers, civilians: s.civilians.map((c) => ({ id: c.id, x: c.x, y: c.y, heading: c.facingAngle, color: c.color, state: c.state })), gangsters: s.gangsters.map((g) => ({ id: g.id, x: g.x, y: g.y, heading: g.facingAngle, vehicleType: g.vehicleType, health: g.health, maxHealth: g.maxHealth })), cars: s.cars.map((c) => ({ id: c.id, x: c.x, y: c.y, heading: c.direction === 'horizontal' ? 0 : Math.PI / 2, width: c.width, height: c.height, color: c.color })) }; }, []);
   const t = useCallback((key: GangStarTextKey) => getGangStarText(language, key), [language]);
   const [showIntro, setShowIntro] = useState<boolean>(true);
   const [showDeathModal, setShowDeathModal] = useState<boolean>(false);
