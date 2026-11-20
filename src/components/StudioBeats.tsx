@@ -1167,8 +1167,8 @@ export function StudioBeats({
                 }
                 handleRecordClick();
               }}
-              disabled={dailyRecordCount>=2 && !isRecording}
-              className={`py-2.5 px-2 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-1.5 ${dailyRecordCount>=2 && !isRecording?'bg-neutral-800 text-neutral-500 opacity-60': isRecording?'bg-red-600 text-white animate-pulse':'bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white'}`}
+              disabled={dailyRecordCount>=dailyRecordLimit && !isRecording}
+              className={`py-2.5 px-2 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-1.5 ${dailyRecordCount>=dailyRecordLimit && !isRecording?'bg-neutral-800 text-neutral-500 opacity-60': isRecording?'bg-red-600 text-white animate-pulse':'bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white'}`}
             >
               {isRecording
                 ? <><Square className="w-3.5 h-3.5 fill-white"/><span>Stop</span></>
@@ -1252,7 +1252,7 @@ export function StudioBeats({
                 <button type="button" onClick={handleSwitchCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
                   <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5"/> Flip</span>
                 </button>
-                <button type="button" onClick={() => handleRecordBeat(currentBeat)} disabled={dailyRecordCount >= 2 && !isRecording} className={"pointer-events-auto min-w-20 rounded-xl px-3 py-3 text-[11px] font-black uppercase shadow-xl active:scale-95 disabled:opacity-40 " + (isRecording ? 'bg-red-600 text-white' : 'bg-[#FFD700] text-black')} aria-label={isRecording ? 'Stop recording' : 'Start recording'}>
+                <button type="button" onClick={() => handleRecordBeat(currentBeat)} disabled={dailyRecordCount >= dailyRecordLimit && !isRecording} className={"pointer-events-auto min-w-20 rounded-xl px-3 py-3 text-[11px] font-black uppercase shadow-xl active:scale-95 disabled:opacity-40 " + (isRecording ? 'bg-red-600 text-white' : 'bg-[#FFD700] text-black')} aria-label={isRecording ? 'Stop recording' : 'Start recording'}>
                   {isRecording ? 'Stop' : 'Record'}
                 </button>
                 <button type="button" onClick={handlePreview} disabled={isRecording || (!recordedBlob && !recordingsByBeat[currentBeat.id])} className="pointer-events-auto rounded-xl bg-blue-600 px-3 py-3 text-[11px] font-black uppercase text-white disabled:opacity-40 active:scale-95">
