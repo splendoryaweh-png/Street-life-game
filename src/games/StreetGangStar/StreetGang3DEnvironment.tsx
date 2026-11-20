@@ -340,11 +340,14 @@ export function StreetGang3DEnvironment({
         mat.color.set(source.color || '#38BDF8');
         mat.opacity = Math.max(0.12, source.life / Math.max(1, source.maxLife));
       });
-      const distance = 34;
+      // Keep a proper third-person follow distance. The original 34-unit
+      // distance put the camera almost inside the player and made every
+      // primitive model fill the mobile screen.
+      const distance = 105;
       const cameraOffsetX = Math.sin(heading) * distance;
       const cameraOffsetZ = Math.cos(heading) * distance;
-      camera.position.set(px - cameraOffsetX, 22, pz + cameraOffsetZ);
-      camera.lookAt(px, 5, pz);
+      camera.position.set(px - cameraOffsetX, 48, pz + cameraOffsetZ);
+      camera.lookAt(px, 8, pz);
       renderer.render(scene, camera);
     };
     animate();
