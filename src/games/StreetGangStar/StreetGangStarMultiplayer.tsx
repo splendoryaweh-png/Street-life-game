@@ -10,6 +10,7 @@ import { WEAPONS, WeaponType, CityCar, Civilian, Gangster, LaserBeam, SparkParti
 import { GangChat } from './GangChat';
 import { StreetJoystick } from './StreetJoystick';
 import { supabase } from '@/lib/supabase';
+import { StreetGang3DEnvironment } from './StreetGang3DEnvironment';
 
 export interface RemotePlayer { id: string; name: string; x: number; y: number; targetX: number; targetY: number; facingAngle: number; health: number; maxHealth: number; team: 'blue' | 'red'; gun: WeaponType; avatarColor: string; isCover: boolean; inCarId: string | null; jumpOffset?: number; lastReaction?: { emoji: string; until: number }; lastSeen: number; hitCount?: number; }
 export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert'; senderId: string; payload: any; }
@@ -17,6 +18,7 @@ interface StreetGangStarMultiplayerProps { onBack: () => void; onToast: (msg: st
 
 export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', initialCountry = 'NG' }: StreetGangStarMultiplayerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const get3DPlayerSnapshot = useCallback(() => { const s = gameStateRef.current; const p = s.player; return { x: p.x, y: p.y, heading: p.facingAngle, isMoving: Math.abs(p.vx) + Math.abs(p.vy) > 0.2 || s.joystickMovement.isMoving, laserBeams: s.lasers }; }, []);
   const t = useCallback((key: GangStarTextKey) => getGangStarText(language, key), [language]);
   const [inLobby, setInLobby] = useState<boolean>(true);
   const [roomCode, setRoomCode] = useState<string>('');
@@ -464,7 +466,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
 
   return (
     <div className="fixed inset-0 z-50 bg-black text-white select-none overflow-hidden font-sans">
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full cursor-crosshair" />
+      <StreetGang3DEnvironment city={cityData} playerColor={myTeam === "blue" ? "#38BDF8" : "#EF4444"} getPlayerSnapshot={get3DPlayerSnapshot} className="absolute inset-0 z-0" />
+      <canvas ref={canvasRef} className="absolute inset-0 z-[1] h-full w-full cursor-crosshair opacity-0" aria-hidden="true" />
       {showInvitePanel && isHost && (
         <div className="absolute inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm rounded-3xl border-2 border-[#FFD700] bg-[#11131C] p-6 text-center shadow-[0_0_40px_rgba(255,215,0,0.25)]">
