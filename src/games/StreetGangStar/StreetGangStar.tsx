@@ -9,6 +9,7 @@ import { getGangStarText, GangStarTextKey } from './language';
 import { StreetGangStarIntro } from './Intro';
 import { StreetJoystick } from './StreetJoystick';
 import { showAdsgramRewardedAd } from '@/lib/adsgram';
+import { StreetGang3DEnvironment } from './StreetGang3DEnvironment';
 export type WeaponType = 'pistol' | 'shotgun_laser' | 'ak_laser' | 'sniper_laser';
 export interface WeaponDef { id: WeaponType; nameKey: GangStarTextKey; damage: number; maxAmmo: number; fireRateMs: number; laserColor: string; price: number; bulletSpeed: number; spread: number; }
 export const WEAPONS: Record<WeaponType, WeaponDef> = {
@@ -25,6 +26,7 @@ export interface SparkParticle { x: number; y: number; vx: number; vy: number; c
 interface StreetGangStarProps { onBack: () => void; onToast: (msg: string) => void; language?: string; initialCountry?: string; }
 export function StreetGangStar({ onBack, onToast, language = 'en', initialCountry = 'NG' }: StreetGangStarProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const get3DPlayerSnapshot = useCallback(() => { const s = gameStateRef.current; const p = s.player; return { x: p.x, y: p.y, heading: p.facingAngle, isMoving: Math.abs(p.vx) + Math.abs(p.vy) > 0.2 || s.joystickMovement.isMoving, laserBeams: s.lasers }; }, []);
   const t = useCallback((key: GangStarTextKey) => getGangStarText(language, key), [language]);
   const [showIntro, setShowIntro] = useState<boolean>(true);
   const [showDeathModal, setShowDeathModal] = useState<boolean>(false);
@@ -268,7 +270,8 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   if (showIntro) { return (<StreetGangStarIntro language={language} cityName={cityData.cityName} streetName={cityData.streetName} onStartGame={handleStartFromIntro} onBack={onBack} />); }
   return (
     <div className="fixed inset-0 z-50 bg-black text-white select-none overflow-hidden font-sans">
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full cursor-crosshair" />
+      <StreetGang3DEnvironment city={cityData} playerColor={avatarColor} getPlayerSnapshot={get3DPlayerSnapshot} className="absolute inset-0 z-0" />
+      <canvas ref={canvasRef} className="absolute inset-0 z-[1] h-full w-full cursor-crosshair opacity-0" aria-hidden="true" />
       <div className="absolute top-3 left-3 z-30 flex flex-col gap-1 max-w-[185px] scale-[0.75] origin-top-left pointer-events-none">
         <div className="p-2.5 rounded-2xl bg-black/80 border border-white/15 backdrop-blur-md shadow-xl flex items-center justify-between">
           <div className="flex items-center gap-2">
