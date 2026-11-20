@@ -193,7 +193,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         else { s.remotePlayers.set(msg.senderId, { id: msg.senderId, name: payload.name, x: payload.x, y: payload.y, targetX: payload.x, targetY: payload.y, facingAngle: payload.facingAngle, health: payload.health ?? 100, maxHealth: 3, team: payload.team, gun: payload.gun, avatarColor: payload.avatarColor, isCover: payload.isCover, inCarId: payload.inCarId, jumpOffset: payload.jumpOffset || 0, lastSeen: Date.now(), hitCount: 0 }); }
         setActivePlayerCount(s.remotePlayers.size + 1);
       } else if (msg.type === 'laser_fire') {
-        const p = msg.payload; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2, color: p.color, life: 7, maxLife: 7, isPlayer: false, damage: p.damage });
+        const p = msg.payload; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2, color: p.color, life: 12, maxLife: 12, isPlayer: false, damage: p.damage });
       } else if (msg.type === 'reaction') {
         const rem = s.remotePlayers.get(msg.senderId); if (rem) { rem.lastReaction = { emoji: msg.payload.emoji, until: Date.now() + 2000 }; }
       } else if (msg.type === 'civilian_hit' && hostStatus) {
@@ -264,6 +264,38 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     playClickSound(); const s = gameStateRef.current; s.myReaction = { emoji, until: Date.now() + 2000 };
     broadcastGameMessage({ type: 'reaction', senderId: myPlayerId, payload: { emoji } });
   };
+  const handleBuyWeapon = (weaponKey: WeaponType) => {
+    const s = gameStateRef.current;
+    const weapon = WEAPONS[weaponKey];
+    if (s.unlockedGuns[weaponKey]) {
+      s.player.gun = weaponKey;
+      s.player.maxAmmo = weapon.maxAmmo;
+      s.player.ammo = weapon.maxAmmo;
+      setHudGun(weaponKey);
+      setHudAmmo(weapon.maxAmmo);
+      setHudMaxAmmo(weapon.maxAmmo);
+      setShowShopModal(false);
+      onToast(`Equipped ${weapon.nameKey === 'weapon_pistol' ? 'Pistol' : weapon.nameKey === 'weapon_shotgun' ? 'Laser Shotgun' : weapon.nameKey === 'weapon_ak' ? 'Laser AK' : 'Laser Sniper'}.`);
+      return;
+    }
+    if (s.player.coins < weapon.price) {
+      onToast(t('insufficient_coins'));
+      return;
+    }
+    s.player.coins -= weapon.price;
+    s.unlockedGuns[weaponKey] = true;
+    s.player.gun = weaponKey;
+    s.player.maxAmmo = weapon.maxAmmo;
+    s.player.ammo = weapon.maxAmmo;
+    setHudCoins(s.player.coins);
+    setHudGun(weaponKey);
+    setHudAmmo(weapon.maxAmmo);
+    setHudMaxAmmo(weapon.maxAmmo);
+    setShowShopModal(false);
+    playSfx('success');
+    onToast(`Purchased and equipped ${weaponKey.replace('_laser', '').replace('_', ' ')}!`);
+  };
+
   const handleReload = useCallback(() => {
     const s = gameStateRef.current; if (s.player.isReloading) return; const wDef = WEAPONS[s.player.gun]; if (s.player.ammo >= wDef.maxAmmo) return;
     s.player.isReloading = true; playSfx('reload'); onToast(t('reload_alert'));
@@ -290,7 +322,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     const baseAngle = p.facingAngle; const spreadAngles = wDef.spread === 3 ? [baseAngle - 0.14, baseAngle, baseAngle + 0.14] : [baseAngle];
     spreadAngles.forEach((ang) => {
       const beamLength = 480; const endX = startX + Math.cos(ang) * beamLength; const endY = startY + Math.sin(ang) * beamLength;
-      s.lasers.push({ id: `laser_${now}_${Math.random()}`, x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, life: 7, maxLife: 7, isPlayer: true, damage: wDef.damage });
+      s.lasers.push({ id: `laser_${now}_${Math.random()}`, x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, life: 12, maxLife: 12, isPlayer: true, damage: wDef.damage });
       broadcastGameMessage({ type: 'laser_fire', senderId: myPlayerId, payload: { x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, damage: wDef.damage, team: myTeam } });
     });
   }, [handleReload, myPlayerId, myTeam, playSfx]);
@@ -341,6 +373,35 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       if (isHost && now - s.lastSpawnTime >= 5000) {
         s.lastSpawnTime = now; const edge = cityData.gangsterSpawnEdges[Math.floor(Math.random() * cityData.gangsterSpawnEdges.length)]; const isBus = Math.random() > 0.65;
         s.gangsters.push({ id: `gangster_${now}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: 6, maxHealth: 6, speed: isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isBus ? 'bus' : 'motorcycle' });
+      }
+      // The host owns enemy AI. Fire visible laser bolts toward the nearest player
+      // and broadcast the same beam so every multiplayer client sees it.
+      if (isHost) {
+        for (const gangster of s.gangsters) {
+          const targets = [
+            { x: p.x, y: p.y },
+            ...Array.from(s.remotePlayers.values()).map((remote) => ({ x: remote.x, y: remote.y })),
+          ];
+          let target: { x: number; y: number } | null = null;
+          let targetDistance = 520;
+          for (const candidate of targets) {
+            const distance = Math.hypot(candidate.x - gangster.x, candidate.y - gangster.y);
+            if (distance < targetDistance) {
+              targetDistance = distance;
+              target = candidate;
+            }
+          }
+          if (!target || now - gangster.lastShootTime < 950) continue;
+          gangster.lastShootTime = now;
+          gangster.facingAngle = Math.atan2(target.y - gangster.y, target.x - gangster.x);
+          const startX = gangster.x + Math.cos(gangster.facingAngle) * 20;
+          const startY = gangster.y + Math.sin(gangster.facingAngle) * 20;
+          const endX = gangster.x + Math.cos(gangster.facingAngle) * 380;
+          const endY = gangster.y + Math.sin(gangster.facingAngle) * 380;
+          const beam = { x1: startX, y1: startY, x2: endX, y2: endY, color: '#FF3B30', damage: 10 };
+          s.lasers.push({ id: `enemy_laser_${now}_${Math.random()}`, ...beam, life: 12, maxLife: 12, isPlayer: false, damage: 10 });
+          broadcastGameMessage({ type: 'laser_fire', senderId: myPlayerId, payload: beam });
+        }
       }
       if (p.isJumping) { p.jumpOffset += p.jumpVy; p.jumpVy -= 0.65; if (p.jumpOffset <= 0) { p.jumpOffset = 0; p.jumpVy = 0; p.isJumping = false; } }
       let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
@@ -464,7 +525,22 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         ctx.fillStyle = '#000'; ctx.fillRect(g.x - 16, g.y - 34, 32, 5); ctx.fillStyle = g.vehicleType === 'bus' ? '#FACC15' : '#EF4444'; ctx.fillRect(g.x - 16, g.y - 34, 32 * (g.health / 3), 5);
       });
       s.sparks.forEach((sp) => { ctx.fillStyle = sp.color; ctx.beginPath(); ctx.arc(sp.x, sp.y, 2.8, 0, Math.PI * 2); ctx.fill(); });
-      s.lasers.forEach((l) => { ctx.save(); ctx.strokeStyle = l.color; ctx.shadowColor = l.color; ctx.shadowBlur = 12; ctx.lineWidth = l.isPlayer ? 3.8 : 2.8; ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke(); ctx.restore(); });
+      s.lasers.forEach((l) => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0.35, l.life / l.maxLife);
+        ctx.strokeStyle = l.color;
+        ctx.shadowColor = l.color;
+        ctx.shadowBlur = l.isPlayer ? 22 : 18;
+        ctx.lineWidth = l.isPlayer ? 5 : 4;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha *= 0.9;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = l.isPlayer ? 1.8 : 1.3;
+        ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+        ctx.restore();
+      });
 
       function drawHuman(ctx: any, x: number, y: number, angle: number, shirtColor: string, isYou: boolean, team: string, jumpOffset: number, isShield: boolean) {
         ctx.save(); ctx.translate(x, y - jumpOffset); ctx.rotate(angle);
@@ -601,6 +677,36 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       </div>
 
       {showDeathModal && (<div className="absolute inset-0 z-[120] flex items-center justify-center bg-black/85 backdrop-blur-md p-4"><div className="w-full max-w-sm rounded-3xl border-2 border-red-500/70 bg-[#11131C] p-6 text-center shadow-[0_0_40px_rgba(239,68,68,0.25)]"><div className="text-5xl mb-3">💀</div><h2 className="text-xl font-black uppercase tracking-wide text-white">You Died</h2><p className="mt-2 text-sm text-gray-300">Your energy is empty. Watch a rewarded ad to restore full energy, or return home. Your district code will be saved so you can rejoin while the room is still active.</p><div className="mt-5 space-y-3"><button onClick={handleWatchAdToRevive} disabled={isAdLoading} type="button" className="w-full rounded-xl bg-[#FFD700] px-4 py-3.5 text-xs font-black uppercase text-black disabled:opacity-60">{isAdLoading ? 'Loading Rewarded Ad…' : '▶ Watch Ad — Restore Full Energy'}</button><button onClick={handleDeathReturnHome} type="button" className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3.5 text-xs font-black uppercase text-white">Go Back to Home Page</button></div></div></div>)}
+      {showShopModal && (
+        <div className="absolute inset-0 z-[110] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+          <div className="w-full max-w-sm rounded-3xl border-2 border-[#FFD700] bg-[#12131C] p-5 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <h3 className="text-base font-black uppercase tracking-wider text-[#FFD700]">Laser Gun Shop</h3>
+                <p className="mt-1 text-xs text-gray-400">Your balance: {hudCoins} Street Coins</p>
+              </div>
+              <button onClick={() => setShowShopModal(false)} type="button" className="rounded-xl bg-white/10 p-2 text-white" aria-label="Close gun shop"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="space-y-2">
+              {(Object.keys(WEAPONS) as WeaponType[]).map((weaponKey) => {
+                const weapon = WEAPONS[weaponKey];
+                const owned = gameStateRef.current.unlockedGuns[weaponKey];
+                const equipped = hudGun === weaponKey;
+                return (
+                  <div key={weaponKey} className={`flex items-center justify-between gap-3 rounded-2xl border p-3 ${equipped ? 'border-[#FFD700] bg-[#FFD700]/10' : 'border-white/10 bg-black/50'}`}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-black uppercase text-white">{weaponKey === 'pistol' ? 'Laser Pistol' : weaponKey === 'shotgun_laser' ? 'Laser Shotgun' : weaponKey === 'ak_laser' ? 'Laser AK' : 'Laser Sniper'}</p>
+                      <p className="text-[11px] text-gray-400">{weapon.maxAmmo} shots · {weapon.damage} damage</p>
+                      <p className="text-[11px] font-bold text-[#FFD700]">{owned ? 'Owned' : `${weapon.price} SC`}</p>
+                    </div>
+                    <button onClick={() => handleBuyWeapon(weaponKey)} type="button" disabled={equipped || (!owned && hudCoins < weapon.price)} className="shrink-0 rounded-xl bg-[#FFD700] px-3 py-2 text-[10px] font-black uppercase text-black disabled:cursor-not-allowed disabled:opacity-40">{equipped ? 'Equipped' : owned ? 'Equip' : 'Buy'}</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       <GangChat roomCode={roomCode} playerId={myPlayerId} playerName={myPlayerName} playerTeam={myTeam} onToast={onToast} />
       <StreetJoystick onMove={(movement) => { gameStateRef.current.joystickMovement = movement; if (movement.isMoving) { gameStateRef.current.isMouseActive = false; } }} onJump={handleJump} onShoot={shootPlayerLaser} onRunToggle={(running) => { gameStateRef.current.isRunActive = running; }} onHijackOrEnterCar={handleToggleCar} isNearCar={hudIsNearCar} isInCar={hudInCar} isCover={hudInCover} onCoverToggle={handleToggleCover} onReload={handleReload} ammo={hudAmmo} maxAmmo={hudMaxAmmo} />
       {showTeamModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-white/20 p-5 shadow-2xl text-left animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><h3 className="text-sm font-black uppercase text-white">{t('team_join')}</h3><button onClick={() => setShowTeamModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="space-y-3"><button onClick={() => { setMyTeam('blue'); gameStateRef.current.player.team = 'blue'; setShowTeamModal(false); playSfx('click'); onToast('Blue Team!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left ${myTeam === 'blue' ? 'bg-sky-950/60 border-sky-400' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-sky-400">{t('team_blue')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_blue_desc')}</p></button><button onClick={() => { setMyTeam('red'); gameStateRef.current.player.team = 'red'; setShowTeamModal(false); playSfx('click'); onToast('Red Team!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left ${myTeam === 'red' ? 'bg-red-950/60 border-red-500' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-red-400">{t('team_red')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_red_desc')}</p></button></div></div></div>)}
