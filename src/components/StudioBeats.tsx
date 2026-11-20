@@ -171,6 +171,15 @@ export function StudioBeats({
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const [activeVideoModalUrl, setActiveVideoModalUrl] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!isVideoFreestyle || !videoPreviewRef.current || !streamRef.current) return;
+    videoPreviewRef.current.srcObject = streamRef.current;
+    videoPreviewRef.current.play().catch((error) => {
+      console.warn('Camera preview playback failed:', error);
+      setCameraError('Camera opened but preview could not start. Tap Enable Camera again.');
+    });
+  }, [isVideoFreestyle]);
+
   const [recordingsByBeat, setRecordingsByBeat] = useState<Record<string, {
     blob: Blob;
     url: string;
