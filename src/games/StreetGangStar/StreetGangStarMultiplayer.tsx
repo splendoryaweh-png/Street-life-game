@@ -173,7 +173,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     const safeSpawns = newCity.spawnPoints.filter((point) => !isPointInsideBuilding(point.x, point.y, newCity.buildings, 18));
     const playerSlot = Array.from(myPlayerId).reduce((sum, char) => sum + char.charCodeAt(0), 0);
     const safeSpawn = safeSpawns[playerSlot % Math.max(1, safeSpawns.length)] ?? (newCity.roads[0] ? { x: newCity.roads[0].x + newCity.roads[0].width / 2, y: newCity.roads[0].y + newCity.roads[0].height / 2 } : { x: newCity.mapWidth / 2, y: newCity.mapHeight / 2 });
-    gameStateRef.current.player.x = safeSpawn.x; gameStateRef.current.player.y = safeSpawn.y; gameStateRef.current.player.health = 100; gameStateRef.current.player.hitCount = 0; gameStateRef.current.player.inCarId = null;
+    const pendingDeath = getAccountStorageItem('gangstar_pending_death_room') === code;
+    gameStateRef.current.player.x = safeSpawn.x; gameStateRef.current.player.y = safeSpawn.y; gameStateRef.current.player.health = pendingDeath ? 0 : 100; gameStateRef.current.player.hitCount = pendingDeath ? 10 : 0; gameStateRef.current.player.inCarId = null;
     if (hostStatus) {
       const s = gameStateRef.current; const cars: any[] = []; const colors = ['#38BDF8', '#F97316', '#A855F7', '#EF4444', '#10B981', '#E2E8F0', '#FACC15'];
       newCity.roads.forEach((road, idx) => { if (idx < 10) { const isHoriz = road.direction === 'horizontal'; cars.push({ id: `car_${idx}`, x: isHoriz ? (idx * 380) % newCity.mapWidth : road.x + 30, y: isHoriz ? road.y + 40 : (idx * 380) % newCity.mapHeight, vx: isHoriz ? 2.8 : 0, vy: isHoriz ? 0 : 2.8, speed: 2.8, direction: road.direction, width: isHoriz ? 54 : 30, height: isHoriz ? 30 : 54, color: colors[idx % colors.length], isOccupied: false, hasDriver: true, driverType: 'civilian', health: 10, maxHealth: 10 }); } }); s.cars = cars;
@@ -206,7 +207,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         directory.subscribe(async (directoryStatus: string) => {
           if (directoryStatus === 'SUBSCRIBED') await directory.track({ roomCode: code, playerId: myPlayerId, playerName: myPlayerName, isHost: hostStatus, createdAt: Date.now() });
         });
-        if (hostStatus) { setInLobby(true); gameStateRef.current.isRunning = false; } else { setInLobby(false); gameStateRef.current.isRunning = true; }
+        if (hostStatus) { setInLobby(true); gameStateRef.current.isRunning = false; } else { setInLobby(false); gameStateRef.current.isRunning = true; if (getAccountStorageItem('gangstar_pending_death_room') === code) { setHudHealth(0); setShowDeathModal(true); } }
         playSuccessSound(); onToast(`Connected online to District ${code}! Share this code with friends.`);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         onToast('Could not connect to the online district. Please try again.');
@@ -223,7 +224,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       const safeSpawns = cityData.spawnPoints.filter((point) => !isPointInsideBuilding(point.x, point.y, cityData.buildings, 18));
       const playerSlot = Array.from(myPlayerId).reduce((sum, char) => sum + char.charCodeAt(0), 0);
       const spawn = safeSpawns[playerSlot % Math.max(1, safeSpawns.length)] ?? (cityData.roads[0] ? { x: cityData.roads[0].x + cityData.roads[0].width / 2, y: cityData.roads[0].y + cityData.roads[0].height / 2 } : { x: cityData.mapWidth / 2, y: cityData.mapHeight / 2 });
-      s.player.health = 100; s.player.hitCount = 0; s.player.x = spawn.x; s.player.y = spawn.y; s.player.inCarId = null;
+      s.player.health = 100; s.player.hitCount = 0; setAccountStorageItem('gangstar_pending_death_room', ''); s.player.x = spawn.x; s.player.y = spawn.y; s.player.inCarId = null;
       setHudHealth(100); setHudInCar(false); setShowDeathModal(false);
       onToast('Rewarded ad completed. Full energy restored!');
     } catch (error) {
@@ -234,6 +235,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   };
   const handleDeathReturnHome = () => {
     setAccountStorageItem('gangstar_last_room_code', roomCode);
+    setAccountStorageItem('gangstar_pending_death_room', roomCode);
     setShowDeathModal(false);
     onBack();
   };
@@ -390,9 +392,10 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             setHudHealth(p.health);
             s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#38BDF8', life: 14 }); }
-            if ((p.health <= 0 || p.hitCount >= 10) && !showDeathModal) {
+            if (p.health <= 0 || p.hitCount >= 10) {
               playSfx('siren'); onToast(t('player_down') + ' - 10 HITS!');
               p.health = 0; p.hitCount = 10; p.inCarId = null;
+              setAccountStorageItem('gangstar_pending_death_room', roomCode);
               s.keys = { w: false, a: false, s: false, d: false, shift: false, mouseLeft: false };
               s.joystickMovement = { dx: 0, dy: 0, isMoving: false };
               setHudHealth(0); setHudInCar(false); setShowDeathModal(true);
@@ -520,7 +523,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
               <button onClick={async () => { try { await navigator.clipboard.writeText(roomCode); setCopiedCode(true); onToast('Invite code copied. Send it to your friends.'); } catch { onToast(`Your invite code is ${roomCode}`); } }} type="button" className="rounded-xl bg-white/10 px-3 py-3 text-xs font-black uppercase text-white">{copiedCode ? 'Copied!' : 'Copy Code'}</button>
               <button onClick={async () => { const inviteText = `Join my Street Gang Star city! Open Street Life → Street Gang Star → Multiplayer and enter code: ${roomCode}`; try { if (navigator.share) await navigator.share({ title: 'Street Gang Star invite', text: inviteText }); else { await navigator.clipboard.writeText(inviteText); onToast('Invite message copied. Send it to your friends.'); } } catch (error) { if ((error as Error)?.name !== 'AbortError') onToast(`Invite code: ${roomCode}`); } }} type="button" className="rounded-xl bg-[#FFD700] px-3 py-3 text-xs font-black uppercase text-black">Share Invite</button>
             </div>
-            <button onClick={() => setShowInvitePanel(false)} type="button" className="mt-4 w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-xs font-black uppercase text-white">Enter City</button>
+            <button onClick={() => { setShowInvitePanel(false); setInLobby(false); gameStateRef.current.isRunning = true; if (getAccountStorageItem('gangstar_pending_death_room') === roomCode) { setHudHealth(0); setShowDeathModal(true); } }} type="button" className="mt-4 w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-xs font-black uppercase text-white">Enter City</button>
             <p className="mt-3 text-[10px] text-gray-500">You can still see the code in the top-left corner while playing.</p>
           </div>
         </div>
