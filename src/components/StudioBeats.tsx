@@ -198,7 +198,10 @@ export function StudioBeats({
   const [isPostingMix, setIsPostingMix] = useState(false);
 
   const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);
+  const [videoPreviewReady, setVideoPreviewReady] = useState(false);
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
+  const videoCaptureRef = useRef<HTMLDivElement | null>(null);
+  const cameraPreviewStreamRef = useRef<MediaStream | null>(null);
   const [activeVideoModalUrl, setActiveVideoModalUrl] = useState<string | null>(null);
 
   const [recordingsByBeat, setRecordingsByBeat] = useState<Record<string, {
@@ -236,6 +239,15 @@ export function StudioBeats({
 
   const formatRecordingTimer = (totalSec: number) =>
     `${String(Math.floor(totalSec/60)).padStart(2,'0')}:${String(totalSec%60).padStart(2,'0')}`;
+
+  useEffect(() => {
+    const video = videoPreviewRef.current;
+    const stream = cameraPreviewStreamRef.current;
+    if (isVideoFreestyle && video && stream) {
+      video.srcObject = stream;
+      void video.play().catch(() => {});
+    }
+  }, [isVideoFreestyle, videoPreviewReady]);
 
   // Update the actual audio gain nodes whenever a slider changes.
   const handleBeatVolumeChange = (value: number) => {
@@ -345,25 +357,25 @@ export function StudioBeats({
       longBeatEngine.pause();
       setIsPlaying(false);
 
-      let micStream: MediaStream | null = null;
-
-      try {
-        micStream = await navigator.mediaDevices.getUserMedia(
-          isVideoFreestyle
-            ? {
-                audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
-                video: { facingMode: 'user' }
-              }
-            : {
-                audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true }
-              }
-        );
-      } catch (e) {
-        console.warn('mic denied', e);
-      }
-
+      let micStream: MediaStream | null = isVideoFreestyle ? cameraPreviewStreamRef.current : null;
       if (!micStream) {
-        toast('🎙️ Please allow microphone to record');
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia(
+            isVideoFreestyle
+              ? {
+                  audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true },
+                  video: { facingMode: { ideal: 'user' }, width: { ideal: 640 }, height: { ideal: 480 } }
+                }
+              : {
+                  audio: { echoCancellation: true, noiseSuppression: noiseReductionEnabled, autoGainControl: true }
+                }
+          );
+        } catch (e) {
+          console.warn('microphone/camera permission denied', e);
+        }
+      }
+      if (!micStream || (isVideoFreestyle && micStream.getVideoTracks().length === 0)) {
+        toast(isVideoFreestyle ? '📷 Please allow camera and microphone access, then try again.' : '🎙️ Please allow microphone access to record.');
         return;
       }
 
@@ -540,7 +552,8 @@ export function StudioBeats({
 
         streamRef.current?.getTracks().forEach(t => t.stop());
         streamRef.current = null;
-
+        cameraPreviewStreamRef.current = null;
+        setVideoPreviewReady(false);
         if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
 
         if (beatAudioRef.current) {
@@ -833,8 +846,8 @@ export function StudioBeats({
       toast(`🎤 Record on "${beat.name}" first!`);
       return;
     }
-    if (beatRec.isVideo || !beatRec.blob.type.startsWith('audio/')) {
-      toast('Video freestyle posting is not supported yet. Please post an audio mix.');
+    if (beatRec.isVideo ? !beatRec.blob.type.startsWith('video/') : !beatRec.blob.type.startsWith('audio/')) {
+      toast('This recording format is not supported. Please record again.');
       return;
     }
     if (isPostingMix) return;
@@ -846,11 +859,13 @@ export function StudioBeats({
     }
 
     setIsPostingMix(true);
-    toast('⏳ Sending your mix to the STREET LIFE group…');
+    toast(beatRec.isVideo ? '⏳ Sending your video freestyle to the STREET LIFE group…' : '⏳ Sending your mix to the STREET LIFE group…');
     try {
       const form = new FormData();
-      const extension = beatRec.blob.type.includes('mp4') ? 'm4a' : 'webm';
-      form.set('audio', beatRec.blob, `StreetLife-${beat.name.replace(/[^a-z0-9_-]+/gi, '_')}.${extension}`);
+      const extension = beatRec.blob.type.includes('mp4') ? (beatRec.isVideo ? 'mp4' : 'm4a') : 'webm';
+      const filename = `StreetLife-${beat.name.replace(/[^a-z0-9_-]+/gi, '_')}.${extension}`;
+      form.set(beatRec.isVideo ? 'video' : 'audio', beatRec.blob, filename);
+      form.set('mediaType', beatRec.isVideo ? 'video' : 'audio');
       form.set('beatName', beat.name);
       form.set('producer', beat.producer || '');
       form.set('durationSeconds', String(beatRec.durationSec));
@@ -865,7 +880,7 @@ export function StudioBeats({
         throw new Error(result?.error || 'Telegram could not post your mix.');
       }
       playSuccessSound();
-      toast('✅ Your mix has been posted to @Streetlifestars!');
+      toast(beatRec.isVideo ? '✅ Your video freestyle has been posted to @Streetlifestars!' : '✅ Your mix has been posted to @Streetlifestars!');
     } catch (error) {
       console.error('Studio mix upload failed:', error);
       toast(error instanceof Error ? error.message : 'Unable to post your mix. Please try again.');
@@ -1299,7 +1314,7 @@ export function StudioBeats({
               className="py-2.5 px-2 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-black"
             >
               <Share2 className="w-3.5 h-3.5"/>
-              <span>Post Mix</span>
+              <span>{(recordingsByBeat[currentBeat.id]?.isVideo || recordedBlob?.type.startsWith('video/')) ? 'Post Video' : 'Post Mix'}</span>
             </button>
           </div>
         </div>
@@ -1321,10 +1336,10 @@ export function StudioBeats({
           </div>
 
           <button
-            onClick={()=>setIsVideoFreestyle(!isVideoFreestyle)}
+            onClick={handleToggleVideoFreestyle}
             className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase ${isVideoFreestyle?'bg-red-500 text-white':'bg-[#FFD700] text-black'}`}
           >
-            {isVideoFreestyle?'Camera ON':'Enable Camera'}
+            {isVideoFreestyle?'Close Camera':'Enable Camera'}
           </button>
         </div>
 
