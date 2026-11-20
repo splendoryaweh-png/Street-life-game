@@ -174,7 +174,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     const channel = client.channel(channelName, { config: { broadcast: { self: false }, presence: { key: myPlayerId } } });
     channelRef.current = channel;
     const newCity = getRandomCityByCountry(initialCountry, code); setCityData(newCity);
-    const safeSpawns = newCity.spawnPoints.filter((point) => !isPointInsideBuilding(point.x, point.y, newCity.buildings, 18));
+    const safeSpawns = newCity.spawnPoints.filter((point) => !isPointInsideBuilding(point.x, point.y, newCity.buildings, 18).inside);
     const playerSlot = Array.from(myPlayerId).reduce((sum, char) => sum + char.charCodeAt(0), 0);
     const safeSpawn = safeSpawns[playerSlot % Math.max(1, safeSpawns.length)] ?? (newCity.roads[0] ? { x: newCity.roads[0].x + newCity.roads[0].width / 2, y: newCity.roads[0].y + newCity.roads[0].height / 2 } : { x: newCity.mapWidth / 2, y: newCity.mapHeight / 2 });
     const pendingDeath = getAccountStorageItem('gangstar_pending_death_room') === code;
@@ -225,7 +225,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     try {
       await showAdsgramRewardedAd();
       const s = gameStateRef.current;
-      const safeSpawns = cityData.spawnPoints.filter((point) => !isPointInsideBuilding(point.x, point.y, cityData.buildings, 18));
+      const safeSpawns = cityData.spawnPoints.filter((point) => !isPointInsideBuilding(point.x, point.y, cityData.buildings, 18).inside);
       const playerSlot = Array.from(myPlayerId).reduce((sum, char) => sum + char.charCodeAt(0), 0);
       const spawn = safeSpawns[playerSlot % Math.max(1, safeSpawns.length)] ?? (cityData.roads[0] ? { x: cityData.roads[0].x + cityData.roads[0].width / 2, y: cityData.roads[0].y + cityData.roads[0].height / 2 } : { x: cityData.mapWidth / 2, y: cityData.mapHeight / 2 });
       s.player.health = 100; s.player.hitCount = 0; setAccountStorageItem('gangstar_pending_death_room', ''); s.player.x = spawn.x; s.player.y = spawn.y; s.player.inCarId = null;
