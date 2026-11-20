@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { showAdsgramRewardedAd } from '@/lib/adsgram';
 
 export interface RemotePlayer { id: string; name: string; x: number; y: number; targetX: number; targetY: number; facingAngle: number; health: number; maxHealth: number; team: 'blue' | 'red'; gun: WeaponType; avatarColor: string; isCover: boolean; inCarId: string | null; jumpOffset?: number; lastReaction?: { emoji: string; until: number }; lastSeen: number; hitCount?: number; }
-export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert'; senderId: string; payload: any; }
+export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert' | 'civilian_hit'; senderId: string; payload: any; }
 interface StreetGangStarMultiplayerProps { onBack: () => void; onToast: (msg: string) => void; language?: string; initialCountry?: string; }
 
 export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', initialCountry = 'NG' }: StreetGangStarMultiplayerProps) {
@@ -183,7 +183,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       const s = gameStateRef.current; const cars: any[] = []; const colors = ['#38BDF8', '#F97316', '#A855F7', '#EF4444', '#10B981', '#E2E8F0', '#FACC15'];
       newCity.roads.forEach((road, idx) => { if (idx < 10) { const isHoriz = road.direction === 'horizontal'; cars.push({ id: `car_${idx}`, x: isHoriz ? (idx * 380) % newCity.mapWidth : road.x + 30, y: isHoriz ? road.y + 40 : (idx * 380) % newCity.mapHeight, vx: isHoriz ? 2.8 : 0, vy: isHoriz ? 0 : 2.8, speed: 2.8, direction: road.direction, width: isHoriz ? 54 : 30, height: isHoriz ? 30 : 54, color: colors[idx % colors.length], isOccupied: false, hasDriver: true, driverType: 'civilian', health: 10, maxHealth: 10 }); } }); s.cars = cars;
       const civs: Civilian[] = []; const civColors = ['#94A3B8', '#CBD5E1', '#E2E8F0', '#F1F5F9', '#64748B'];
-      for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length], health: 4, maxHealth: 4 }); } s.civilians = civs;
+      for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length], health: 3, maxHealth: 3 }); } s.civilians = civs;
     }
     channel.on('broadcast', { event: 'game' }, ({ payload }: { payload: MultiplayerMessage }) => {
       const msg = payload; if (!msg || msg.senderId === myPlayerId) return; const s = gameStateRef.current;
@@ -196,6 +196,16 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         const p = msg.payload; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2, color: p.color, life: 7, maxLife: 7, isPlayer: false, damage: p.damage });
       } else if (msg.type === 'reaction') {
         const rem = s.remotePlayers.get(msg.senderId); if (rem) { rem.lastReaction = { emoji: msg.payload.emoji, until: Date.now() + 2000 }; }
+      } else if (msg.type === 'civilian_hit' && hostStatus) {
+        const civIndex = s.civilians.findIndex((civ) => civ.id === msg.payload.id);
+        if (civIndex >= 0) {
+          const civ = s.civilians[civIndex];
+          civ.health = Math.max(0, Number(msg.payload.health) || 0);
+          civ.state = 'scared';
+          civ.fleeUntil = Number(msg.payload.fleeUntil) || Date.now() + 3500;
+          civ.facingAngle = Number(msg.payload.facingAngle) || civ.facingAngle;
+          if (civ.health <= 0) s.civilians.splice(civIndex, 1);
+        }
       } else if (msg.type === 'host_sync' && !hostStatus) { s.cars = msg.payload.cars || s.cars; s.civilians = msg.payload.civilians || s.civilians; s.gangsters = msg.payload.gangsters || s.gangsters; }
     });
     channel.on('presence', { event: 'sync' }, () => {
@@ -309,6 +319,25 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         if (isHost && now % 600 < 150) { broadcastGameMessage({ type: 'host_sync', senderId: myPlayerId, payload: { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters } }); }
       }
       s.remotePlayers.forEach((rem, remId) => { rem.x += (rem.targetX - rem.x) * 0.25; rem.y += (rem.targetY - rem.y) * 0.25; if (now - rem.lastSeen > 8000) { s.remotePlayers.delete(remId); setActivePlayerCount(s.remotePlayers.size + 1); } });
+      if (isHost) {
+        s.civilians.forEach((civ) => {
+          if (civ.fleeUntil && now < civ.fleeUntil) {
+            const fleeSpeed = civ.health === 1 ? 4.5 : 2.8;
+            civ.x += Math.cos(civ.facingAngle) * fleeSpeed;
+            civ.y += Math.sin(civ.facingAngle) * fleeSpeed;
+          } else if (civ.fleeUntil) {
+            civ.fleeUntil = undefined;
+            civ.state = 'walking';
+            civ.speed = 1.2;
+          } else {
+            civ.x += Math.cos(civ.facingAngle) * civ.speed;
+            civ.y += Math.sin(civ.facingAngle) * civ.speed;
+            if (Math.random() < 0.01) civ.facingAngle += (Math.random() - 0.5) * 1.2;
+          }
+          civ.x = Math.max(80, Math.min(cityData.mapWidth - 80, civ.x));
+          civ.y = Math.max(80, Math.min(cityData.mapHeight - 80, civ.y));
+        });
+      }
       if (isHost && now - s.lastSpawnTime >= 5000) {
         s.lastSpawnTime = now; const edge = cityData.gangsterSpawnEdges[Math.floor(Math.random() * cityData.gangsterSpawnEdges.length)]; const isBus = Math.random() > 0.65;
         s.gangsters.push({ id: `gangster_${now}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: 6, maxHealth: 6, speed: isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isBus ? 'bus' : 'motorcycle' });
@@ -355,7 +384,11 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           for (let civIdx = s.civilians.length - 1; civIdx >= 0; civIdx--) {
             const civ = s.civilians[civIdx];
             if (distToSegment(civ.x, civ.y, l.x1, l.y1, l.x2, l.y2) < 30) {
-              civ.health = (civ.health ?? 4) - 1;
+              civ.health = Math.max(0, (civ.health ?? 3) - 1);
+              civ.state = 'scared';
+              civ.fleeUntil = Date.now() + 3500;
+              civ.facingAngle = Math.atan2(civ.y - l.y1, civ.x - l.x1);
+              if (!isHost) broadcastGameMessage({ type: 'civilian_hit', senderId: myPlayerId, payload: { id: civ.id, health: civ.health, fleeUntil: civ.fleeUntil, facingAngle: civ.facingAngle } });
               s.lasers.splice(lIdx, 1); hit = true;
               for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#FDE68A', life: 14 }); }
               if (civ.health <= 0) s.civilians.splice(civIdx, 1);
@@ -418,6 +451,13 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       cityData.roads.forEach((road) => { ctx.fillStyle = cityData.theme.asphaltColor; ctx.fillRect(road.x, road.y, road.width, road.height); ctx.strokeStyle = cityData.theme.roadMarkingColor; ctx.lineWidth = 2.5; ctx.setLineDash([25, 25]); if (road.direction === 'horizontal') { const midY = road.y + road.height / 2; ctx.beginPath(); ctx.moveTo(road.x, midY); ctx.lineTo(road.x + road.width, midY); ctx.stroke(); } else { const midX = road.x + road.width / 2; ctx.beginPath(); ctx.moveTo(midX, road.y); ctx.lineTo(midX, road.y + road.height); ctx.stroke(); } ctx.setLineDash([]); });
       cityData.buildings.forEach((bld) => { ctx.fillStyle = bld.wallColor; ctx.fillRect(bld.x, bld.y, bld.width, bld.height); ctx.strokeStyle = bld.roofColor; ctx.lineWidth = 5; ctx.strokeRect(bld.x + 6, bld.y + 6, bld.width - 12, bld.height - 12); });
       s.cars.forEach((car) => { ctx.save(); ctx.translate(car.x, car.y); ctx.fillStyle = car.color; ctx.beginPath(); ctx.roundRect(-car.width / 2, -car.height / 2, car.width, car.height, 6); ctx.fill(); ctx.fillStyle = '#0F172A'; ctx.fillRect(-car.width / 4, -car.height / 4, car.width / 2, car.height / 2); ctx.fillStyle = '#FEF08A'; if (car.direction === 'horizontal') { ctx.fillRect(car.width / 2 - 3, -car.height / 2 + 2, 4, 4); ctx.fillRect(car.width / 2 - 3, car.height / 2 - 6, 4, 4); } else { ctx.fillRect(-car.width / 2 + 2, car.height / 2 - 3, 4, 4); ctx.fillRect(car.width / 2 - 6, car.height / 2 - 3, 4, 4); } ctx.restore(); });
+      s.civilians.forEach((civ) => {
+        ctx.save(); ctx.translate(civ.x, civ.y); ctx.rotate(civ.facingAngle);
+        ctx.fillStyle = civ.color; ctx.beginPath(); ctx.roundRect(-6, -5, 12, 14, 3); ctx.fill();
+        ctx.fillStyle = '#FDBA74'; ctx.beginPath(); ctx.arc(0, -10, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#111827'; ctx.fillRect(-4, 8, 3, 7); ctx.fillRect(1, 8, 3, 7);
+        ctx.restore();
+      });
       s.gangsters.forEach((g) => {
         if (g.vehicleType === 'bus') { ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.facingAngle); ctx.fillStyle = '#7F1D1D'; ctx.beginPath(); ctx.roundRect(-34, -20, 68, 40, 8); ctx.fill(); ctx.fillStyle = '#1F2937'; ctx.fillRect(-26, -14, 12, 8); ctx.fillRect(-8, -14, 12, 8); ctx.fillRect(10, -14, 12, 8); ctx.fillStyle = '#FEF08A'; ctx.fillRect(32, -8, 4, 4); ctx.fillRect(32, 6, 4, 4); ctx.restore(); }
         else { ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.facingAngle); ctx.fillStyle = '#18181B'; ctx.beginPath(); ctx.roundRect(-16, -5, 32, 10, 4); ctx.fill(); ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.arc(-10, 0, 5, 0, Math.PI * 2); ctx.arc(10, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
