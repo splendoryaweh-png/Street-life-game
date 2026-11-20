@@ -224,6 +224,23 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
           }
           if (hit) continue;
         } else {
+          // Enemy laser fire can hit civilians as well as the player.
+          let civilianHit = false;
+          for (let civIdx = s.civilians.length - 1; civIdx >= 0; civIdx--) {
+            const civ = s.civilians[civIdx];
+            if (distToSegment(civ.x, civ.y, l.x1, l.y1, l.x2, l.y2) < 30) {
+              civ.health = Math.max(0, (civ.health ?? 3) - 1);
+              civ.state = 'scared';
+              civ.fleeUntil = Date.now() + 3500;
+              civ.facingAngle = Math.atan2(civ.y - l.y1, civ.x - l.x1);
+              s.lasers.splice(lIdx, 1);
+              civilianHit = true;
+              for (let sp = 0; sp < 5; sp++) s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#FDE68A', life: 14 });
+              if (civ.health <= 0) s.civilians.splice(civIdx, 1);
+              break;
+            }
+          }
+          if (civilianHit) continue;
           if (Math.hypot(p.x - l.x2, p.y - l.y2) < 42 || distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 30) {
             const dmg = 10; // Player is defeated after ten enemy hits.
             p.health = Math.max(0, p.health - dmg); setHudHealth(p.health); s.lasers.splice(lIdx, 1);
