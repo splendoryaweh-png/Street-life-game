@@ -225,6 +225,55 @@ const chapters = [
   }
 ];
 
+
+const visualSteps: Record<string, [string, string, string, string]> = {
+  start: ['HOME screen', 'Quick Hustle Hub', 'Choose a section', 'Scroll for more'],
+  games: ['Tap GAMES', 'Pick a category', 'Open a game', 'Choose a mode'],
+  multiplayer: ['Open Multiplayer', 'Create a room', 'Share room code', 'Friend taps JOIN'],
+  rejoin: ['Reopen the game', 'Open Multiplayer', 'Try Rejoin', 'Enter fresh code'],
+  controls: ['Read controls', 'Move / steer', 'Use action keys', 'Finish the round'],
+  coins: ['Open WATCH & EARN', 'Finish the video', 'Check task rules', 'Confirm reward'],
+  tasks: ['Open TASKS', 'Do the activity', 'Add required proof', 'Submit for review'],
+  studio: ['Open STUDIO', 'Choose a beat', 'Record & preview', 'Post your mix'],
+  video: ['Open Video Freestyle', 'Allow camera + mic', 'Record & preview', 'Post the video'],
+  shop: ['Open SHOP', 'Choose category', 'Check item cost', 'Buy / equip'],
+  bank: ['Open BANK', 'Choose a tab', 'Read requirements', 'Check request status'],
+  profile: ['Open PROFILE', 'Check your details', 'Copy invite link', 'Open Settings / Help'],
+  troubleshoot: ['Notice the issue', 'Check connection', 'Reopen the screen', 'Contact Support'],
+  fairplay: ['Protect your login', 'Share room codes safely', 'Follow game rules', 'Report problems']
+};
+
+function GuideIllustration({ id }: { id: string }) {
+  const steps = visualSteps[id] || visualSteps.start;
+  return (
+    <div className="my-3 rounded-xl border border-[#FFD700]/20 bg-[#09090b] p-2.5">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[9px] font-black uppercase tracking-[0.16em] text-[#FFD700]">Picture guide · follow the steps</span>
+        <span className="text-[9px] text-gray-500">1 → 4</span>
+      </div>
+      <svg viewBox="0 0 320 100" role="img" aria-label={steps.join(', then ')} className="block w-full h-auto">
+        {steps.map((step, index) => {
+          const x = 3 + index * 80;
+          const words = step.split(' ');
+          const lines = words.length > 2 ? [words.slice(0, Math.ceil(words.length / 2)).join(' '), words.slice(Math.ceil(words.length / 2)).join(' ')] : [step];
+          return (
+            <g key={index}>
+              {index < 3 && <path d={`M ${x + 69} 48 L ${x + 78} 48`} stroke="#FFD700" strokeWidth="1.8" strokeLinecap="round" />}
+              <rect x={x} y="10" width="69" height="76" rx="9" fill="#171719" stroke={index === 0 ? "#FFD700" : "#414147"} strokeWidth="1.2" />
+              <circle cx={x + 12} cy="23" r="8" fill="#FFD700" />
+              <text x={x + 12} y="26" textAnchor="middle" fontSize="8" fontWeight="900" fill="#111">{index + 1}</text>
+              <path d={`M ${x + 12} 39 h45`} stroke="#55555d" strokeWidth="2" strokeLinecap="round" />
+              <path d={`M ${x + 12} 45 h30`} stroke="#3d3d45" strokeWidth="2" strokeLinecap="round" />
+              {lines.map((line, lineIndex) => <text key={lineIndex} x={x + 34.5} y={lines.length === 1 ? 66 : 61 + lineIndex * 10} textAnchor="middle" fontSize="7.2" fontWeight="700" fill="#f5f5f5">{line}</text>)}
+            </g>
+          );
+        })}
+      </svg>
+      <p className="mt-1 text-[9px] leading-relaxed text-gray-500">Illustration of the action sequence, not a screenshot. The real button layout is shown inside the game screen.</p>
+    </div>
+  );
+}
+
 export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
   if (!isOpen) return null;
 
@@ -278,6 +327,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
                 <h3 className="text-sm font-extrabold text-white">{title}</h3>
               </div>
               <p className="text-xs leading-relaxed text-gray-300 mb-2">{intro}</p>
+              <GuideIllustration id={id} />
               <ol className="space-y-2 list-decimal pl-4 marker:text-[#FFD700]">
                 {steps.map((step, index) => (
                   <li key={index} className="text-xs leading-relaxed text-gray-300 pl-1">{step}</li>
