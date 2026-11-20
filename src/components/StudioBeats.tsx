@@ -498,7 +498,6 @@ export function StudioBeats({
         (beat as any).previewUrl;
 
       let beatEl: HTMLAudioElement | null = null;
-
       if (beatUrl) {
         beatEl = new Audio(beatUrl);
         beatEl.crossOrigin = 'anonymous';
@@ -998,7 +997,6 @@ export function StudioBeats({
 
     return true;
   }), [activeTab, searchQuery]);
-
   const currentLevelInfo = STUDIO_LEVELS[studioLevel] || STUDIO_LEVELS[0];
   const unlockedCount = getUnlockedBeatsCount(studioLevel);
   const unlockPercentage = Math.round((unlockedCount / LONG_BEATS_CATALOG.length) * 100);
@@ -1236,18 +1234,6 @@ export function StudioBeats({
             </div>
             {cameraError && <div role="alert" className="absolute top-10 left-3 right-3 z-[102] rounded-lg bg-red-950/90 p-2 text-xs font-semibold text-white">{cameraError}</div>}
             <div className="absolute inset-x-0 bottom-0 z-[101] flex flex-col items-center gap-2 px-3 pt-3 pb-[max(0.65rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/85 via-black/45 to-transparent">
-              <div className="w-full flex items-center justify-center gap-2 overflow-x-auto touch-pan-x pb-0.5">
-                {videoFilterOptions.map((filter) => (
-                  <button
-                    key={filter.id}
-                    type="button"
-                    onClick={() => setVideoFilter(filter.id)}
-                    className={"shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-bold transition-colors " + (videoFilter === filter.id ? 'border-[#FFD700] bg-[#FFD700] text-black' : 'border-white/35 bg-black/65 text-white')}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
               <div className="flex w-full max-w-sm items-center justify-center gap-2">
                 <button type="button" onClick={handleSwitchCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
                   <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5"/> Flip</span>
@@ -1264,6 +1250,18 @@ export function StudioBeats({
                 <button type="button" onClick={handleDisableCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
                   Close
                 </button>
+              </div>
+              <div className="w-full flex items-center justify-center gap-2 overflow-x-auto touch-pan-x pb-0.5">
+                {videoFilterOptions.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => setVideoFilter(filter.id)}
+                    className={"shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-bold transition-colors " + (videoFilter === filter.id ? 'border-[#FFD700] bg-[#FFD700] text-black' : 'border-white/35 bg-black/65 text-white')}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
