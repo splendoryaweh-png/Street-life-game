@@ -5,7 +5,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
-const MAX_VIDEO_BYTES = 45 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 4 * 1024 * 1024;
 const TARGET_GROUP = '@Streetlifestars';
 
 export async function POST(request: Request) {
