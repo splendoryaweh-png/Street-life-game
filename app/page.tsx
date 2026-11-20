@@ -44,6 +44,7 @@ import { StreetGalaxyShooterModal } from '@/components/StreetGalaxyShooterModal'
 import { StreetRaceModal } from '@/components/StreetRaceModal';
 import { StreetRiderModal } from '@/components/StreetRiderModal';
 import { TransactionsModal } from '@/components/TransactionsModal';
+import { HowToPlayModal } from '@/components/HowToPlayModal';
 
 let cachedTelegramUser: TelegramUser | null = null;
 let isTelegramChecked = false;
@@ -97,6 +98,7 @@ export default function StreetLifeApp() {
   const [isRiderModalOpen, setIsRiderModalOpen] = useState(false);
   const [isTransactionsOpen, setIsTransactionsOpen] = useState(false);
   const [showNovelModal, setShowNovelModal] = useState<boolean>(false);
+  const [isHowToPlayOpen, setIsHowToPlayOpen] = useState(false);
   const [is3DGameActive, setIs3DGameActive] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [botAlert, setBotAlert] = useState<BotNotification | null>(null);
@@ -110,6 +112,7 @@ export default function StreetLifeApp() {
     setIsRiderModalOpen(false);
     setIsTransactionsOpen(false);
     setShowNovelModal(false);
+    setIsHowToPlayOpen(false);
   };
 
   // Initial loading window + background police heat decay timer + bot notification listener
@@ -444,6 +447,23 @@ export default function StreetLifeApp() {
             {/* CENTER LOGO */}
             <CenterLogo />
 
+            {/* HOW TO PLAY QUICK GUIDE */}
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setIsHowToPlayOpen(true);
+              }}
+              className="w-full rounded-2xl border border-[#FFD700]/35 bg-gradient-to-r from-[#FFD700]/15 to-white/[0.03] p-3 flex items-center gap-3 text-left shadow-lg active:scale-[0.99] transition-transform"
+            >
+              <span className="w-10 h-10 shrink-0 rounded-xl bg-[#FFD700] text-black flex items-center justify-center text-xl font-black">?</span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-black text-[#FFD700]">How to Play</span>
+                <span className="block text-[11px] text-gray-300 mt-0.5">Learn the controls, multiplayer, Studio and Street Coins</span>
+              </span>
+              <span className="text-[#FFD700] text-lg font-black" aria-hidden="true">›</span>
+            </button>
+
             {/* HERO BALANCE CARD with Transactions History CTA & Street Novel CTA */}
             <HeroBalanceCard
               streetCoin={activeGameState.streetCoin}
@@ -659,6 +679,8 @@ export default function StreetLifeApp() {
       )}
 
       {/* MODALS */}
+      <HowToPlayModal isOpen={isHowToPlayOpen} onClose={() => setIsHowToPlayOpen(false)} />
+
       <ProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
