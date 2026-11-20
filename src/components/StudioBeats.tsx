@@ -1183,7 +1183,7 @@ export function StudioBeats({
 
         {cameraError && <p role="alert" className="mt-2 text-xs font-semibold text-red-400">{cameraError}</p>}
         {isVideoFreestyle && (
-          <div className="fixed inset-0 z-[100] w-screen h-[100dvh] min-h-screen overflow-hidden bg-black">
+          <div className="fixed inset-0 z-[100] w-screen h-[100dvh] min-h-screen overflow-y-auto overscroll-y-contain touch-pan-y bg-black" style={{ WebkitOverflowScrolling: 'touch' }}>
             <video
               ref={videoPreviewRef}
               autoPlay
