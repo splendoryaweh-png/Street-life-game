@@ -326,6 +326,10 @@ export function StudioBeats({
       try { beatAudioRef.current.pause(); } catch {}
     }
 
+    // Stop procedural backing tracks as well as external audio elements.
+    longBeatEngine.pause();
+    setIsPlaying(false);
+
     setIsRecording(false);
   }, []);
 
@@ -597,6 +601,11 @@ export function StudioBeats({
       recorder.onstop = async () => {
         const finalSecs = recordingSecondsRef.current;
         const isVideo = isVideoFreestyle;
+
+        // Also stop the procedural beat when the recording ends by timer or
+        // the browser's MediaRecorder lifecycle, not only on the Stop button.
+        longBeatEngine.pause();
+        setIsPlaying(false);
 
         if (!isVideoFreestyle) {
           streamRef.current?.getTracks().forEach(t => t.stop());
