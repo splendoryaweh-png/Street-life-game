@@ -477,9 +477,9 @@ export default function StreetLifeApp() {
             <div className="rounded-2xl bg-[#121214] border border-white/10 p-3 shadow-xl">
               <div className="flex items-center justify-between mb-2 px-1">
                 <span className="text-[10px] font-black uppercase tracking-wider text-[#FFD700] flex items-center gap-1">
-                  <span>⚡ Quick Hustle Hub</span>
+                  <span>⚡ {t('quick_hustle_hub', 'Quick Hustle Hub')}</span>
                 </span>
-                <span className="text-[9px] font-mono text-gray-400">All Modules Active</span>
+                <span className="text-[9px] font-mono text-gray-400">{t('all_modules_active', 'All Modules Active')}</span>
               </div>
 
               <div className="grid grid-cols-4 gap-1.5 text-center">
@@ -530,7 +530,7 @@ export default function StreetLifeApp() {
                     <Tv className="w-4 h-4" />
                   </div>
                   <span className="text-[9.5px] font-black text-white group-hover:text-purple-400 truncate w-full">
-                    Watch
+                    {t('watch', 'Watch')}
                   </span>
                 </button>
 
@@ -560,7 +560,7 @@ export default function StreetLifeApp() {
                     <Swords className="w-4 h-4" />
                   </div>
                   <span className="text-[9.5px] font-black text-white group-hover:text-red-400 truncate w-full">
-                    Warzone
+                    {t('warzone', 'Warzone')}
                   </span>
                 </button>
 
@@ -577,7 +577,7 @@ export default function StreetLifeApp() {
                     <Mic2 className="w-4 h-4" />
                   </div>
                   <span className="text-[9.5px] font-black text-white group-hover:text-amber-400 truncate w-full">
-                    Studio
+                    {t('studio', 'Studio')}
                   </span>
                 </button>
 
@@ -594,7 +594,7 @@ export default function StreetLifeApp() {
                     <Gamepad2 className="w-4 h-4" />
                   </div>
                   <span className="text-[9.5px] font-black text-white group-hover:text-yellow-400 truncate w-full">
-                    Games
+                    {t('games', 'Games')}
                   </span>
                 </button>
 
@@ -612,7 +612,7 @@ export default function StreetLifeApp() {
                       <Shield className="w-4 h-4" />
                     </div>
                     <span className="text-[9.5px] font-black text-white group-hover:text-[#FFD700] truncate w-full">
-                      Admin
+                      {t('admin', 'Admin')}
                     </span>
                   </button>
                 )}
