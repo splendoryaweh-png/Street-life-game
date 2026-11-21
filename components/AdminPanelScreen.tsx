@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   Shield,
-  Coins,
+  {t('coins', 'Coins')},
   Users,
   Clock,
   Trash2,
@@ -23,8 +23,8 @@ import {
   X,
 } from 'lucide-react';
 import { AdminWallet } from '@/src/wallet/AdminWallet';
-import { AdminWithdrawalsPanel } from '@/src/wallet/AdminWithdrawalsPanel';
-import { AdminTasksVerificationPanel } from '@/components/AdminTasksVerificationPanel';
+import { Admin{t('withdrawals', 'Withdrawals')}Panel } from '@/src/wallet/AdminWithdrawalsPanel';
+import { Admin{t('tasks', 'Tasks')}VerificationPanel } from '@/components/AdminTasksVerificationPanel';
 import { AdminLeadershipPanel } from '@/components/AdminLeadershipPanel';
 import { UserGameState, PostedSong, AdminLog } from '@/types/game';
 import {
@@ -43,6 +43,7 @@ import {
   WithdrawalClickRecord,
 } from '@/lib/storage';
 import { playClickSound, playSuccessSound, playCoinSound } from '@/lib/sound';
+import { useLanguage } from '@/src/contexts/LanguageContext';
 
 interface AdminPanelScreenProps {
   gameState: UserGameState;
@@ -51,6 +52,7 @@ interface AdminPanelScreenProps {
 }
 
 export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScreenProps) {
+  const { t } = useLanguage();
   const [targetUserId, setTargetUserId] = useState<string>('');
   const [coinsAmount, setCoinsAmount] = useState<number>(1000);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState<boolean>(false);
@@ -120,7 +122,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
     playSuccessSound();
     adminExtendRent(30);
     setLogs(getAdminLogs());
-    onToast('Studio Rent extended by 30 days!');
+    onToast('{t('studio_rent', 'Studio Rent')} extended by 30 days!');
   };
 
   const handleToggleBan = () => {
@@ -169,7 +171,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
           </div>
           <div>
             <h1 className="text-xl font-black italic tracking-tight text-white uppercase flex items-center gap-1.5">
-              <span>ADMIN PANEL</span>
+              <span>{t('admin_panel', 'ADMIN PANEL')}</span>
               <span className="text-[10px] not-italic px-2 py-0.5 rounded-full bg-[#FFD700] text-black font-extrabold">
                 MASTER
               </span>
@@ -232,7 +234,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
           }`}
         >
           <Wallet className="w-3 h-3" />
-          <span>Treasury</span>
+          <span>{t('treasury', 'Treasury')}</span>
         </button>
 
         <button
@@ -297,7 +299,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
         <div className="p-3.5 rounded-2xl bg-[#141414] border border-white/10">
           <div className="flex items-center gap-1.5 text-gray-400 text-xs">
             <Users className="w-3.5 h-3.5 text-[#FFD700]" />
-            <span>Total Hustlers</span>
+            <span>{t('total_hustlers', 'Total Players')}</span>
           </div>
           <div className="text-xl font-black text-white font-mono mt-1">
             {registeredPlayerCount === null ? (playerCountError ? 'Unavailable' : 'Loading...') : `${registeredPlayerCount.toLocaleString()} Players`}
@@ -310,12 +312,12 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
         <div className="p-3.5 rounded-2xl bg-[#141414] border border-white/10">
           <div className="flex items-center gap-1.5 text-gray-400 text-xs">
             <Coins className="w-3.5 h-3.5 text-[#FFD700]" />
-            <span>Active Economy</span>
+            <span>{t('active_economy', 'Active Economy')}</span>
           </div>
           <div className="text-xl font-black text-[#FFD700] font-mono mt-1">
             {gameState.streetCoin.toLocaleString()} SC
           </div>
-          <span className="text-[10px] text-gray-400">Checksum verified</span>
+          <span className="text-[10px] text-gray-400">{t('checksum_verified', 'Checksum verified')}</span>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-[#141414] border border-white/10">
@@ -336,12 +338,12 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
         <div className="p-3.5 rounded-2xl bg-[#141414] border border-white/10">
           <div className="flex items-center gap-1.5 text-gray-400 text-xs">
             <Music className="w-3.5 h-3.5 text-[#FFD700]" />
-            <span>Posted Songs</span>
+            <span>{t('posted_songs', 'Posted Songs')}</span>
           </div>
           <div className="text-xl font-black text-cyan-400 font-mono mt-1">
             {postedSongs.length} Tracks
           </div>
-          <span className="text-[10px] text-gray-400">Saved to group</span>
+          <span className="text-[10px] text-gray-400">{t('saved_to_group', 'Saved to group')}</span>
         </div>
       </div>
 
@@ -349,7 +351,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
       <div className="p-4 rounded-3xl bg-[#161616] border border-white/10 shadow-xl mb-5 space-y-4">
         <h2 className="text-xs font-black uppercase tracking-wider text-[#FFD700] flex items-center gap-1.5">
           <Shield className="w-4 h-4" />
-          <span>Economy & User Controls</span>
+          <span>{t('economy_user_controls', 'Economy & User Controls')}</span>
         </h2>
 
         {/* 1. Add Coins Form */}
@@ -378,7 +380,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
             className="w-full py-2.5 rounded-xl bg-[#FFD700] text-black font-black text-xs uppercase flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-[0_0_12px_rgba(255,215,0,0.3)] cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Add Coins to Account</span>
+            <span>{t('add_coins_account', 'Add Coins to Account')}</span>
           </button>
         </form>
 
@@ -390,7 +392,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
             className="py-3 px-3 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black uppercase flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
           >
             <Calendar className="w-4 h-4" />
-            <span>Extend Rent 30 Days</span>
+            <span>{t('extend_rent_30_days', 'Extend Rent 30 Days')}</span>
           </button>
 
           <button
@@ -415,7 +417,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
             className="w-full py-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-800/40 text-xs font-black uppercase flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
           >
             <AlertTriangle className="w-4 h-4" />
-            <span>Reset All Database / Client Data</span>
+            <span>{t('reset_all_data', 'Reset All Database / Client Data')}</span>
           </button>
         </div>
       </div>
@@ -425,7 +427,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
             <Coins className="w-4 h-4 text-amber-400" />
-            <span>Withdrawal Clicks - Players Waiting for Nov 30</span>
+            <span>{t('withdrawal_clicks_waiting', 'Withdrawal Requests Waiting')}</span>
           </h2>
           <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-black">
             Total players waiting: {withdrawalRequests.length}
@@ -444,10 +446,10 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
             <table className="w-full text-left text-[11px]">
               <thead className="bg-[#1C1C1C] text-gray-400 font-bold uppercase text-[9px] border-b border-white/10 sticky top-0 z-10">
                 <tr>
-                  <th className="py-2.5 px-3">Username</th>
+                  <th className="py-2.5 px-3">{t('username', 'Username')}</th>
                   <th className="py-2.5 px-3">Coins</th>
-                  <th className="py-2.5 px-3">Click Date</th>
-                  <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3">{t('click_date', 'Click Date')}</th>
+                  <th className="py-2.5 px-3">{t('status', 'Status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -488,7 +490,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
             rel="noopener noreferrer"
             className="text-[10px] text-[#FFD700] flex items-center gap-1 hover:underline"
           >
-            <span>Open Group</span>
+            <span>{t('open_group', 'Open Group')}</span>
             <ExternalLink className="w-3 h-3" />
           </a>
         </div>
@@ -536,7 +538,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
         </h2>
 
         {logs.length === 0 ? (
-          <p className="text-xs text-gray-500 italic py-2 text-center">No admin actions recorded yet.</p>
+          <p className="text-xs text-gray-500 italic py-2 text-center">{t('no_admin_actions', 'No admin actions recorded yet.')}</p>
         ) : (
           <div className="space-y-2 max-h-48 overflow-y-auto pr-1 font-mono text-[10px]">
             {logs.map((log) => (
@@ -552,7 +554,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
         )}
       </div>
 
-      {/* DOUBLE CONFIRM RESET POPUP */}
+      {/* {t('double_confirm_reset', 'DOUBLE CONFIRM RESET')} POPUP */}
       {isResetConfirmOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-3xl bg-[#121216] border-2 border-red-500 p-5 text-center shadow-2xl">
@@ -563,7 +565,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
             <h3 className="text-base font-black text-white uppercase">DOUBLE CONFIRM RESET</h3>
             <p className="text-xs text-gray-400 mt-1 mb-4 leading-relaxed">
               This will wipe all client coins, reset rent expiry, remove posted songs, and restore default state.
-              Type <span className="text-red-400 font-bold font-mono">RESET</span> below to confirm:
+              {t('type_reset_confirm', 'Type RESET below to confirm:')}
             </p>
 
             <input
