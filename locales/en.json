@@ -44,5 +44,17 @@
   "reward_race": "+1 coin/meter + road coins",
   "reward_rider": "+100 coins/delivery",
   "reward_boxing": "Champion belts & jackpot purses",
-  "reward_hustle": "Hourly offline revenue streams"
+  "reward_hustle": "Hourly offline revenue streams",
+  "games_screen_title": "STREET GAMES",
+  "games_screen_subtitle": "Choose Your Hustle • 8 Street Games Available",
+  "action_3d": "3D ACTION",
+  "mini_games": "MINI-GAMES",
+  "new": "NEW",
+  "game_street_gang_star": "Street Gang Star",
+  "game_turf_war": "Turf War",
+  "game_street_crush": "Street Crush",
+  "game_street_dice": "Street Dice",
+  "game_street_slot": "Street Slot",
+  "game_street_flip": "Street Flip",
+  "game_street_shooter": "Street Shooter"
 }
