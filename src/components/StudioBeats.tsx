@@ -108,7 +108,7 @@ export function StudioBeats({
   onSelectForRecording,
   onUpgradeStudioLevel
 }: StudioBeatsProps) {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
 
   const [upgradedLevelOverride, setUpgradedLevelOverride] = useState<number | null>(() => {
     if (typeof window !== 'undefined') {
