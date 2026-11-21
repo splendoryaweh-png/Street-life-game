@@ -70,7 +70,8 @@ export function AdminTasksVerificationPanel() {
   }, []);
 
   useEffect(() => {
-    void refreshTasks(true);
+    // Defer the initial fetch; refreshTasks manages the request's loading state.
+    void Promise.resolve().then(() => refreshTasks(true));
   }, [refreshTasks]);
 
   const pendingCount = useMemo(
@@ -498,7 +499,7 @@ export function AdminTasksVerificationPanel() {
             </h3>
 
             <p className="text-xs text-gray-400">
-              Select the reason for rejecting this player's proof.
+              Select the reason for rejecting this player&apos;s proof.
             </p>
 
             <select
