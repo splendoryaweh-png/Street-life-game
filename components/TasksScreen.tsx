@@ -66,7 +66,6 @@ const CATEGORIES: TaskCategory[] = [
 const OFFICIAL_LINKS = {
   mainChannel: 'https://t.me/Streethustlegame2',
   chatGroup: 'https://t.me/Streethustlechatroom',
-  paymentProof: 'https://t.me/Streethustlepaymentproof',
   tiktok: 'https://www.tiktok.com/@streetlife737',
   youtube: 'https://youtube.com/@streetlife22',
   x: 'https://x.com/streethustle0',
@@ -575,28 +574,6 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               }
             />
 
-            {/* 3. Join Payment Proof */}
-            <TaskCard
-              id="social_payment_proof"
-              title="Join Payment Proof"
-              reward={100}
-              desc="Real verified TON payment transactions"
-              link={OFFICIAL_LINKS.paymentProof}
-              icon={ShieldCheck}
-              isCompleted={!!completed['social_payment_proof'] || taskSubmissionStatuses['social_payment_proof'] === 'approved'}
-              isPending={taskSubmissionStatuses['social_payment_proof'] === 'pending'}
-              buttonLabel={submittingTaskId === 'social_payment_proof' ? 'Submitting...' : readyToSubmitTaskIds['social_payment_proof'] ? 'Submit for review' : undefined}
-              isVerifying={verifyingTaskId === 'social_payment_proof'}
-              onAction={() =>
-                handleOpenAndVerify(
-                  'social_payment_proof',
-                  100,
-                  'Payment Proof Channel',
-                  OFFICIAL_LINKS.paymentProof
-                )
-              }
-            />
-
             {/* 4. Follow TikTok */}
             <TaskCard
               id="social_tiktok"
@@ -682,28 +659,7 @@ export function TasksScreen({ gameState, onToast, onNavigateTab, onBack }: Tasks
               }
             />
 
-            <TaskCard
-              id="boost_proof_channel"
-              title="Boost Proof Channel"
-              reward={5000}
-              desc="Boost https://t.me/Streethustlepaymentproof"
-              link={OFFICIAL_LINKS.paymentProof}
-              icon={Flame}
-              badge="5,000 SC"
-              buttonLabel="Boost Channel"
-              isCompleted={!!completed['boost_proof_channel'] || taskSubmissionStatuses['boost_proof_channel'] === 'approved'}
-              isPending={taskSubmissionStatuses['boost_proof_channel'] === 'pending'}
-              buttonLabel={submittingTaskId === 'boost_proof_channel' ? 'Submitting...' : readyToSubmitTaskIds['boost_proof_channel'] ? 'Submit for review' : undefined}
-              isVerifying={verifyingTaskId === 'boost_proof_channel'}
-              onAction={() =>
-                handleOpenAndVerify(
-                  'boost_proof_channel',
-                  5000,
-                  'Boost Proof Channel',
-                  'https://t.me/boost/Streethustlepaymentproof'
-                )
-              }
-            />
+
           </>
         )}
 
