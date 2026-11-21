@@ -93,8 +93,13 @@ export function detectLanguage(): LanguageCode {
 
   let auto: LanguageCode = 'en'; // DEFAULT FOR NIGERIA - Africa/Lagos = English
 
-  if (
-    tz.includes('Paris') ||
+  if (tz === 'Africa/Lagos' || tz.startsWith('Africa/Lagos/')) {
+    // Nigeria starts in English even if the device/Telegram UI uses another language.
+    auto = 'en';
+  } else if (tz === 'Europe/Paris' || tz.startsWith('Europe/Paris/')) {
+    // France starts in French even if Telegram's interface language is English.
+    auto = 'fr';
+  } else if (
     tz.includes('Dakar') ||
     tz.includes('Abidjan') ||
     tz.includes('Algiers') ||
