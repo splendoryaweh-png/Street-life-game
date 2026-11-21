@@ -69,7 +69,8 @@ function AdsgramModalContent({
 
   useEffect(() => {
     isMountedRef.current = true;
-    void prepareAdsgram();
+    // Defer SDK preparation so any initial state updates happen outside the effect body.
+    void Promise.resolve().then(() => prepareAdsgram());
 
     return () => {
       isMountedRef.current = false;
