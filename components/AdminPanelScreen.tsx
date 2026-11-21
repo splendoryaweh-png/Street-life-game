@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   Shield,
-  {t('coins', 'Coins')},
+  Coins,
   Users,
   Clock,
   Trash2,
@@ -23,8 +23,8 @@ import {
   X,
 } from 'lucide-react';
 import { AdminWallet } from '@/src/wallet/AdminWallet';
-import { Admin{t('withdrawals', 'Withdrawals')}Panel } from '@/src/wallet/AdminWithdrawalsPanel';
-import { Admin{t('tasks', 'Tasks')}VerificationPanel } from '@/components/AdminTasksVerificationPanel';
+import { AdminWithdrawalsPanel } from '@/src/wallet/AdminWithdrawalsPanel';
+import { AdminTasksVerificationPanel } from '@/components/AdminTasksVerificationPanel';
 import { AdminLeadershipPanel } from '@/components/AdminLeadershipPanel';
 import { UserGameState, PostedSong, AdminLog } from '@/types/game';
 import {
@@ -122,7 +122,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
     playSuccessSound();
     adminExtendRent(30);
     setLogs(getAdminLogs());
-    onToast('{t('studio_rent', 'Studio Rent')} extended by 30 days!');
+    onToast(`${t('studio_rent', 'Studio Rent')} extended by 30 days!`);
   };
 
   const handleToggleBan = () => {
@@ -447,7 +447,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
               <thead className="bg-[#1C1C1C] text-gray-400 font-bold uppercase text-[9px] border-b border-white/10 sticky top-0 z-10">
                 <tr>
                   <th className="py-2.5 px-3">{t('username', 'Username')}</th>
-                  <th className="py-2.5 px-3">Coins</th>
+                  <th className="py-2.5 px-3">{t('coins', 'Coins')}</th>
                   <th className="py-2.5 px-3">{t('click_date', 'Click Date')}</th>
                   <th className="py-2.5 px-3">{t('status', 'Status')}</th>
                 </tr>
@@ -554,7 +554,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
         )}
       </div>
 
-      {/* {t('double_confirm_reset', 'DOUBLE CONFIRM RESET')} POPUP */}
+      {/* DOUBLE CONFIRM RESET POPUP */}
       {isResetConfirmOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-3xl bg-[#121216] border-2 border-red-500 p-5 text-center shadow-2xl">
