@@ -12,5 +12,11 @@
   "how_to_play": "Как Играть",
   "terms": "Условия Использования",
   "privacy": "Политика Конфиденциальности",
-  "about": "О Street Life"
+  "about": "О Street Life",
+  "nav_home": "ГЛАВНАЯ",
+  "nav_games": "ИГРЫ",
+  "nav_studio": "СТУДИЯ",
+  "nav_shop": "МАГАЗИН",
+  "nav_war": "ВОЙНА",
+  "nav_profile": "ПРОФИЛЬ"
 }
