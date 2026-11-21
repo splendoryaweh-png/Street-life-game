@@ -58,12 +58,26 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
  * - Pidgin code is "pcm". NEVER auto-select Pidgin. Pidgin only when user manually taps it in Settings.
  * - Save to localStorage street_lang
  */
+function getPlayerLanguageStorageKey(): string {
+  if (typeof window === 'undefined') return 'street_lang';
+  try {
+    const tg = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { id?: number | string } } } } }).Telegram;
+    const telegramId = tg?.WebApp?.initDataUnsafe?.user?.id;
+    return telegramId ? `street_lang:${telegramId}` : 'street_lang';
+  } catch {
+    return 'street_lang';
+  }
+}
+
 export function detectLanguage(): LanguageCode {
   if (typeof window === 'undefined') return 'en';
 
+  const playerLanguageKey = getPlayerLanguageStorageKey();
   try {
-    const saved = localStorage.getItem('street_lang');
+    const saved = localStorage.getItem(playerLanguageKey) || localStorage.getItem('street_lang');
     if (saved && (saved in TRANSLATIONS)) {
+      // Migrate the previous device-wide setting to this Telegram player's own setting.
+      localStorage.setItem(playerLanguageKey, saved);
       return saved as LanguageCode;
     }
   } catch {}
@@ -116,7 +130,7 @@ export function detectLanguage(): LanguageCode {
   // NOTE: Pidgin code is "pcm". NEVER auto-select Pidgin.
   // Pidgin only when user manually taps it in Settings.
   try {
-    localStorage.setItem('street_lang', auto);
+    localStorage.setItem(playerLanguageKey, auto);
   } catch {}
 
   return auto;
@@ -154,7 +168,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const setLanguage = useCallback((lang: LanguageCode) => {
     setLanguageState(lang);
     try {
-      localStorage.setItem('street_lang', lang);
+      localStorage.setItem(getPlayerLanguageStorageKey(), lang);
     } catch {}
   }, []);
 
