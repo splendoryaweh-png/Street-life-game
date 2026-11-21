@@ -349,7 +349,7 @@ export function ProfileScreen({
             >
               <div className="flex items-center justify-between mb-1">
                 <CheckSquare className="w-4 h-4 text-cyan-400" />
-                <span className="text-[9px] font-mono text-cyan-300 font-bold">10 TASKS</span>
+                <span className="text-[9px] font-mono text-cyan-300 font-bold">{t('tasks_count_label', '10 TASKS')}</span>
               </div>
               <div className="text-xs font-black text-white">{t('tasks_bounties', 'Tasks & Bounties')}</div>
               <div className="text-[10px] text-gray-400">{t('earn_up_to', 'Earn up to 5k SC')}</div>
