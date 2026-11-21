@@ -367,8 +367,16 @@ export function StudioBeats({
         });
       }
     } catch {}
-    // Last resort for Telegram's iOS WebView: request its default camera.
-    return await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+    // Do not silently report a successful rear-camera switch if iOS returned
+    // the default (often front-facing) camera instead.
+    if (facing === 'environment') {
+      throw new Error('Rear camera is unavailable or could not be selected.');
+    }
+    // Initial front-camera fallback for Telegram's iOS WebView.
+    return await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: { ...base, facingMode: 'user' }
+    });
   };
 
   const handleEnableCamera = async () => {
@@ -410,9 +418,15 @@ export function StudioBeats({
       oldStream?.getTracks().forEach(track => track.stop());
       streamRef.current = null;
       const nextStream = await openCameraStream(nextFacing);
-      if (!nextStream.getVideoTracks().length) {
+      const nextVideoTrack = nextStream.getVideoTracks()[0];
+      if (!nextVideoTrack || nextVideoTrack.readyState !== 'live') {
         nextStream.getTracks().forEach(track => track.stop());
-        throw new Error('No video track returned by the requested camera.');
+        throw new Error('No live video track returned by the requested camera.');
+      }
+      const actualFacing = nextVideoTrack.getSettings?.().facingMode;
+      if (actualFacing && actualFacing !== nextFacing) {
+        nextStream.getTracks().forEach(track => track.stop());
+        throw new Error('The device returned a different camera than requested.');
       }
       streamRef.current = nextStream;
       if (videoPreviewRef.current) {
@@ -1291,15 +1305,19 @@ export function StudioBeats({
               autoPlay
               playsInline
               muted
-              className="absolute inset-0 w-full h-full object-cover" style={{ filter: activeVideoFilter, objectPosition: 'center center' }}
+              disablePictureInPicture
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ filter: activeVideoFilter, objectPosition: 'center center' }}
             />
-            <div className="absolute inset-0 overflow-y-auto overscroll-y-contain touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div
+              className="absolute inset-0 z-[101] h-full min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y"
+              style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
+            >
               <div className="relative flex min-h-[100dvh] flex-col">
                 <div className="relative z-[101] flex justify-center p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pointer-events-none">
                   <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold text-white/90">{t('studio_live_camera', 'LIVE CAMERA')}</span>
                 </div>
                 {cameraError && <div role="alert" className="relative z-[102] mx-3 mt-2 rounded-lg bg-red-950/90 p-2 text-xs font-semibold text-white">{cameraError}</div>}
-                <div className="min-h-[30vh] flex-1" aria-hidden="true" />
+                <div className="min-h-[24vh] flex-1" aria-hidden="true" />
                 <div className="relative z-[101] flex flex-col items-center gap-2 px-3 pt-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/90 via-black/55 to-transparent">
                   <div className="flex w-full max-w-sm flex-wrap items-center justify-center gap-2">
                     <button type="button" onClick={handleSwitchCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
