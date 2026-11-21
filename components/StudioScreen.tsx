@@ -173,6 +173,7 @@ interface StudioScreenProps {
 }
 
 export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
+  const { t } = useLanguage();
   const [rentExpired, setRentExpired] = useState<boolean>(() => isStudioRentExpired());
   const [daysRemaining, setDaysRemaining] = useState<number>(() => getDaysRemainingOnRent());
   const [activeTestBeatId, setActiveTestBeatId] = useState<string | null>(null);
@@ -557,7 +558,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
         setRecordedBeatId(recordingBeatId);
         setHasPreviewed(false);
         setIsPreviewPlaying(false);
-        onToast('🎤 Vocal recording captured! Click PREVIEW to listen before posting.');
+        onToast(`🎤 ${t('studio_recorded', 'Vocal recording captured!')} ${t('studio_preview_prompt', 'Click PREVIEW to listen before posting.')}`);
       }
     }
 
