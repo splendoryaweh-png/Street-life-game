@@ -65,9 +65,12 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
     getWithdrawalClickRecords()
   );
   const [isBanned, setIsBanned] = useState<boolean>(!!gameState.isBanned);
-  const [activeAdminTab, setActiveAdminTab] = useState<'general' | 'treasury' | 'withdrawals' | 'tasks' | 'leadership'>('general');
+  const [activeAdminTab, setActiveAdminTab] = useState<'general' | 'treasury' | 'withdrawals' | 'tasks' | 'leadership' | 'features'>('general');
   const [registeredPlayerCount, setRegisteredPlayerCount] = useState<number | null>(null);
   const [playerCountError, setPlayerCountError] = useState(false);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [featureSettingsLoading, setFeatureSettingsLoading] = useState(true);
+  const [featureSettingsSaving, setFeatureSettingsSaving] = useState(false);
 
   const refreshPlayerCount = useCallback(async () => {
     const initData = (window as any).Telegram?.WebApp?.initData || '';
@@ -97,6 +100,61 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
   useEffect(() => {
     void refreshPlayerCount();
   }, [refreshPlayerCount]);
+
+  useEffect(() => {
+    let active = true;
+    const initData = (window as any).Telegram?.WebApp?.initData || '';
+    if (!initData) {
+      setFeatureSettingsLoading(false);
+      return;
+    }
+    fetch('/api/feature-settings', {
+      headers: { 'x-telegram-init-data': initData },
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Could not load feature settings.');
+        if (active) setLeaderboardVisible(result.leaderboardVisible === true);
+      })
+      .catch((error) => {
+        console.error('Feature settings load failed:', error);
+        if (active) onToast('Could not load feature settings. Leaderboard remains hidden.');
+      })
+      .finally(() => {
+        if (active) setFeatureSettingsLoading(false);
+      });
+    return () => { active = false; };
+  }, [onToast]);
+
+  const handleLeaderboardVisibility = async (visible: boolean) => {
+    const initData = (window as any).Telegram?.WebApp?.initData || '';
+    if (!initData || featureSettingsSaving) {
+      onToast('Open Street Life through Telegram before changing this setting.');
+      return;
+    }
+    setFeatureSettingsSaving(true);
+    try {
+      const response = await fetch('/api/feature-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-telegram-init-data': initData,
+        },
+        body: JSON.stringify({ leaderboardVisible: visible }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.ok !== true) {
+        throw new Error(result.error || 'Could not save leaderboard visibility.');
+      }
+      setLeaderboardVisible(result.leaderboardVisible === true);
+      onToast(visible ? 'Leaderboard is now visible to players.' : 'Leaderboard is now hidden from players.');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Could not update leaderboard visibility.');
+    } finally {
+      setFeatureSettingsSaving(false);
+    }
+  };
 
   const refreshAllData = useCallback(() => {
     void refreshPlayerCount();
@@ -205,7 +263,7 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
       </div>
 
       {/* ADMIN TABS NAVIGATION */}
-      <div className="grid grid-cols-5 gap-1 p-1.5 rounded-2xl bg-[#14141c] border border-white/10 mb-5">
+      <div className="grid grid-cols-6 gap-1 p-1.5 rounded-2xl bg-[#14141c] border border-white/10 mb-5">
         <button
           onClick={() => {
             playClickSound();
@@ -282,9 +340,55 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
         >
           Leadership
         </button>
+        <button
+          onClick={() => {
+            playClickSound();
+            setActiveAdminTab('features');
+          }}
+          type="button"
+          className={`py-2 px-1 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center transition-all cursor-pointer ${
+            activeAdminTab === 'features'
+              ? 'bg-cyan-400 text-black shadow-md'
+              : 'text-cyan-300 hover:text-white'
+          }`}
+        >
+          Features
+        </button>
       </div>
 
-      {activeAdminTab === 'leadership' ? (
+      {activeAdminTab === 'features' ? (
+        <section className="rounded-2xl border border-white/10 bg-[#141414] p-4 space-y-4">
+          <div>
+            <h2 className="text-sm font-black uppercase tracking-wide text-white">Player-facing feature visibility</h2>
+            <p className="mt-1 text-xs leading-relaxed text-gray-400">Temporarily hide the leaderboard while payout history is being established. This does not delete leaderboard data.</p>
+          </div>
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
+            <div>
+              <p className="text-sm font-bold text-white">Home leaderboard</p>
+              <p className="text-[11px] text-gray-400">{featureSettingsLoading ? 'Loading current setting…' : leaderboardVisible ? 'Currently visible to players' : 'Currently hidden from players'}</p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                disabled={featureSettingsLoading || featureSettingsSaving || !leaderboardVisible}
+                onClick={() => void handleLeaderboardVisibility(false)}
+                className="rounded-lg border border-red-400/40 px-3 py-2 text-[10px] font-black uppercase text-red-300 disabled:opacity-40"
+              >
+                {featureSettingsSaving && !leaderboardVisible ? 'Saving…' : 'Hide'}
+              </button>
+              <button
+                type="button"
+                disabled={featureSettingsLoading || featureSettingsSaving || leaderboardVisible}
+                onClick={() => void handleLeaderboardVisibility(true)}
+                className="rounded-lg bg-emerald-400 px-3 py-2 text-[10px] font-black uppercase text-black disabled:opacity-40"
+              >
+                {featureSettingsSaving && leaderboardVisible ? 'Saving…' : 'Show'}
+              </button>
+            </div>
+          </div>
+          <p className="text-[10px] text-gray-500">Changes are saved on the server and apply to players without a new deployment.</p>
+        </section>
+      ) : activeAdminTab === 'leadership' ? (
         <AdminLeadershipPanel />
       ) : activeAdminTab === 'treasury' ? (
         <AdminWallet onToast={onToast} />
