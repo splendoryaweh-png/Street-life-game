@@ -271,17 +271,36 @@ function GuideIllustration({ id, labels }: { id: string; labels?: [string, strin
           );
         })}
       </svg>
-      <p className="mt-1 text-[9px] leading-relaxed text-gray-500">Illustration of the action sequence, not a screenshot. The real button layout is shown inside the game screen.</p>
+      <p className="mt-1 text-[9px] leading-relaxed text-gray-500">{t('guide_illustration_note', 'Illustration of the action sequence, not a screenshot. The real button layout is shown inside the game screen.')}</p>
     </div>
   );
 }
 
 export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isPortuguese = language === 'pt';
-  const displayChapters = isPortuguese
-    ? chapters.map((chapter) => ({ ...chapter, ...(portugueseGuide[chapter.id] || {}) }))
-    : chapters;
+  const isArabic = language === 'ar';
+  const arabicGuide: Record<string, { title: string; intro: string; steps: string[] }> = {
+    start: { title: '١. ابدأ هنا: فهم الشاشة الرئيسية', intro: 'الشاشة الرئيسية هي لوحة التحكم الأساسية. مرّر للأعلى والأسفل لرؤية الصفحة كاملة؛ فالمحتوى لا يقتصر على الجزء الظاهر أولاً.', steps: ['يظهر رصيد Street Coins بالقرب من الأعلى. اضغط على الرصيد أو اختصار المعاملات لمراجعة نشاط العملات.', 'استخدم مركز الأنشطة وشريط التنقل السفلي لفتح أقسام Street Life المختلفة.', 'تعيدك الرئيسية إلى لوحة التحكم. تفتح الألعاب مكتبة الألعاب. يفتح الاستوديو أدوات الأداء الحر. يفتح المتجر العناصر والترقيات. تفتح حرب الشوارع منطقة القتال. ويحتوي الملف الشخصي على بيانات اللاعب والإعدادات.', 'يمكن للاختصارات الأخرى فتح المهام وشاهد واربح والبنك والمخزون والأقسام المتاحة الأخرى. اقرأ عنوان كل شاشة لتعرف مكانك.', 'إذا بدا أن جزءًا من الشاشة غير ظاهر، فمرّر داخل الصفحة. وفي الشاشات المدعومة، يخفي زر العين شريطي التنقل العلوي والسفلي أو يظهرهما.'] },
+    games: { title: '٢. اختر لعبة وافهم أوضاع اللعب', intro: 'افتح الألعاب من شريط التنقل السفلي. تنقسم المكتبة إلى ألعاب أكشن ثلاثية الأبعاد وألعاب مصغّرة. اختر فئة ثم بطاقة اللعبة لفتحها.', steps: ['عصابات الشوارع: افتح مركز اللعبة ثم اختر لاعبًا واحدًا أو اللعب الجماعي. يمكنك إنشاء غرفة برمز دعوة أو الانضمام برمز أو استخدام المطابقة العشوائية عند توفرها.', 'سباق الشوارع: اختر السباق واقرأ التعليمات واستخدم أدوات القيادة الظاهرة. تجنب المرور والعوائق واجمع العملات عند توفرها.', 'توصيل الدراجات: اتبع مهمة التوصيل والوقت المحدد واستخدم أزرار الدراجة للوصول إلى الوجهة.', 'نرد الشوارع: اختر لاعبًا واحدًا أو اللعب الجماعي. ينشئ المضيف غرفة ويشارك رمزها، ويدخل اللاعبون الآخرون الرمز للانضمام.', 'تشمل الألعاب المصغّرة الأخرى حرب المناطق وتحدي الشوارع وماكينات الشوارع وبطاقات الشوارع. اقرأ قواعد كل لعبة؛ فالأهداف وأدوات التحكم تختلف.', 'قد تظهر على بعض البطاقات عبارة قريبًا. لا يمكن لعب هذه الألعاب حتى يتم تفعيلها في تحديث لاحق.', 'استخدم زر الرجوع داخل اللعبة للعودة إلى القائمة، وتجنب إغلاق تيليجرام أثناء المباراة.'] },
+    multiplayer: { title: '٣. اللعب الجماعي: أنشئ غرفة وادعُ أصدقاءك', intro: 'تختلف شاشة الانتظار حسب اللعبة. اتبع عناصر التحكم الخاصة بالغرفة داخل اللعبة المختارة.', steps: ['افتح الألعاب واختر لعبة تدعم اللعب الجماعي ثم اضغط اللعب الجماعي. في عصابات الشوارع افتح مركز اللعبة أولاً.', 'لإنشاء غرفة خاصة، اضغط إنشاء غرفة وانتظر. سيظهر رمز الغرفة في شاشة الانتظار أو أعلى اللعبة.', 'استخدم زر نسخ الرمز إن ظهر، ثم أرسل الرمز الكامل لصديقك عبر تيليجرام. تأكد من أنه يخص اللعبة الصحيحة.', 'على صديقك فتح اللعبة نفسها واختيار اللعب الجماعي وإدخال الرمز ثم الضغط على انضمام. احذف أي مسافات زائدة.', 'في نرد الشوارع يدخل اللاعبون الرمز وينضمون إلى الردهة. يمكن للمضيف رؤية اللاعبين وإضافة لاعب آلي إذا كان الخيار متاحًا. اضغط جاهز، ثم يبدأ المضيف المباراة.', 'في عصابات الشوارع ينشئ المضيف غرفة برمز دعوة وينضم الأصدقاء إلى المنطقة باستخدام الرمز نفسه. المطابقة العشوائية مختلفة عن الغرفة الخاصة.', 'انتظر تأكيد الانضمام أو ظهور اللاعب الآخر في الردهة. إرسال الرمز لا يعني أن صديقك انضم بالفعل.', 'إذا كانت الغرفة ممتلئة أو منتهية أو غير موجودة، أنشئ غرفة جديدة وشارك رمزها.'] },
+    rejoin: { title: '٤. عند انقطاع الاتصال أو تعذر الانضمام', intro: 'لا يضمن رمز الغرفة بقاءها متاحة إلى الأبد. تعتمد إعادة الانضمام على اللعبة وما إذا كانت الغرفة لا تزال نشطة.', steps: ['تحقق أولاً من اتصال الإنترنت، ثم افتح اللعبة نفسها وشاشة اللعب الجماعي.', 'إذا ظهر خيار إعادة الانضمام أو المتابعة فاستخدمه. قد تحفظ لعبة نرد الشوارع معلومات الغرفة لاستعادتها عند فتح شاشة اللعب الجماعي مجددًا.', 'إذا لم تُستعد الغرفة، اسأل المضيف إن كانت لا تزال مفتوحة واطلب الرمز الحالي ثم أدخله في خانة الانضمام.', 'إذا رُفض الرمز، تحقق من الحروف والأرقام واختر اللعبة نفسها واسأل إن كانت الغرفة ممتلئة أو انتهت.', 'إذا غادر المضيف أو أُغلقت الغرفة، أنشئ غرفة جديدة وادعُ اللاعبين مجددًا.', 'إذا تجمدت الشاشة، انتظر قليلاً ثم ارجع داخل اللعبة وافتح الوضع مجددًا. ويمكنك إغلاق تطبيق تيليجرام المصغر وفتحه مرة أخرى.', 'لا تضغط إنشاء غرفة مرارًا أثناء معالجة الطلب الأول. امنح اللعبة لحظة للاستجابة.'] },
+    controls: { title: '٥. أدوات التحكم والأهداف وإنهاء المباراة', intro: 'تختلف أدوات التحكم حسب اللعبة والجهاز. اقرأ الإرشادات الظاهرة داخل اللعبة قبل البدء.', steps: ['على الهاتف استخدم عصا التحكم الافتراضية أو أزرار الاتجاهات والحركة الظاهرة. ارفع إصبعك عندما تريد التوقف.', 'في عصابات الشوارع تحرك بعصا التحكم واستخدم أزرار الإطلاق والقفز وإعادة التلقيم والاحتماء والركض والسيارة والفريق عند توفرها.', 'في ألعاب السباق استخدم أدوات القيادة للتوجيه والتسارع والفرملة، واتبع هدف المهمة والمؤقت.', 'في نرد الشوارع يتناوب اللاعبون على رمي النرد واختيار قطعة عندما يسمح اللعب بالحركة. اتبع تعليمات الدور والحركة.', 'اقرأ قواعد الألعاب المصغّرة الأخرى قبل اللعب. لا تفترض أن أدوات التحكم نفسها تعمل في كل لعبة.', 'عند انتهاء الجولة اقرأ النتيجة والمكافأة قبل المغادرة. إذا لم تظهر المكافأة فتحقق من الرصيد وسجل المعاملات.'] },
+    coins: { title: '٦. عملات Street Coins والمكافآت والأنشطة اليومية', intro: 'عملات Street Coins هي العملة داخل التطبيق. يعتمد مقدار المكافأة واستحقاقها على النشاط والقواعد المعروضة في الميزة.', steps: ['تحقق من رصيدك في الصفحة الرئيسية واستخدم سجل المعاملات لمراجعة النشاط.', 'افتح شاهد واربح واضغط زر المشاهدة واترك الفيديو الإعلاني حتى ينتهي. لا تُحتسب المكافأة إذا تخطيت الإعلان أو فشل أو لم يكن متاحًا.', 'للمكافآت اليومية والمهام شروط خاصة. اقرأ المتطلبات والحالة قبل الضغط على استلام.', 'تحتوي بعض الأنشطة على حدود يومية أو فترات انتظار أو شروط أهلية. اتبع معلومات إعادة التعيين الظاهرة.', 'لا تفترض أن كل لعبة أو فيديو أو مهمة أو منشور في الاستوديو يمنح عملات. اعتمد فقط المكافأة التي يؤكدها التطبيق.'] },
+    tasks: { title: '٧. المهام: أكمل النشاط وأرسله للمراجعة', intro: 'تتطلب بعض المهام تنفيذ نشاط خارج اللعبة ثم طلب التحقق منه. إكمال النشاط وإرسال الإثبات خطوتان منفصلتان.', steps: ['افتح المهام من الصفحة الرئيسية أو مركز الأنشطة. اختر المهمة واقرأ التعليمات والمكافأة والحدود ومتطلبات الإثبات.', 'اضغط زر المهمة وأكمل النشاط المطلوب، مثل الانضمام إلى القناة أو المجموعة الرسمية أو متابعة حساب أو دعوة صديق أو تحقيق إنجاز في لعبة.', 'ارجع إلى المهمة نفسها وجهّز الدليل المطلوب. التقط صورة واضحة تثبت إكمال النشاط، وأرسل رابط الفيديو العام ولقطة المشاهدات والإعجابات إذا طُلب ذلك.', 'إذا كانت المهمة تتطلب خطوة تجهيز، اضغط الزر لتصبح جاهزًا للإرسال. قد يتغير إلى إرسال للمراجعة.', 'اضغط إرسال للمراجعة مرة واحدة وانتظر تأكيد الإرسال. لا تكرر الضغط أثناء المعالجة.', 'في مهمة الحالة، ارفع لقطة منشور الحالة أولاً ثم أرسل الإثبات. يظهر حد النشر اليومي على بطاقة المهمة.', 'في مهمة ترويج الفيديو استخدم منصة مقبولة حسب التعليمات مثل تيك توك أو يوتيوب أو فيسبوك. أرسل الرابط ولقطات الإثبات المطلوبة.', 'تعني قيد المراجعة أن الفريق لم يقرر بعد. تعني موافق عليه أو تم التحقق قبوله. وإذا رُفض، اقرأ الملاحظات وصحح الإثبات إن أمكن.', 'لا تكرر إرسال المهمة أثناء انتظار المراجعة. تُضاف بعض المكافآت بعد التحقق وموافقة الإدارة فقط.'] },
+    studio: { title: '٨. الاستوديو: تسجيل أداء صوتي', intro: 'يتيح لك الاستوديو اختيار إيقاع وتسجيل الصوت والاستماع إلى النتيجة ونشر المزيج. قد تتطلب بعض الميزات إيجارًا نشطًا أو مستوى مفتوحًا.', steps: ['افتح الاستوديو من شريط التنقل السفلي. تحقق من حالة الوصول أو الإيجار إذا كان التسجيل مقفلاً.', 'تصفح قائمة الإيقاعات واضغط إيقاعًا لاختياره، ثم استخدم المعاينة للاستماع قبل التسجيل. قد تُفتح بعض الإيقاعات في مستويات أعلى.', 'استخدم منزلقَي مستوى الإيقاع والصوت لموازنة الموسيقى وصوتك بشكل مستقل.', 'اسمح بالوصول إلى الميكروفون عندما يطلب الهاتف ذلك. إذا رفضت الإذن فلن يعمل التسجيل؛ فعّل الميكروفون من إعدادات الهاتف أو المتصفح.', 'اضغط تسجيل وأدِّ مقطوعتك. اتبع المؤقت والمدة المحددة ثم اضغط إيقاف.', 'اضغط معاينة المزيج واستمع جيدًا. إذا لم تعجبك النتيجة فأعد التسجيل إذا كان لديك تسجيل يومي متاح.', 'عندما ترضى عن النتيجة اضغط نشر المزيج وانتظر رسالة النجاح أو الخطأ. يُرسل المنشور الناجح عبر تيليجرام وفق إعدادات التطبيق.', 'قد تتشارك أدوات تسجيل الصوت والفيديو حدود التسجيل، ويظهر العدد المتاح على الشاشة.'] },
+    video: { title: '٩. الاستوديو: تسجيل أداء فيديو', intro: 'يستخدم أداء الفيديو كاميرا هاتفك. يجب السماح لتيليجرام باستخدام الكاميرا والميكروفون.', steps: ['افتح الاستوديو ثم منطقة أداء الفيديو أو تسجيل الكاميرا واضغط تفعيل الكاميرا عند الطلب.', 'إذا طلب iPhone أو تيليجرام إذن الكاميرا أو الميكروفون فاختر سماح. غيّر الإذن من إعدادات الهاتف إذا كنت قد منعته سابقًا.', 'استخدم تبديل الكاميرا للتنقل بين الأمامية والخلفية إذا كان جهازك يدعم ذلك. قد لا يتاح التبديل أثناء التسجيل.', 'اختر مرشحًا مثل عادي أو دافئ أو أبيض وأسود أو بارد أو كلاسيكي. مرّر داخل شاشة الكاميرا لرؤية جميع الأدوات.', 'اضغط تسجيل للبدء وإيقاف للإنهاء، ثم استخدم المعاينة لمشاهدة الفيديو.', 'اضغط نشر عندما تكون راضيًا عن النتيجة وانتظر التأكيد. إذا فشل الرفع فتحقق من الاتصال وحاول مجددًا.', 'اضغط إغلاق لمغادرة الكاميرا. لا تغلقها أثناء التسجيل.'] },
+    shop: { title: '١٠. المتجر والمخزون والترقيات والعناصر', intro: 'افتح المتجر من شريط التنقل السفلي لتصفح العناصر والترقيات المتاحة. قد تشمل الفئات الملابس والمنازل والمركبات والهواتف والطعام وترقيات الاستوديو.', steps: ['اختر فئة وعنصرًا لعرض التفاصيل والسعر. تحقق من تكلفة Street Coins قبل الشراء.', 'اضغط شراء وانتظر التأكيد. لا تكرر الضغط بينما يتم تحديث الرصيد.', 'يمكن تجهيز العناصر المملوكة من بطاقة العنصر أو المخزون. امتلاك العنصر لا يعني أنه مجهز؛ اختر تجهيز.', 'بعض العناصر قابلة للاستهلاك أو للإيجار أو دائمة أو ترقيات. اقرأ الوصف وتاريخ الانتهاء قبل التأكيد.', 'إذا لم يكن لديك رصيد كافٍ، اكسب عملات من الأنشطة المؤهلة أو اختر عنصرًا يناسب رصيدك.'] },
+    bank: { title: '١١. البنك والمحفظة والتحويلات ومعلومات السحب', intro: 'قد تعرض شاشة البنك الرصيد والمحوّل والسحب والسجل وأقسامًا أخرى. قد تتغير المتطلبات والتوافر.', steps: ['افتح البنك من اختصارات الصفحة الرئيسية واستخدم علامات التبويب لعرض الرصيد والتحويل والسحب والسجل.', 'قبل تحويل العملات تحقق من العملة المختارة والسعر والمبلغ المعروض في التأكيد.', 'قبل طلب السحب اقرأ الحد الأدنى والطريقة المدعومة والشبكة وتعليمات عنوان المحفظة وتاريخ الإتاحة والحالة.', 'أدخل عنوانًا تملكه ويتوافق مع الشبكة أو الطريقة المحددة. قد يؤدي العنوان أو الشبكة الخاطئة إلى فقدان الأموال.', 'إرسال الطلب لا يعني اكتمال الدفع. راجع سجل السحب وحالته، ولا تعتبر الطلب المعلق أموالاً مستلمة.'] },
+    profile: { title: '١٢. الملف الشخصي وروابط الدعوة واللغة والدعم', intro: 'تعرض صفحة الملف الشخصي هويتك في تيليجرام ومعلومات اللاعب والإعدادات وخيارات المساعدة.', steps: ['افتح الملف الشخصي وتأكد أن اسم تيليجرام ومعلومات الحساب المعروضة تخصك.', 'استخدم رمز الدعوة أو رابط الإحالة لنسخ دعوتك الشخصية ومشاركتها مع صديق.', 'استخدم الإعدادات لتغيير تفضيلات التطبيق المتاحة، ومنها اللغة.', 'استخدم الدعم عند الحاجة إلى المساعدة. اشرح اسم الشاشة والزر وما كنت تتوقعه وما حدث.', 'حافظ على أمان حساب تيليجرام ولا تشارك رموز تسجيل الدخول أو كلمات المرور أو مفاتيح المحفظة الخاصة.'] },
+    troubleshoot: { title: '١٣. المشكلات الشائعة وما يمكنك فعله', intro: 'جرّب هذه الخطوات قبل تكرار عملية شراء أو إرسال أو إنشاء غرفة.', steps: ['الزر لا يستجيب: انتظر ثوانٍ وتحقق من الاتصال ومرّر حتى يظهر الزر بالكامل ثم حاول مرة واحدة.', 'اللعبة لا تُحمّل: ارجع إلى الألعاب وافتحها مجددًا، أو أغلق تطبيق تيليجرام المصغر وافتحه.', 'صديقك لا يستطيع الانضمام: تأكد من فتح اللعبة نفسها وتحقق من الرمز حرفًا حرفًا واسأل المضيف إن كانت الغرفة نشطة.', 'فُقدت الغرفة: استخدم إعادة الانضمام إن توفرت، وإلا اطلب الرمز الحالي أو أنشئ غرفة جديدة.', 'الكاميرا أو الميكروفون لا يعملان: تحقق من أذونات تيليجرام وiPhone وأغلق التطبيقات الأخرى التي تستخدم الكاميرا ثم افتح الاستوديو.', 'إرسال المهمة قيد الانتظار: انتظر المراجعة وتحقق من الحالة لاحقًا. لا ترسل طلبًا مكررًا.', 'المكافأة أو الشراء غير واضح: راجع الرصيد وسجل المعاملات ثم تواصل مع الدعم باسم الشاشة والوقت التقريبي. لا تشارك كلمة مرور أو مفتاحًا سريًا.'] },
+    fairplay: { title: '١٤. العب بنزاهة واحمِ حسابك', intro: 'ساعد في جعل Street Life ممتعًا للجميع واحمِ تقدمك.', steps: ['لا تستخدم الغش أو تستغل الأخطاء أو تنتحل شخصية لاعب آخر أو تضايق الآخرين في الغرف والمحادثات.', 'شارك رموز الغرف مع من تريد دعوتهم فقط، ولا تنشر معلومات خاصة في المحادثات العامة.', 'اتبع تعليمات التطبيق الرسمية للمكافآت والمهام والمدفوعات. لا ينبغي لأحد طلب رمز دخول تيليجرام أو عبارة استرداد المحفظة.', 'إذا بدا شيء غير صحيح فتوقف وتواصل مع الدعم بدلاً من محاولة استغلاله.'] }
+  };
+  const displayChapters = isArabic
+    ? chapters.map((chapter) => ({ ...chapter, ...(arabicGuide[chapter.id] || {}) }))
+    : isPortuguese
+      ? chapters.map((chapter) => ({ ...chapter, ...(portugueseGuide[chapter.id] || {}) }))
+      : chapters;
   if (!isOpen) return null;
 
   return (
@@ -299,14 +318,14 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
       >
         <header className="shrink-0 flex items-center justify-between gap-3 p-4 border-b border-white/10 bg-[#151517]">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#FFD700]">{isPortuguese ? 'Manual do jogador Street Life' : 'Street Life Player Handbook'}</p>
-            <h2 id="how-to-play-title" className="text-xl font-black text-white mt-1">{isPortuguese ? 'Guia completo: como jogar' : 'Complete How to Play Guide'}</h2>
-            <p className="text-xs text-gray-400 mt-1">{isPortuguese ? 'Ajuda passo a passo para todo o aplicativo.' : 'Step-by-step help for the whole app.'}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#FFD700]">{isArabic ? t('guide_handbook') : isPortuguese ? 'Manual do jogador Street Life' : t('guide_handbook', 'Street Life Player Handbook')}</p>
+            <h2 id="how-to-play-title" className="text-xl font-black text-white mt-1">{isArabic ? t('guide_title') : isPortuguese ? 'Guia completo: como jogar' : t('guide_title', 'Complete How to Play Guide')}</h2>
+            <p className="text-xs text-gray-400 mt-1">{isArabic ? t('guide_subtitle') : isPortuguese ? 'Ajuda passo a passo para todo o aplicativo.' : t('guide_subtitle', 'Step-by-step help for the whole app.')}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close How to Play"
+            aria-label={t("close", "Close") }
             className="w-10 h-10 shrink-0 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center text-white"
           >
             <X className="w-5 h-5" />
@@ -314,7 +333,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
         </header>
 
         <div className="shrink-0 px-4 py-3 border-b border-white/10 bg-[#101012]">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">{isPortuguese ? 'Ir para um tópico' : 'Jump to a topic'}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">{isArabic ? t('guide_jump') : isPortuguese ? 'Ir para um tópico' : t('guide_jump', 'Jump to a topic')}</p>
           <div className="flex gap-2 overflow-x-auto pb-1 touch-pan-x">
             {displayChapters.map((chapter) => (
               <a key={chapter.id} href={'#guide-' + chapter.id} className="shrink-0 rounded-full border border-white/15 bg-white/[0.05] px-3 py-2 text-[10px] font-bold text-gray-200">
@@ -334,7 +353,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
                 <h3 className="text-sm font-extrabold text-white">{title}</h3>
               </div>
               <p className="text-xs leading-relaxed text-gray-300 mb-2">{intro}</p>
-              <GuideIllustration id={id} labels={isPortuguese ? portugueseVisualSteps[id] : undefined} />
+              <GuideIllustration id={id} labels={isPortuguese ? portugueseVisualSteps[id] : isArabic ? ({ start: ['الشاشة الرئيسية', 'مركز الأنشطة', 'اختر قسمًا', 'مرّر للمزيد'], games: ['اضغط الألعاب', 'اختر فئة', 'افتح لعبة', 'اختر الوضع'], multiplayer: ['افتح اللعب الجماعي', 'أنشئ غرفة', 'شارك الرمز', 'اضغط انضمام'], rejoin: ['افتح اللعبة', 'افتح اللعب الجماعي', 'حاول إعادة الانضمام', 'أدخل رمزًا جديدًا'], controls: ['اقرأ التحكم', 'تحرك أو قُد', 'استخدم الأزرار', 'أنه الجولة'], coins: ['افتح شاهد واربح', 'أكمل الفيديو', 'راجع الشروط', 'تحقق من المكافأة'], tasks: ['افتح المهام', 'نفّذ النشاط', 'أرفق الإثبات', 'أرسل للمراجعة'], studio: ['افتح الاستوديو', 'اختر إيقاعًا', 'سجّل واستمع', 'انشر المزيج'], video: ['افتح أداء الفيديو', 'اسمح بالكاميرا والميكروفون', 'سجّل واستعرض', 'انشر الفيديو'], shop: ['افتح المتجر', 'اختر فئة', 'تحقق من السعر', 'اشترِ وجهّز'], bank: ['افتح البنك', 'اختر تبويبًا', 'اقرأ الشروط', 'تحقق من الحالة'], profile: ['افتح الملف الشخصي', 'راجع بياناتك', 'انسخ رابط الدعوة', 'افتح الإعدادات والدعم'], troubleshoot: ['حدد المشكلة', 'تحقق من الاتصال', 'أعد فتح الشاشة', 'تواصل مع الدعم'], fairplay: ['احمِ حسابك', 'شارك الرموز بأمان', 'اتبع القواعد', 'أبلغ عن المشكلات'] } as Record<string, [string,string,string,string]>)[id] : undefined} />
               <ol className="space-y-2 list-decimal pl-4 marker:text-[#FFD700]">
                 {steps.map((step, index) => (
                   <li key={index} className="text-xs leading-relaxed text-gray-300 pl-1">{step}</li>
@@ -345,12 +364,12 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
           <div className="rounded-2xl border border-[#FFD700]/25 bg-[#FFD700]/[0.06] p-3.5">
             <div className="flex items-center gap-2 text-[#FFD700] mb-1">
               <CheckCircle2 className="w-4 h-4" />
-              <p className="text-xs font-black">{isPortuguese ? 'Tutoriais em vídeo em breve' : 'Video tutorials coming later'}</p>
+              <p className="text-xs font-black">{isArabic ? t('guide_video_soon') : isPortuguese ? 'Tutoriais em vídeo em breve' : t('guide_video_soon', 'Video tutorials coming later')}</p>
             </div>
-            <p className="text-xs leading-relaxed text-gray-300">{isPortuguese ? 'Este guia poderá receber links de vídeo. Quando os links dos tutoriais estiverem disponíveis, eles poderão ser adicionados aos capítulos correspondentes.' : 'This guide is ready for video links. When you provide your tutorial links, they can be added to the matching chapters so players can read the steps and watch the demonstration.'}</p>
+            <p className="text-xs leading-relaxed text-gray-300">{isArabic ? t('guide_video_text') : isPortuguese ? 'Este guia poderá receber links de vídeo. Quando os links dos tutoriais estiverem disponíveis, eles poderão ser adicionados aos capítulos correspondentes.' : t('guide_video_text', 'This guide is ready for video links. When you provide your tutorial links, they can be added to the matching chapters so players can read the steps and watch the demonstration.')}</p>
           </div>
           <p className="text-[10px] leading-relaxed text-gray-500 text-center px-2 pb-2">
-            {isPortuguese ? 'Os recursos e requisitos do Street Life podem mudar com as atualizações. Siga sempre as instruções e mensagens mais recentes exibidas em cada tela.' : 'Street Life features and requirements can change with updates. Follow the latest instructions and messages displayed in each screen.'}
+            {isArabic ? t('guide_footer') : isPortuguese ? 'Os recursos e requisitos do Street Life podem mudar com as atualizações. Siga sempre as instruções e mensagens mais recentes exibidas em cada tela.' : t('guide_footer', 'Street Life features and requirements can change with updates. Follow the latest instructions and messages displayed in each screen.')}
           </p>
         </div>
 
@@ -360,7 +379,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
             onClick={onClose}
             className="w-full rounded-xl bg-[#FFD700] text-black font-black text-sm py-3 active:scale-[0.98] transition-transform"
           >
-            {isPortuguese ? 'Entendi — vamos jogar' : 'Got it — let’s play'}
+            {isArabic ? t('guide_done') : isPortuguese ? 'Entendi — vamos jogar' : t('guide_done', 'Got it — let’s play')}
           </button>
         </footer>
       </section>
