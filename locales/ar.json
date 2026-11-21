@@ -44,5 +44,17 @@
   "reward_race": "+١ عملة لكل متر + عملات الطريق",
   "reward_rider": "+١٠٠ عملة لكل توصيل",
   "reward_boxing": "أحزمة البطولة وجوائز كبرى",
-  "reward_hustle": "دخل تلقائي كل ساعة"
+  "reward_hustle": "دخل تلقائي كل ساعة",
+  "games_screen_title": "ألعاب الشوارع",
+  "games_screen_subtitle": "اختر نشاطك • ٨ ألعاب متاحة",
+  "action_3d": "أكشن ثلاثي الأبعاد",
+  "mini_games": "ألعاب مصغّرة",
+  "new": "جديد",
+  "game_street_gang_star": "عصابات الشوارع",
+  "game_turf_war": "حرب السيطرة على المناطق",
+  "game_street_crush": "تحدي الشوارع",
+  "game_street_dice": "نرد الشوارع",
+  "game_street_slot": "ماكينات الشوارع",
+  "game_street_flip": "بطاقات الشوارع",
+  "game_street_shooter": "مقاتل الشوارع"
 }
