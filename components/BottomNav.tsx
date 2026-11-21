@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { NavTab } from '@/types/game';
+import { useLanguage } from '@/src/contexts/LanguageContext';
 import { Mic2, Gamepad2, ShoppingBag, Swords, User, Home } from 'lucide-react';
 
 interface BottomNavProps {
@@ -10,13 +11,14 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+  const { t } = useLanguage();
   const tabs: { id: NavTab; label: string; icon: React.ElementType }[] = [
-    { id: 'STUDIO', label: 'STUDIO', icon: Mic2 },
-    { id: 'GAMES', label: 'GAMES', icon: Gamepad2 },
-    { id: 'SHOP', label: 'SHOP', icon: ShoppingBag },
-    { id: 'WAR', label: 'TOUGH WAR', icon: Swords },
-    { id: 'PROFILE', label: 'PROFILE', icon: User },
-    { id: 'HOME', label: 'HOME', icon: Home },
+    { id: 'STUDIO', label: t('nav_studio', 'STUDIO'), icon: Mic2 },
+    { id: 'GAMES', label: t('nav_games', 'GAMES'), icon: Gamepad2 },
+    { id: 'SHOP', label: t('nav_shop', 'SHOP'), icon: ShoppingBag },
+    { id: 'WAR', label: t('nav_war', 'TOUGH WAR'), icon: Swords },
+    { id: 'PROFILE', label: t('nav_profile', 'PROFILE'), icon: User },
+    { id: 'HOME', label: t('nav_home', 'HOME'), icon: Home },
   ];
 
   return (
