@@ -245,7 +245,7 @@ const visualSteps: Record<string, [string, string, string, string]> = {
   fairplay: ['Protect your login', 'Share room codes safely', 'Follow game rules', 'Report problems']
 };
 
-function GuideIllustration({ id, labels }: { id: string; labels?: [string, string, string, string] }) {
+function GuideIllustration({ id, labels, note }: { id: string; labels?: [string, string, string, string]; note: string }) {
   const steps = labels || visualSteps[id] || visualSteps.start;
   return (
     <div className="my-3 rounded-xl border border-[#FFD700]/20 bg-[#09090b] p-2.5">
@@ -271,7 +271,7 @@ function GuideIllustration({ id, labels }: { id: string; labels?: [string, strin
           );
         })}
       </svg>
-      <p className="mt-1 text-[9px] leading-relaxed text-gray-500">{t('guide_illustration_note', 'Illustration of the action sequence, not a screenshot. The real button layout is shown inside the game screen.')}</p>
+      <p className="mt-1 text-[9px] leading-relaxed text-gray-500">{note}</p>
     </div>
   );
 }
@@ -353,7 +353,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
                 <h3 className="text-sm font-extrabold text-white">{title}</h3>
               </div>
               <p className="text-xs leading-relaxed text-gray-300 mb-2">{intro}</p>
-              <GuideIllustration id={id} labels={isPortuguese ? portugueseVisualSteps[id] : isArabic ? ({ start: ['الشاشة الرئيسية', 'مركز الأنشطة', 'اختر قسمًا', 'مرّر للمزيد'], games: ['اضغط الألعاب', 'اختر فئة', 'افتح لعبة', 'اختر الوضع'], multiplayer: ['افتح اللعب الجماعي', 'أنشئ غرفة', 'شارك الرمز', 'اضغط انضمام'], rejoin: ['افتح اللعبة', 'افتح اللعب الجماعي', 'حاول إعادة الانضمام', 'أدخل رمزًا جديدًا'], controls: ['اقرأ التحكم', 'تحرك أو قُد', 'استخدم الأزرار', 'أنه الجولة'], coins: ['افتح شاهد واربح', 'أكمل الفيديو', 'راجع الشروط', 'تحقق من المكافأة'], tasks: ['افتح المهام', 'نفّذ النشاط', 'أرفق الإثبات', 'أرسل للمراجعة'], studio: ['افتح الاستوديو', 'اختر إيقاعًا', 'سجّل واستمع', 'انشر المزيج'], video: ['افتح أداء الفيديو', 'اسمح بالكاميرا والميكروفون', 'سجّل واستعرض', 'انشر الفيديو'], shop: ['افتح المتجر', 'اختر فئة', 'تحقق من السعر', 'اشترِ وجهّز'], bank: ['افتح البنك', 'اختر تبويبًا', 'اقرأ الشروط', 'تحقق من الحالة'], profile: ['افتح الملف الشخصي', 'راجع بياناتك', 'انسخ رابط الدعوة', 'افتح الإعدادات والدعم'], troubleshoot: ['حدد المشكلة', 'تحقق من الاتصال', 'أعد فتح الشاشة', 'تواصل مع الدعم'], fairplay: ['احمِ حسابك', 'شارك الرموز بأمان', 'اتبع القواعد', 'أبلغ عن المشكلات'] } as Record<string, [string,string,string,string]>)[id] : undefined} />
+              <GuideIllustration id={id} note={t('guide_illustration_note', 'Illustration of the action sequence, not a screenshot. The real button layout is shown inside the game screen.')} labels={isPortuguese ? portugueseVisualSteps[id] : isArabic ? ({ start: ['الشاشة الرئيسية', 'مركز الأنشطة', 'اختر قسمًا', 'مرّر للمزيد'], games: ['اضغط الألعاب', 'اختر فئة', 'افتح لعبة', 'اختر الوضع'], multiplayer: ['افتح اللعب الجماعي', 'أنشئ غرفة', 'شارك الرمز', 'اضغط انضمام'], rejoin: ['افتح اللعبة', 'افتح اللعب الجماعي', 'حاول إعادة الانضمام', 'أدخل رمزًا جديدًا'], controls: ['اقرأ التحكم', 'تحرك أو قُد', 'استخدم الأزرار', 'أنه الجولة'], coins: ['افتح شاهد واربح', 'أكمل الفيديو', 'راجع الشروط', 'تحقق من المكافأة'], tasks: ['افتح المهام', 'نفّذ النشاط', 'أرفق الإثبات', 'أرسل للمراجعة'], studio: ['افتح الاستوديو', 'اختر إيقاعًا', 'سجّل واستمع', 'انشر المزيج'], video: ['افتح أداء الفيديو', 'اسمح بالكاميرا والميكروفون', 'سجّل واستعرض', 'انشر الفيديو'], shop: ['افتح المتجر', 'اختر فئة', 'تحقق من السعر', 'اشترِ وجهّز'], bank: ['افتح البنك', 'اختر تبويبًا', 'اقرأ الشروط', 'تحقق من الحالة'], profile: ['افتح الملف الشخصي', 'راجع بياناتك', 'انسخ رابط الدعوة', 'افتح الإعدادات والدعم'], troubleshoot: ['حدد المشكلة', 'تحقق من الاتصال', 'أعد فتح الشاشة', 'تواصل مع الدعم'], fairplay: ['احمِ حسابك', 'شارك الرموز بأمان', 'اتبع القواعد', 'أبلغ عن المشكلات'] } as Record<string, [string,string,string,string]>)[id] : undefined} />
               <ol className="space-y-2 list-decimal pl-4 marker:text-[#FFD700]">
                 {steps.map((step, index) => (
                   <li key={index} className="text-xs leading-relaxed text-gray-300 pl-1">{step}</li>
