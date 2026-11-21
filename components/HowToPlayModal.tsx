@@ -3,6 +3,7 @@
 import React from 'react';
 import { useLanguage } from '@/src/contexts/LanguageContext';
 import { portugueseGuide, portugueseVisualSteps } from './howToPlayPortuguese';
+import { getHowToPlayTranslation } from './howToPlayTranslations';
 import { X, Home, Gamepad2, Users, Coins, Mic2, ShieldCheck, ClipboardList, Wallet, ShoppingBag, UserCircle, Eye, Car, RotateCcw, Camera, CheckCircle2, HelpCircle } from 'lucide-react';
 
 type HowToPlayModalProps = {
@@ -303,6 +304,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
     ...chapter,
     ...(isArabic ? (arabicGuide[chapter.id] || {}) : {}),
     ...(isPortuguese ? (portugueseGuide[chapter.id] || {}) : {}),
+    ...(getHowToPlayTranslation(language, chapter.id) || {}),
   }));
   if (!isOpen) return null;
 
