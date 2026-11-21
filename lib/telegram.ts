@@ -148,13 +148,6 @@ export async function validateTelegramChannelBoost(
 
   let targetChannel = TELEGRAM_OFFICIAL_CHANNELS.mainChannel;
 
-  if (
-    cleanChannel.includes('proof') ||
-    cleanChannel.includes('payment') ||
-    cleanChannel.includes('100249102938')
-  ) {
-    targetChannel = TELEGRAM_OFFICIAL_CHANNELS.paymentProof;
-  }
 
   await new Promise((resolve) => setTimeout(resolve, 600));
 
