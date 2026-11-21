@@ -41,7 +41,6 @@ const SOCIAL_TASKS: TaskDefinition[] = [
   { key: 'task_follow_x', title: 'Follow X Account', url: 'https://x.com/streethustle0?s=11', reward: 50, platform: 'X' },
   { key: 'task_join_channel', title: 'Join Telegram Channel', url: 'https://t.me/Streethustlegame2', reward: 50, platform: 'Telegram' },
   { key: 'task_join_group', title: 'Join Group Chat', url: 'https://t.me/Streethustlechatroom', reward: 50, platform: 'Telegram' },
-  { key: 'task_payment_proof', title: 'Join Payment Proof Channel', url: 'https://t.me/Streethustlepaymentproof', reward: 50, platform: 'Telegram' },
   { key: 'task_stars_group', title: 'Join Stars Group', url: 'https://t.me/Streetlifestars', reward: 50, platform: 'Telegram' },
   { key: 'task_sub_youtube', title: 'Subscribe YouTube Channel', url: 'https://youtube.com/@StreetLifeGame', reward: 50, platform: 'YouTube' },
 ];
