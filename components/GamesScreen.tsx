@@ -101,10 +101,10 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
         <div>
           <div className="flex items-center gap-2">
             <Gamepad2 className="w-6 h-6 text-[#FFD700] drop-shadow-[0_0_8px_#FFD700]" />
-            <h1 className="text-2xl font-black italic tracking-tight text-white uppercase">STREET GAMES</h1>
+            <h1 className="text-2xl font-black italic tracking-tight text-white uppercase">{t('games_screen_title', 'STREET GAMES')}</h1>
           </div>
           <p className="text-xs font-semibold text-[#FFD700]/90 tracking-wide mt-0.5">
-            Choose Your Hustle • 8 Street Games Available
+            {t('games_screen_subtitle', 'Choose Your Hustle • 8 Street Games Available')}
           </p>
         </div>
 
@@ -130,7 +130,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
           }`}
         >
           <Flame className="w-4 h-4 fill-current" />
-          <span>3D ACTION (4)</span>
+          <span>{t('action_3d', '3D ACTION')} (4)</span>
         </button>
 
         <button
@@ -146,9 +146,9 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
           }`}
         >
           <Dices className="w-4 h-4 fill-current" />
-          <span>MINI-GAMES (4)</span>
+          <span>{t('mini_games', 'MINI-GAMES')} (4)</span>
           <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-red-500 text-white font-extrabold text-[9px] shadow-sm animate-pulse">
-            NEW
+            {t('new', 'NEW')}
           </span>
         </button>
       </div>
@@ -185,7 +185,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
             <div className="flex items-end justify-between relative z-10">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-1.5">
-                  STREET GANG STAR
+                  {t('game_street_gang_star', 'Street Gang Star').toUpperCase()}
                 </h2>
                 <p className="text-xs text-gray-300 mt-0.5">
                   Stop street robbers • Drive vehicles • Gun Shop &amp; Cover system
@@ -228,7 +228,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
             <div className="flex items-end justify-between relative z-10">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-1.5">
-                  STREET RACE
+                  {t('game_street_race', 'Street Race').toUpperCase()}
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">Race for Coins • Overtake traffic & trigger Nitro</p>
               </div>
@@ -269,7 +269,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
             <div className="flex items-end justify-between relative z-10">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-1.5">
-                  STREET RIDER
+                  {t('game_street_rider_delivery', 'Street Rider Delivery').toUpperCase()}
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">Deliver Packages • Computer Village to Lekki</p>
               </div>
@@ -308,7 +308,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
             <div className="flex items-end justify-between relative z-10">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-1.5">
-                  STREET SHOOTER
+                  {t('game_street_shooter', 'Street Shooter').toUpperCase()}
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">Boss Battles & Turf Defense • Heavy plasma weapons</p>
               </div>
@@ -352,7 +352,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
             <div className="flex items-end justify-between relative z-10">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-1.5">
-                  TURF WAR
+                  {t('game_turf_war', 'Turf War').toUpperCase()}
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">Lagos Street Brawler • Capture Zones A, B, C • Bosses</p>
               </div>
@@ -403,7 +403,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
             <div className="flex items-end justify-between relative z-10">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-1.5">
-                  STREET CRUSH
+                  {t('game_street_crush', 'Street Crush').toUpperCase()}
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Match 3 (10 SC) • Match 4 (25 SC + Bomb) • Match 5 (50 SC + Rainbow)
@@ -446,7 +446,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
             <div className="flex items-end justify-between relative z-10">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-1.5">
-                  STREET DICE
+                  {t('game_street_dice', 'Street Dice').toUpperCase()}
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Bet 100/200/500 SC • 1st = 4X Stake • Kick opponents to base
@@ -491,7 +491,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
             <div className="flex items-end justify-between relative z-10">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-1.5">
-                  STREET SLOT
+                  {t('game_street_slot', 'Street Slot').toUpperCase()}
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
                   20 SC / Spin • Shoes, Caps, Chains, Cars, Houses, Dollars
@@ -542,7 +542,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
             <div className="flex items-end justify-between relative z-10">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-1.5">
-                  STREET FLIP
+                  {t('game_street_flip', 'Street Flip').toUpperCase()}
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
                   10 SC / Pair • Finish under 30s for +100 SC Bonus • 3 Levels
