@@ -8,8 +8,9 @@ import es from '../../locales/es.json';
 import ru from '../../locales/ru.json';
 import pt from '../../locales/pt.json';
 import id from '../../locales/id.json';
+import ar from '../../locales/ar.json';
 
-export type LanguageCode = 'en' | 'pcm' | 'fr' | 'es' | 'ru' | 'pt' | 'id';
+export type LanguageCode = 'en' | 'pcm' | 'fr' | 'es' | 'ru' | 'pt' | 'id' | 'ar';
 
 export interface LanguageOption {
   code: LanguageCode;
@@ -26,7 +27,8 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'es', label: 'Español', flag: '🇪🇸', sublabel: 'Spanish' },
   { code: 'ru', label: 'Русский', flag: '🇷🇺', sublabel: 'Russian' },
   { code: 'pt', label: 'Português', flag: '🇵🇹', sublabel: 'Portuguese' },
-  { code: 'id', label: 'Indonesia', flag: '🇮🇩', sublabel: 'Bahasa Indonesia' },
+  { code: 'id', label: 'Bahasa Indonesia', flag: '🇮🇩', sublabel: 'Indonesian' },
+  { code: 'ar', label: 'العربية', flag: '🇸🇦', sublabel: 'Arabic (right-to-left)' },
 ];
 
 const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
@@ -37,6 +39,7 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   ru,
   pt,
   id,
+  ar,
 };
 
 /**
@@ -144,7 +147,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const setLanguage = useCallback((lang: LanguageCode) => {
     setLanguageState(lang);
     try {
-      localStorage.setItem('street_lang', lang);
+      localStorage.setItem('street_lang', lang);\n      if (typeof document !== 'undefined') {\n        document.documentElement.lang = lang;\n        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';\n        document.documentElement.dataset.language = lang;\n      }
     } catch {}
   }, []);
 
