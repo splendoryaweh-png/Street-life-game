@@ -296,11 +296,14 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
     troubleshoot: { title: '١٣. المشكلات الشائعة وما يمكنك فعله', intro: 'جرّب هذه الخطوات قبل تكرار عملية شراء أو إرسال أو إنشاء غرفة.', steps: ['الزر لا يستجيب: انتظر ثوانٍ وتحقق من الاتصال ومرّر حتى يظهر الزر بالكامل ثم حاول مرة واحدة.', 'اللعبة لا تُحمّل: ارجع إلى الألعاب وافتحها مجددًا، أو أغلق تطبيق تيليجرام المصغر وافتحه.', 'صديقك لا يستطيع الانضمام: تأكد من فتح اللعبة نفسها وتحقق من الرمز حرفًا حرفًا واسأل المضيف إن كانت الغرفة نشطة.', 'فُقدت الغرفة: استخدم إعادة الانضمام إن توفرت، وإلا اطلب الرمز الحالي أو أنشئ غرفة جديدة.', 'الكاميرا أو الميكروفون لا يعملان: تحقق من أذونات تيليجرام وiPhone وأغلق التطبيقات الأخرى التي تستخدم الكاميرا ثم افتح الاستوديو.', 'إرسال المهمة قيد الانتظار: انتظر المراجعة وتحقق من الحالة لاحقًا. لا ترسل طلبًا مكررًا.', 'المكافأة أو الشراء غير واضح: راجع الرصيد وسجل المعاملات ثم تواصل مع الدعم باسم الشاشة والوقت التقريبي. لا تشارك كلمة مرور أو مفتاحًا سريًا.'] },
     fairplay: { title: '١٤. العب بنزاهة واحمِ حسابك', intro: 'ساعد في جعل Street Life ممتعًا للجميع واحمِ تقدمك.', steps: ['لا تستخدم الغش أو تستغل الأخطاء أو تنتحل شخصية لاعب آخر أو تضايق الآخرين في الغرف والمحادثات.', 'شارك رموز الغرف مع من تريد دعوتهم فقط، ولا تنشر معلومات خاصة في المحادثات العامة.', 'اتبع تعليمات التطبيق الرسمية للمكافآت والمهام والمدفوعات. لا ينبغي لأحد طلب رمز دخول تيليجرام أو عبارة استرداد المحفظة.', 'إذا بدا شيء غير صحيح فتوقف وتواصل مع الدعم بدلاً من محاولة استغلاله.'] }
   };
-  const displayChapters = isArabic
-    ? chapters.map((chapter) => ({ ...chapter, ...(arabicGuide[chapter.id] || {}) }))
-    : isPortuguese
-      ? chapters.map((chapter) => ({ ...chapter, ...(portugueseGuide[chapter.id] || {}) }))
-      : chapters;
+  // Resolve the chapter copy from the live player language on every render.
+  // The dialog is keyed by language below so an open handbook cannot retain
+  // chapter text from the previous language after the player changes settings.
+  const displayChapters = chapters.map((chapter) => ({
+    ...chapter,
+    ...(isArabic ? (arabicGuide[chapter.id] || {}) : {}),
+    ...(isPortuguese ? (portugueseGuide[chapter.id] || {}) : {}),
+  }));
   if (!isOpen) return null;
 
   return (
@@ -310,6 +313,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
       onClick={onClose}
     >
       <section
+        key={language}
         role="dialog"
         aria-modal="true"
         aria-labelledby="how-to-play-title"
