@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useLanguage } from '@/src/contexts/LanguageContext';
 import {
   Mic,
   Play,
@@ -454,7 +455,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       setRecordedBeatId(beat.id);
       setHasPreviewed(false);
       setIsPreviewPlaying(false);
-      onToast('🎤 Vocal recording captured! Click PREVIEW to listen before posting.');
+      onToast(`🎤 ${t('studio_recorded', 'Vocal recording captured!')} ${t('studio_preview_prompt', 'Click PREVIEW to listen before posting.')}`);
     };
 
     // 3. Start MediaRecorder if a stream is available, otherwise fall back directly to timer recording
@@ -639,7 +640,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
   // POST FINAL SONG: upload the actual recorded audio to the official Telegram group.
   const handlePostSong = async (beat: BeatDefinition) => {
     if (!hasPreviewed) {
-      onToast('⚠️ Listen first before posting! Click PREVIEW to verify your mix.');
+      onToast(`⚠️ ${t('studio_listen_first_short', 'Listen first before posting! Click PREVIEW to verify your mix.')}`);
       return;
     }
     if (!recordedBlobUrl || recordedBeatId !== beat.id) {
@@ -1097,7 +1098,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
                   }`}
                 >
                   {isTesting ? <Square className="w-4 h-4 fill-black" /> : <Play className="w-4 h-4 fill-[#FFD700]" />}
-                  <span>{isTesting ? 'STOP' : 'TEST'}</span>
+                  <span>{isTesting ? t('studio_stop', 'STOP') : t('studio_test', 'TEST')}</span>
                 </button>
 
                 {/* 2. RECORD BUTTON */}
@@ -1117,7 +1118,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
                   }`}
                 >
                   <Mic className="w-4 h-4" />
-                  <span>{isRecording ? 'STOP' : 'RECORD'}</span>
+                  <span>{isRecording ? t('studio_stop', 'STOP') : t('studio_record', 'RECORD')}</span>
                 </button>
 
                 {/* 3. PREVIEW BUTTON (MANDATORY BEFORE POST) */}
@@ -1139,7 +1140,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
                   }`}
                 >
                   <Headphones className="w-4 h-4" />
-                  <span>PREVIEW</span>
+                  <span>{t('studio_preview', 'PREVIEW')}</span>
                 </button>
 
                 {/* 4. POST BUTTON (Download song + open Telegram group) */}
@@ -1158,7 +1159,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
                 >
                   <Share2 className="w-4 h-4" />
                   <span>
-                    {postCooldownSeconds > 0 ? `${postCooldownSeconds}s` : 'POST'}
+                    {postCooldownSeconds > 0 ? `${postCooldownSeconds}s` : t('studio_post', 'POST')}
                   </span>
                 </button>
               </div>
@@ -1167,7 +1168,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
               {hasRecording && !hasPreviewed && (
                 <div className="mt-2 text-[11px] font-bold text-amber-300/90 flex items-center justify-center gap-1.5 bg-amber-500/10 py-1 rounded-lg border border-amber-500/20">
                   <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Listen first before posting (Click PREVIEW to enable POST button)</span>
+                  <span>{t('studio_listen_first', 'Listen first before posting (Click PREVIEW to enable POST button)')}</span>
                 </div>
               )}
             </div>
@@ -1184,7 +1185,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
             className="w-full py-3.5 rounded-2xl bg-[#171717] hover:bg-[#202020] text-xs font-black text-[#FFD700] border border-[#FFD700]/30 flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg"
           >
             <ChevronDown className="w-4 h-4" />
-            <span>Load More Beats (+2)</span>
+            <span>{t('studio_load_more', 'Load More Beats (+2)')}</span>
           </button>
         </div>
       )}
