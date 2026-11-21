@@ -89,58 +89,58 @@ export function GameCards({
   const games = [
     {
       id: 'galaxy_shooter',
-      title: 'Street Galaxy Shooter',
-      tagline: '100 levels • 3 enemy types • Dual Gun • Boss bounty',
+      title: t('game_street_galaxy_shooter', 'Street Galaxy Shooter'),
+      tagline: t('tagline_galaxy', '100 levels • 3 enemy types • Dual Gun • Boss bounty'),
       icon: Crosshair,
       status: t('play'),
       isPlayable: true,
-      rewardHint: '+10/wave • +50 Boss kill',
+      rewardHint: t('reward_galaxy', '+10/wave • +50 Boss kill'),
       borderClass: 'border-2 border-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.18)] bg-gradient-to-b from-[#1c1c1c] to-[#121212]',
       action: onPlayShooter,
     },
     {
       id: 'street_race',
-      title: 'Street Race',
-      tagline: '3D follow camera • 3 lanes • Car garage & coin grab',
+      title: t('game_street_race', 'Street Race'),
+      tagline: t('tagline_race', '3D follow camera • 3 lanes • Car garage & coin grab'),
       icon: Flag,
       status: t('play'),
       isPlayable: true,
-      rewardHint: '+1 coin/meter + road coins',
+      rewardHint: t('reward_race', '+1 coin/meter + road coins'),
       borderClass: 'border-2 border-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.18)] bg-gradient-to-b from-[#1c1c1c] to-[#121212]',
       action: onPlayRace,
     },
     {
       id: 'rider_delivery',
-      title: 'Street Rider Delivery',
-      tagline: 'Courier mission: 2km delivery in 60s • Bike garage',
+      title: t('game_street_rider_delivery', 'Street Rider Delivery'),
+      tagline: t('tagline_rider', 'Courier mission: 2km delivery in 60s • Bike garage'),
       icon: Bike,
       status: t('play'),
       isPlayable: true,
-      rewardHint: '+100 coins/delivery',
+      rewardHint: t('reward_rider', '+100 coins/delivery'),
       borderClass: 'border-2 border-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.18)] bg-gradient-to-b from-[#1c1c1c] to-[#121212]',
       action: onPlayRider,
     },
     {
       id: 'street_boxing',
-      title: 'Street Boxing',
-      tagline: 'Underground brawls & knockout combos',
+      title: t('game_street_boxing', 'Street Boxing'),
+      tagline: t('tagline_boxing', 'Underground brawls & knockout combos'),
       icon: Trophy,
       status: 'COMING_SOON',
       isPlayable: false,
-      rewardHint: 'Champion belts & jackpot purses',
+      rewardHint: t('reward_boxing', 'Champion belts & jackpot purses'),
       borderClass: 'border border-white/10 bg-[#151515]',
-      action: () => onComingSoonGame('Street Boxing'),
+      action: () => onComingSoonGame(t('game_street_boxing', 'Street Boxing')),
     },
     {
       id: 'street_hustle',
-      title: 'Street Hustle',
-      tagline: 'Passive rackets, businesses & syndicate empire',
+      title: t('game_street_hustle', 'Street Hustle'),
+      tagline: t('tagline_hustle', 'Passive rackets, businesses & syndicate empire'),
       icon: Flame,
       status: 'COMING_SOON',
       isPlayable: false,
-      rewardHint: 'Hourly offline revenue streams',
+      rewardHint: t('reward_hustle', 'Hourly offline revenue streams'),
       borderClass: 'border border-white/10 bg-[#151515]',
-      action: () => onComingSoonGame('Street Hustle'),
+      action: () => onComingSoonGame(t('game_street_hustle', 'Street Hustle')),
     },
   ];
 
@@ -150,11 +150,11 @@ export function GameCards({
         <div className="flex items-center gap-2">
           <Gamepad2 className="w-4 h-4 text-[#FFD700]" />
           <h2 className="text-sm font-bold text-white tracking-wide">
-            Street Games Arena
+            {t('arena_title', 'Street Games Arena')}
           </h2>
         </div>
         <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full tracking-wider uppercase font-bold">
-          3 Games Ready ⚡
+          {t('games_ready', '3 Games Ready')} ⚡
         </span>
       </div>
 
@@ -192,7 +192,7 @@ export function GameCards({
                       {game.isPlayable && (
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-[#FFD700] text-black">
                           <Sparkles className="w-2.5 h-2.5" />
-                          Live
+                          {t('live', 'Live')}
                         </span>
                       )}
                     </div>
@@ -229,7 +229,7 @@ export function GameCards({
                       className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#9CA3AF] font-bold text-[11px] tracking-wide border border-white/10 transition-colors flex items-center gap-1 cursor-pointer"
                     >
                       <Lock className="w-3 h-3 text-[#9CA3AF]" />
-                      Coming Soon
+                      {t('coming_soon', 'Coming Soon')}
                     </button>
                   )}
                 </div>
