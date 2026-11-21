@@ -108,7 +108,7 @@ export function StudioBeats({
   onSelectForRecording,
   onUpgradeStudioLevel
 }: StudioBeatsProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [upgradedLevelOverride, setUpgradedLevelOverride] = useState<number | null>(() => {
     if (typeof window !== 'undefined') {
@@ -122,6 +122,27 @@ export function StudioBeats({
   const studioLevel = upgradedLevelOverride !== null ? upgradedLevelOverride : gameState?.studioLevel ?? 0;
   const playerCoins = Math.max(0, (gameState?.streetCoin ?? 50000) - spentCoinsDelta);
   const dailyRecordLimit = 2 + Math.max(0, Math.min(4, studioLevel));
+  const localizedBeatName = (beat: LongBeat) => language === 'ar' ? ({
+    long_beat_1: 'قيادة ليلية في لاغوس',
+    long_beat_2: 'إنجيل الحي',
+    long_beat_3: 'كفاح سوق أوجا',
+    long_beat_4: 'ملكة الدراجات',
+    long_beat_5: 'مطاردة ٧ كيلومترات',
+    long_beat_6: 'نشيد حرب المناطق',
+    long_beat_7: 'بلوز مقامر النرد',
+    long_beat_8: 'وضع الشبح'
+  }[beat.id] || beat.name) : beat.name;
+  const localizedBeatGenre = (beat: LongBeat) => language === 'ar' ? ({
+    long_beat_1: 'أفرو فيوجن × دريل',
+    long_beat_2: 'أفرو ستريت × تراب سول',
+    long_beat_3: 'أمابيانو × الشارع',
+    long_beat_4: 'لو-فاي × أفرو آر أند بي',
+    long_beat_5: 'دريل سريع',
+    long_beat_6: 'دريل الحرب × أوركسترا',
+    long_beat_7: 'فانك الشارع',
+    long_beat_8: 'تراب داكن × أجواء محيطية'
+  }[beat.id] || beat.genre) : beat.genre;
+
 
   const [currentBeatId, setCurrentBeatId] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -1018,8 +1039,8 @@ export function StudioBeats({
           </div>
 
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-black text-white truncate">{currentBeat.name}</h2>
-            <p className="text-xs font-bold text-[#FFD700] truncate">{currentBeat.genre}</p>
+            <h2 className="text-lg font-black text-white truncate">{localizedBeatName(currentBeat)}</h2>
+            <p className="text-xs font-bold text-[#FFD700] truncate">{localizedBeatGenre(currentBeat)}</p>
             <p className="text-[11px] text-gray-400 truncate mt-0.5">{currentBeat.story}</p>
           </div>
         </div>
@@ -1297,8 +1318,8 @@ export function StudioBeats({
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-black text-white truncate">{beat.name}</span>
-                  <p className="text-[11px] font-bold text-[#FFD700] mt-0.5 truncate">{beat.genre}</p>
+                  <span className="text-xs font-black text-white truncate">{localizedBeatName(beat)}</span>
+                  <p className="text-[11px] font-bold text-[#FFD700] mt-0.5 truncate">{localizedBeatGenre(beat)}</p>
                 </div>
 
                 <div className="shrink-0">
