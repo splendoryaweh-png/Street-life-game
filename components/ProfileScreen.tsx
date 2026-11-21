@@ -255,7 +255,7 @@ export function ProfileScreen({
         <div className="flex items-center gap-2">
           <Mail className="w-4 h-4 text-[#FFD700]" />
           <h3 className="text-xs font-black uppercase text-white tracking-wider">
-            Email & Identity (Admin Link)
+            {t('profile_email_identity', 'Email & Identity (Admin Link)')}
           </h3>
         </div>
 
@@ -264,7 +264,7 @@ export function ProfileScreen({
             type="email"
             value={emailInput}
             onChange={(e) => setEmailInput(e.target.value)}
-            placeholder="Enter your email"
+            placeholder={t("profile_enter_email", "Enter your email")}
             className="flex-1 px-3.5 py-2.5 rounded-xl bg-black border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
           />
           <button
@@ -276,7 +276,7 @@ export function ProfileScreen({
         </form>
 
         <p className="text-[10px] text-gray-400">
-          Save your personal email to receive system rewards, updates, and notifications.
+          {t('profile_email_help', 'Save your personal email to receive system rewards, updates, and notifications.')}
         </p>
       </div>
 
@@ -284,10 +284,10 @@ export function ProfileScreen({
       <div className="p-4 rounded-3xl bg-[#151515] border border-white/10 mb-4 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-black uppercase text-white tracking-wider">
-            Syndicate Invite Code
+            {t('syndicate_invite_code', 'Syndicate Invite Code')}
           </span>
           <span className="text-[10px] text-gray-400 font-mono">
-            Invited: {gameState.referralsCount || 0}
+            {t('invited', 'Invited')}: {gameState.referralsCount || 0}
           </span>
         </div>
 
@@ -310,14 +310,14 @@ export function ProfileScreen({
           className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 flex items-center justify-center gap-1.5 active:scale-95 transition-all"
         >
           {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-          <span>{copiedLink ? 'Link Copied!' : 'Copy Shareable Telegram Link'}</span>
+          <span>{copiedLink ? t('link_copied', 'Link Copied!') : t('copy_link', 'Copy Shareable Telegram Link')}</span>
         </button>
       </div>
 
       {/* QUICK FEATURE SHORTCUTS */}
       <div className="mb-4 space-y-2">
         <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 px-1">
-          Hustle Empire Modules
+          {t('hustle_empire_modules', 'Hustle Empire Modules')}
         </span>
         <div className="grid grid-cols-2 gap-2">
           {onNavigateTab && (
@@ -331,10 +331,10 @@ export function ProfileScreen({
             >
               <div className="flex items-center justify-between mb-1">
                 <Wallet className="w-4 h-4 text-[#FFD700]" />
-                <span className="text-[9px] font-mono text-emerald-400 font-bold">ACTIVE</span>
+                <span className="text-[9px] font-mono text-emerald-400 font-bold">{t('active', 'ACTIVE')}</span>
               </div>
-              <div className="text-xs font-black text-white">Street Bank</div>
-              <div className="text-[10px] text-gray-400">Vault &amp; Payouts</div>
+              <div className="text-xs font-black text-white">{t('street_bank', 'Street Bank')}</div>
+              <div className="text-[10px] text-gray-400">{t('vault_payouts', 'Vault & Payouts')}</div>
             </button>
           )}
 
@@ -351,8 +351,8 @@ export function ProfileScreen({
                 <CheckSquare className="w-4 h-4 text-cyan-400" />
                 <span className="text-[9px] font-mono text-cyan-300 font-bold">10 TASKS</span>
               </div>
-              <div className="text-xs font-black text-white">Tasks &amp; Bounties</div>
-              <div className="text-[10px] text-gray-400">Earn up to 5k SC</div>
+              <div className="text-xs font-black text-white">{t('tasks_bounties', 'Tasks & Bounties')}</div>
+              <div className="text-[10px] text-gray-400">{t('earn_up_to', 'Earn up to 5k SC')}</div>
             </button>
           )}
 
@@ -369,8 +369,8 @@ export function ProfileScreen({
                 <Tv className="w-4 h-4 text-purple-400" />
                 <span className="text-[9px] font-mono text-purple-300 font-bold">+10 SC</span>
               </div>
-              <div className="text-xs font-black text-white">Watch &amp; Earn</div>
-              <div className="text-[10px] text-gray-400">Video Sponsors</div>
+              <div className="text-xs font-black text-white">{t('watch_earn', 'Watch & Earn')}</div>
+              <div className="text-[10px] text-gray-400">{t('video_sponsors', 'Video Sponsors')}</div>
             </button>
           )}
 
@@ -383,8 +383,8 @@ export function ProfileScreen({
               <Gift className="w-4 h-4 text-emerald-400" />
               <span className="text-[9px] font-mono text-emerald-300 font-bold">FREE</span>
             </div>
-            <div className="text-xs font-black text-white">Daily Free Vault</div>
-            <div className="text-[10px] text-gray-400">Free Nitro &amp; Spins</div>
+            <div className="text-xs font-black text-white">{t('daily_free_vault', 'Daily Free Vault')}</div>
+            <div className="text-[10px] text-gray-400">{t('free_nitro_spins', 'Free Nitro & Spins')}</div>
           </Link>
         </div>
       </div>
