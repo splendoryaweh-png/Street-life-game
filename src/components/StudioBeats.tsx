@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useLanguage } from '@/src/contexts/LanguageContext';
 import {
   Play, Pause, Square, RotateCcw, RotateCw, SkipBack, SkipForward,
   Volume2, VolumeX, Volume1, Lock, Disc3, Clock, Coins, CheckCircle2,
@@ -107,6 +108,7 @@ export function StudioBeats({
   onSelectForRecording,
   onUpgradeStudioLevel
 }: StudioBeatsProps) {
+  const { t, language } = useLanguage();
 
   const [upgradedLevelOverride, setUpgradedLevelOverride] = useState<number | null>(() => {
     if (typeof window !== 'undefined') {
@@ -1169,8 +1171,8 @@ export function StudioBeats({
               className={`py-2.5 px-2 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-1.5 ${dailyRecordCount>=dailyRecordLimit && !isRecording?'bg-neutral-800 text-neutral-500 opacity-60': isRecording?'bg-red-600 text-white animate-pulse':'bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white'}`}
             >
               {isRecording
-                ? <><Square className="w-3.5 h-3.5 fill-white"/><span>Stop</span></>
-                : <><Mic className="w-3.5 h-3.5"/><span>Record</span></>
+                ? <><Square className="w-3.5 h-3.5 fill-white"/><span>{t('studio_stop', 'Stop')}</span></>
+                : <><Mic className="w-3.5 h-3.5"/><span>{t('studio_record', 'Record')}</span></>
               }
             </button>
 
@@ -1180,7 +1182,7 @@ export function StudioBeats({
               className="py-2.5 px-2 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
             >
               <Play className="w-3.5 h-3.5"/>
-              <span>Preview Mix</span>
+              <span>{t('studio_preview_mix', 'Preview Mix')}</span>
             </button>
 
             <button
@@ -1189,7 +1191,7 @@ export function StudioBeats({
               className="py-2.5 px-2 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-black"
             >
               <Share2 className="w-3.5 h-3.5"/>
-              <span>Post Mix</span>
+              <span>{t('studio_post_mix', 'Post Mix')}</span>
             </button>
           </div>
         </div>
@@ -1203,9 +1205,9 @@ export function StudioBeats({
             </div>
 
             <div>
-              <span className="text-xs font-black uppercase text-white">VIDEO FREESTYLE</span>
+              <span className="text-xs font-black uppercase text-white">{t('studio_video_freestyle', 'VIDEO FREESTYLE')}</span>
               <p className="text-[10px] text-gray-400">
-                {isVideoFreestyle?'Camera records with mixed beat+voice':'Enable camera for video'}
+                {isVideoFreestyle ? t('studio_camera_recording', 'Camera records with mixed beat+voice') : t('studio_enable_camera_video', 'Enable camera for video')}
               </p>
             </div>
           </div>
@@ -1215,7 +1217,7 @@ export function StudioBeats({
             onClick={isVideoFreestyle ? handleDisableCamera : handleEnableCamera}
             className={`px-3 py-2 rounded-xl text-xs font-black uppercase pointer-events-auto active:scale-95 ${isVideoFreestyle?'bg-red-500 text-white':'bg-[#FFD700] text-black'}`}
           >
-            {isVideoFreestyle ? 'Close Camera' : 'Enable Camera'}
+            {isVideoFreestyle ? t('studio_close_camera', 'Close Camera') : t('studio_enable_camera', 'Enable Camera')}
           </button>
         </div>
 
@@ -1232,14 +1234,14 @@ export function StudioBeats({
             <div className="absolute inset-0 overflow-y-auto overscroll-y-contain touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
               <div className="relative flex min-h-[100dvh] flex-col">
                 <div className="relative z-[101] flex justify-center p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pointer-events-none">
-                  <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold text-white/90">LIVE CAMERA</span>
+                  <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold text-white/90">{t('studio_live_camera', 'LIVE CAMERA')}</span>
                 </div>
                 {cameraError && <div role="alert" className="relative z-[102] mx-3 mt-2 rounded-lg bg-red-950/90 p-2 text-xs font-semibold text-white">{cameraError}</div>}
                 <div className="min-h-[30vh] flex-1" aria-hidden="true" />
                 <div className="relative z-[101] flex flex-col items-center gap-2 px-3 pt-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/90 via-black/55 to-transparent">
                   <div className="flex w-full max-w-sm flex-wrap items-center justify-center gap-2">
                     <button type="button" onClick={handleSwitchCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
-                      <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5"/> Flip</span>
+                      <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5"/> {t('studio_flip', 'Flip')}</span>
                     </button>
                     <button type="button" onClick={() => handleRecordBeat(currentBeat)} disabled={dailyRecordCount >= dailyRecordLimit && !isRecording} className={"pointer-events-auto min-w-20 rounded-xl px-3 py-3 text-[11px] font-black uppercase shadow-xl active:scale-95 disabled:opacity-40 " + (isRecording ? 'bg-red-600 text-white' : 'bg-[#FFD700] text-black')} aria-label={isRecording ? 'Stop recording' : 'Start recording'}>
                       {isRecording ? 'Stop' : 'Record'}
@@ -1301,7 +1303,7 @@ export function StudioBeats({
 
                 <div className="shrink-0">
                   {beat.isFree
-                    ? <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black">FREE</span>
+                    ? <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black">{t('free', 'FREE')}</span>
                     : <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black">LVL {beat.requiredStudioLevel}</span>
                   }
                 </div>
@@ -1319,7 +1321,7 @@ export function StudioBeats({
                   onClick={()=>handleRecordBeat(beat)}
                   className={`py-2 px-1 rounded-xl text-xs font-black uppercase ${isBeatRecordingActive?'bg-red-600 text-white animate-pulse':'bg-red-500/20 text-red-300'}`}
                 >
-                  {isBeatRecordingActive?`Stop (${formatRecordingTimer(recordingSeconds)})`:'Record Mix'}
+                  {isBeatRecordingActive?`Stop (${formatRecordingTimer(recordingSeconds)})`:t('studio_record_mix', 'Record Mix')}
                 </button>
 
                 <button
@@ -1337,7 +1339,7 @@ export function StudioBeats({
       {showDailyLimitModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-[#16161a] border-2 border-red-500/70 rounded-3xl p-6 text-center">
-            <h3 className="text-lg font-black text-white uppercase mb-2">Daily Limit Reached</h3>
+            <h3 className="text-lg font-black text-white uppercase mb-2">{t('studio_daily_limit', 'Daily Limit Reached')}</h3>
             <p className="text-sm font-bold text-amber-300">{dailyRecordLimit} recordings per day</p>
             <button
               onClick={()=>setShowDailyLimitModal(false)}
