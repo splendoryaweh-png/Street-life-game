@@ -1,29 +1,16 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseServiceClient, verifyTelegramInitData } from '@/lib/taskAuth';
+import { createSupabaseServiceClient, verifyTelegramInitData, isStreetLifeAdmin } from '@/lib/taskAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function isConfiguredAdmin(telegramId: number): boolean {
-  const configured =
-    process.env.STREETLIFE_ADMIN_TELEGRAM_IDS ||
-    process.env.ADMIN_TELEGRAM_IDS ||
-    process.env.ADMIN_TELEGRAM_ID ||
-    '';
-
-  return configured
-    .split(',')
-    .map((id) => id.trim())
-    .filter(Boolean)
-    .includes(String(telegramId));
-}
 
 export async function GET(request: Request) {
   try {
     const initData = request.headers.get('x-telegram-init-data') || '';
     const admin = verifyTelegramInitData(initData);
 
-    if (!isConfiguredAdmin(admin.id)) {
+    if (!isStreetLifeAdmin(admin.id)) {
       return NextResponse.json({ error: 'Access denied. Admin only.' }, { status: 403 });
     }
 
