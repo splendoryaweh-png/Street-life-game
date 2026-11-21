@@ -44,5 +44,17 @@
   "reward_race": "+1 монета/метр + дорожные монеты",
   "reward_rider": "+100 монет за доставку",
   "reward_boxing": "Чемпионские пояса и джекпоты",
-  "reward_hustle": "Пассивный доход каждый час"
+  "reward_hustle": "Пассивный доход каждый час",
+  "games_screen_title": "УЛИЧНЫЕ ИГРЫ",
+  "games_screen_subtitle": "Выберите занятие • Доступно 8 игр",
+  "action_3d": "3D-ЭКШЕН",
+  "mini_games": "МИНИ-ИГРЫ",
+  "new": "НОВОЕ",
+  "game_street_gang_star": "Уличная банда",
+  "game_turf_war": "Борьба за район",
+  "game_street_crush": "Уличный вызов",
+  "game_street_dice": "Уличные кости",
+  "game_street_slot": "Уличные слоты",
+  "game_street_flip": "Уличные карты",
+  "game_street_shooter": "Уличный стрелок"
 }
