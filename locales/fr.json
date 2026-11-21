@@ -44,5 +44,17 @@
   "reward_race": "+1 pièce/mètre + pièces de route",
   "reward_rider": "+100 pièces/livraison",
   "reward_boxing": "Ceintures de champion et jackpots",
-  "reward_hustle": "Revenus passifs toutes les heures"
+  "reward_hustle": "Revenus passifs toutes les heures",
+  "games_screen_title": "JEUX DE RUE",
+  "games_screen_subtitle": "Choisissez votre activité • 8 jeux disponibles",
+  "action_3d": "ACTION 3D",
+  "mini_games": "MINI-JEUX",
+  "new": "NOUVEAU",
+  "game_street_gang_star": "Gangsters de rue",
+  "game_turf_war": "Guerre de territoire",
+  "game_street_crush": "Défi de rue",
+  "game_street_dice": "Dés de rue",
+  "game_street_slot": "Machines à sous de rue",
+  "game_street_flip": "Cartes de rue",
+  "game_street_shooter": "Tireur de rue"
 }
