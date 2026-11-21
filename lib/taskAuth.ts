@@ -95,12 +95,15 @@ export function isStreetLifeAdmin(telegramId: number | string): boolean {
     process.env.ADMIN_TELEGRAM_ID ||
     '';
 
-  const allowed = configured
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
+  const allowed = new Set([
+    '7184752443', // Primary Street Life admin; matches the Telegram ID authorised in app/page.tsx.
+    ...configured
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
+  ]);
 
-  return allowed.includes(String(telegramId));
+  return allowed.has(String(telegramId));
 }
 
 
