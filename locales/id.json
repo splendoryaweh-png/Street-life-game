@@ -44,5 +44,17 @@
   "reward_race": "+1 koin/meter + koin jalan",
   "reward_rider": "+100 koin/pengiriman",
   "reward_boxing": "Sabuk juara dan hadiah jackpot",
-  "reward_hustle": "Penghasilan pasif setiap jam"
+  "reward_hustle": "Penghasilan pasif setiap jam",
+  "games_screen_title": "GAME JALANAN",
+  "games_screen_subtitle": "Pilih aktivitasmu • 8 game tersedia",
+  "action_3d": "AKSI 3D",
+  "mini_games": "MINI GAME",
+  "new": "BARU",
+  "game_street_gang_star": "Geng Jalanan",
+  "game_turf_war": "Perang Wilayah",
+  "game_street_crush": "Tantangan Jalanan",
+  "game_street_dice": "Dadu Jalanan",
+  "game_street_slot": "Slot Jalanan",
+  "game_street_flip": "Kartu Jalanan",
+  "game_street_shooter": "Penembak Jalanan"
 }
