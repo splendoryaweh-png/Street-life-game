@@ -44,5 +44,17 @@
   "reward_race": "+1 moeda/metro + moedas da estrada",
   "reward_rider": "+100 moedas/entrega",
   "reward_boxing": "Cinturões de campeão e jackpots",
-  "reward_hustle": "Renda passiva a cada hora"
+  "reward_hustle": "Renda passiva a cada hora",
+  "games_screen_title": "JOGOS DE RUA",
+  "games_screen_subtitle": "Escolha sua atividade • 8 jogos disponíveis",
+  "action_3d": "AÇÃO 3D",
+  "mini_games": "MINIJOGOS",
+  "new": "NOVO",
+  "game_street_gang_star": "Gangue de Rua",
+  "game_turf_war": "Guerra por Território",
+  "game_street_crush": "Desafio de Rua",
+  "game_street_dice": "Dados de Rua",
+  "game_street_slot": "Caça-níqueis de Rua",
+  "game_street_flip": "Cartas de Rua",
+  "game_street_shooter": "Atirador de Rua"
 }
