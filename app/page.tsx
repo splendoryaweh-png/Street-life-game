@@ -45,6 +45,7 @@ import { StreetRaceModal } from '@/components/StreetRaceModal';
 import { StreetRiderModal } from '@/components/StreetRiderModal';
 import { TransactionsModal } from '@/components/TransactionsModal';
 import { HowToPlayModal } from '@/components/HowToPlayModal';
+import { useLanguage } from '@/src/contexts/LanguageContext';
 
 let cachedTelegramUser: TelegramUser | null = null;
 let isTelegramChecked = false;
@@ -65,6 +66,7 @@ function subscribeTelegramUser(callback: () => void) {
 }
 
 export default function StreetLifeApp() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<NavTab>('HOME');
   const [leaderboard] = useState<LeaderboardEntry[]>(() => getLeaderboard());
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -458,8 +460,8 @@ export default function StreetLifeApp() {
             >
               <span className="w-10 h-10 shrink-0 rounded-xl bg-[#FFD700] text-black flex items-center justify-center text-xl font-black">?</span>
               <span className="flex-1 min-w-0">
-                <span className="block text-sm font-black text-[#FFD700]">How to Play</span>
-                <span className="block text-[11px] text-gray-300 mt-0.5">Learn the controls, multiplayer, Studio and Street Coins</span>
+                <span className="block text-sm font-black text-[#FFD700]">{t('how_to_play', 'How to Play')}</span>
+                <span className="block text-[11px] text-gray-300 mt-0.5">{t('home_guide_desc', 'Learn the controls, multiplayer, Studio and Street Coins')}</span>
               </span>
               <span className="text-[#FFD700] text-lg font-black" aria-hidden="true">›</span>
             </button>
