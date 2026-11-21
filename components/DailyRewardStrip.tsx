@@ -57,13 +57,16 @@ export function DailyRewardStrip({
   const [isWatchingNitroAd, setIsWatchingNitroAd] = useState(false);
 
   useEffect(() => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const saved = localStorage.getItem(`streetlife_nitro_${today}`);
-      if (saved !== null) setFreeNitroRemaining(parseInt(saved, 10));
-      const savedAds = localStorage.getItem(`streetlife_nitro_ads_${today}`);
-      if (savedAds !== null) setAdNitroWatchedToday(parseInt(savedAds, 10));
-    } catch {}
+    // Read browser storage asynchronously after the effect body to avoid synchronous state updates.
+    void Promise.resolve().then(() => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const saved = localStorage.getItem(`streetlife_nitro_${today}`);
+        if (saved !== null) setFreeNitroRemaining(parseInt(saved, 10));
+        const savedAds = localStorage.getItem(`streetlife_nitro_ads_${today}`);
+        if (savedAds !== null) setAdNitroWatchedToday(parseInt(savedAds, 10));
+      } catch {}
+    });
   }, []);
 
   // Prompt 12 Part C: 7-Day Rewards System
