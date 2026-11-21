@@ -202,8 +202,9 @@ export function getRandomCityByCountry(countryCode?: string, seedStr?: string): 
   const themeKey = THEMES[selectedCountry] ? selectedCountry : 'WORLD';
   const theme = THEMES[themeKey];
 
-  const mapWidth = 4000;
-  const mapHeight = 4000;
+  const mapWidth = 8000;
+  const mapHeight = 8000;
+  const mapScale = 2;
 
   // 1. Generate Arterial Road Grid (Horizontal & Vertical Highways + Cross streets)
   const roads: Road[] = [];
@@ -365,6 +366,20 @@ export function getRandomCityByCountry(countryCode?: string, seedStr?: string): 
     { x: 3960, y: 2200, edge: 'right' },
     { x: 3960, y: 3000, edge: 'right' },
   ];
+
+  // Scale every generated city feature together to preserve layout alignment.
+  roads.forEach((road) => { road.x *= mapScale; road.y *= mapScale; road.width *= mapScale; road.height *= mapScale; });
+  buildings.forEach((building) => {
+    building.x *= mapScale; building.y *= mapScale; building.width *= mapScale; building.height *= mapScale;
+    building.door.x *= mapScale; building.door.y *= mapScale; building.door.width *= mapScale; building.door.height *= mapScale;
+    building.interiorItems.forEach((item) => { item.x *= mapScale; item.y *= mapScale; });
+  });
+  compounds.forEach((compound) => {
+    compound.x *= mapScale; compound.y *= mapScale; compound.width *= mapScale; compound.height *= mapScale;
+    compound.gates.forEach((gate) => { gate.x *= mapScale; gate.y *= mapScale; gate.width *= mapScale; gate.height *= mapScale; });
+  });
+  spawnPoints.forEach((point) => { point.x *= mapScale; point.y *= mapScale; });
+  gangsterSpawnEdges.forEach((point) => { point.x *= mapScale; point.y *= mapScale; });
 
   return {
     cityName,
