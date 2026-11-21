@@ -44,5 +44,17 @@
   "reward_race": "+1 moneda/metro + monedas de carretera",
   "reward_rider": "+100 monedas/entrega",
   "reward_boxing": "Cinturones de campeón y premios",
-  "reward_hustle": "Ingresos pasivos cada hora"
+  "reward_hustle": "Ingresos pasivos cada hora",
+  "games_screen_title": "JUEGOS CALLEJEROS",
+  "games_screen_subtitle": "Elige tu actividad • 8 juegos disponibles",
+  "action_3d": "ACCIÓN 3D",
+  "mini_games": "MINIJUEGOS",
+  "new": "NUEVO",
+  "game_street_gang_star": "Pandilla callejera",
+  "game_turf_war": "Guerra de territorio",
+  "game_street_crush": "Desafío callejero",
+  "game_street_dice": "Dados callejeros",
+  "game_street_slot": "Tragaperras callejera",
+  "game_street_flip": "Cartas callejeras",
+  "game_street_shooter": "Tirador callejero"
 }
