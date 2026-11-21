@@ -12,5 +12,11 @@
   "how_to_play": "Cara Bermain",
   "terms": "Ketentuan Layanan",
   "privacy": "Kebijakan Privasi",
-  "about": "Tentang Street Life"
+  "about": "Tentang Street Life",
+  "nav_home": "BERANDA",
+  "nav_games": "GAME",
+  "nav_studio": "STUDIO",
+  "nav_shop": "TOKO",
+  "nav_war": "PERANG",
+  "nav_profile": "PROFIL"
 }
