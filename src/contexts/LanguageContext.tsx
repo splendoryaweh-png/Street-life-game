@@ -158,10 +158,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [languageReady, setLanguageReady] = useState(false);
 
   useEffect(() => {
-    // Resolve a saved per-player choice or detect locale before app screens render.
-    const detected = detectLanguage();
-    setLanguageState(detected);
-    setLanguageReady(true);
+    // Defer state hydration until after the effect body to avoid a synchronous cascading render.
+    void Promise.resolve().then(() => {
+      const detected = detectLanguage();
+      setLanguageState(detected);
+      setLanguageReady(true);
+    });
   }, []);
 
   useEffect(() => {
