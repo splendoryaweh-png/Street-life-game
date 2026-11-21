@@ -150,10 +150,13 @@ const LanguageContext = createContext<LanguageContextType>({
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<LanguageCode>('en');
+  const [languageReady, setLanguageReady] = useState(false);
 
   useEffect(() => {
+    // Resolve a saved per-player choice or detect locale before app screens render.
     const detected = detectLanguage();
     setLanguageState(detected);
+    setLanguageReady(true);
   }, []);
 
   useEffect(() => {
@@ -184,6 +187,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     },
     [language]
   );
+
+  if (!languageReady) {
+    return <div className="min-h-screen w-full bg-[#0A0A0A]" aria-busy="true" />;
+  }
 
   return (
     <LanguageContext.Provider
