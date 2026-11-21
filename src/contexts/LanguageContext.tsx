@@ -74,10 +74,8 @@ export function detectLanguage(): LanguageCode {
 
   const playerLanguageKey = getPlayerLanguageStorageKey();
   try {
-    const saved = localStorage.getItem(playerLanguageKey) || localStorage.getItem('street_lang');
+    const saved = localStorage.getItem(playerLanguageKey);
     if (saved && (saved in TRANSLATIONS)) {
-      // Migrate the previous device-wide setting to this Telegram player's own setting.
-      localStorage.setItem(playerLanguageKey, saved);
       return saved as LanguageCode;
     }
   } catch {}
