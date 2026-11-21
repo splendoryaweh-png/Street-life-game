@@ -12,5 +12,11 @@
   "how_to_play": "Como Jogar",
   "terms": "Termos de Serviço",
   "privacy": "Política de Privacidade",
-  "about": "Sobre Street Life"
+  "about": "Sobre Street Life",
+  "nav_home": "INÍCIO",
+  "nav_games": "JOGOS",
+  "nav_studio": "ESTÚDIO",
+  "nav_shop": "LOJA",
+  "nav_war": "GUERRA",
+  "nav_profile": "PERFIL"
 }
