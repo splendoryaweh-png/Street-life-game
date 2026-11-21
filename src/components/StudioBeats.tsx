@@ -1374,16 +1374,18 @@ export function StudioBeats({
               <div className="mt-3 grid grid-cols-3 gap-2" onClick={e=>e.stopPropagation()}>
                 <button
                   onClick={()=>handlePreviewBeat(beat)}
-                  className="py-2 px-1 rounded-xl text-xs font-black uppercase bg-black/60 text-[#FFD700] border border-[#FFD700]/40"
+                  aria-label={isUnlocked ? `Preview ${beat.name}` : `Unlock ${beat.name} at Studio Level ${beat.requiredStudioLevel}`}
+                  className={`py-2 px-1 rounded-xl text-xs font-black uppercase border ${isUnlocked ? 'bg-black/60 text-[#FFD700] border-[#FFD700]/40' : 'bg-neutral-800 text-neutral-400 border-white/10'}`}
                 >
-                  Preview
+                  {isUnlocked ? 'Preview' : <><Lock className="inline w-3 h-3 mr-1"/>Locked</>}
                 </button>
 
                 <button
                   onClick={()=>handleRecordBeat(beat)}
-                  className={`py-2 px-1 rounded-xl text-xs font-black uppercase ${isBeatRecordingActive?'bg-red-600 text-white animate-pulse':'bg-red-500/20 text-red-300'}`}
+                  aria-label={isUnlocked ? `Record ${beat.name}` : `Unlock ${beat.name} at Studio Level ${beat.requiredStudioLevel}`}
+                  className={`py-2 px-1 rounded-xl text-xs font-black uppercase ${isBeatRecordingActive?'bg-red-600 text-white animate-pulse':isUnlocked?'bg-red-500/20 text-red-300':'bg-neutral-800 text-neutral-500'}`}
                 >
-                  {isBeatRecordingActive?`Stop (${formatRecordingTimer(recordingSeconds)})`:t('studio_record_mix', 'Record Mix')}
+                  {isBeatRecordingActive?`Stop (${formatRecordingTimer(recordingSeconds)})`:isUnlocked?t('studio_record_mix', 'Record Mix'):<><Lock className="inline w-3 h-3 mr-1"/>Locked</>}
                 </button>
 
                 <button
