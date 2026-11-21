@@ -455,7 +455,19 @@ export function StudioBeats({
       return;
     }
 
-    if (isRecording) handleStopRecording();
+    // Enforce beat unlocks in the action handler too; the list-row lock
+    // alone is not sufficient because the Record button stops propagation.
+    if (!isLongBeatUnlocked(beat, studioLevel)) {
+      setSelectedInspectBeat(beat);
+      setIsUpgradeModalOpen(true);
+      toast(`🔒 ${beat.name} unlocks at Studio Level ${beat.requiredStudioLevel}. Upgrade your Studio to use it.`);
+      return;
+    }
+
+    if (isRecording) {
+      toast('Stop your current recording before starting another beat.');
+      return;
+    }
 
     if (getStoredDailyRecordCount() >= dailyRecordLimit) {
       setShowDailyLimitModal(true);
@@ -543,6 +555,19 @@ export function StudioBeats({
           await beatEl.play();
         } catch {}
       } else {
+        // The long-beat engine synthesizes the backing track in its own
+        // AudioContext. Route a copy of that output into this recording mix;
+        // otherwise MediaRecorder captures only the microphone, not the beat.
+        const engineDestination = longBeatEngine.getMediaStreamDestination?.();
+        if (!engineDestination) {
+          throw new Error('The Studio beat audio could not be connected to the recording mix. Please try again.');
+        }
+        const synthBeatSource = audioCtx.createMediaStreamSource(engineDestination.stream);
+        const beatGain = audioCtx.createGain();
+        beatGain.gain.value = beatVolume / 100;
+        beatGainNodeRef.current = beatGain;
+        synthBeatSource.connect(beatGain);
+        beatGain.connect(dest);
         longBeatEngine.play(beat.id, 0);
         setIsPlaying(true);
       }
@@ -707,6 +732,13 @@ export function StudioBeats({
 
   const handlePreviewBeat = async (beat: LongBeat) => {
     playClickSound();
+
+    if (!isLongBeatUnlocked(beat, studioLevel)) {
+      setSelectedInspectBeat(beat);
+      setIsUpgradeModalOpen(true);
+      toast(`🔒 ${beat.name} unlocks at Studio Level ${beat.requiredStudioLevel}. Upgrade your Studio to use it.`);
+      return;
+    }
 
     const beatRec =
       recordingsByBeat[beat.id] ||
