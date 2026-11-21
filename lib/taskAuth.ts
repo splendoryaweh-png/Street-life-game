@@ -92,6 +92,7 @@ export function isStreetLifeAdmin(telegramId: number | string): boolean {
   const configured =
     process.env.STREETLIFE_ADMIN_TELEGRAM_IDS ||
     process.env.ADMIN_TELEGRAM_IDS ||
+    process.env.ADMIN_TELEGRAM_ID ||
     '';
 
   const allowed = configured
