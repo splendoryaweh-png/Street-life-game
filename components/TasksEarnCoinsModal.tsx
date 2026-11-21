@@ -116,7 +116,9 @@ export function TasksEarnCoinsModal({ isOpen, onClose, onToast }: Props) {
   }, [onToast]);
 
   useEffect(() => {
-    if (isOpen) void loadMyTasks();
+    if (!isOpen) return;
+    // Start the request after the effect body; loadMyTasks owns its loading and result state.
+    void Promise.resolve().then(() => loadMyTasks());
   }, [isOpen, loadMyTasks]);
 
   if (!isOpen) return null;
