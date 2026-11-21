@@ -16,15 +16,12 @@ const SOCIAL_TASKS: Record<
   task_follow_x: { reward: 50, platform: 'X' },
   social_main_channel: { reward: 100, platform: 'Telegram' },
   social_chat_group: { reward: 100, platform: 'Telegram' },
-  social_payment_proof: { reward: 100, platform: 'Telegram' },
   social_tiktok: { reward: 100, platform: 'TikTok' },
   social_youtube: { reward: 100, platform: 'YouTube' },
   social_x: { reward: 100, platform: 'X' },
   boost_main_channel: { reward: 5000, platform: 'Telegram' },
-  boost_proof_channel: { reward: 5000, platform: 'Telegram' },
   task_join_channel: { reward: 50, platform: 'Telegram' },
   task_join_group: { reward: 50, platform: 'Telegram' },
-  task_payment_proof: { reward: 50, platform: 'Telegram' },
   task_stars_group: { reward: 50, platform: 'Telegram' },
   task_sub_youtube: { reward: 50, platform: 'YouTube' },
 };
@@ -32,11 +29,9 @@ const SOCIAL_TASKS: Record<
 const TELEGRAM_MEMBERSHIP_TASKS: Record<string, string> = {
   task_join_channel: '@Streethustlegame2',
   task_join_group: '@Streethustlechatroom',
-  task_payment_proof: '@Streethustlepaymentproof',
   task_stars_group: '@Streetlifestars',
   social_main_channel: '@Streethustlegame2',
   social_chat_group: '@Streethustlechatroom',
-  social_payment_proof: '@Streethustlepaymentproof',
 };
 
 async function verifyTelegramMembership(
@@ -141,7 +136,7 @@ function getTaskDetails(body: any) {
     };
   }
 
-  if (type === 'boost' && key.startsWith('boost_')) {
+  if (type === 'boost' && key === 'boost_main_channel') {
     return {
       key,
       type,
