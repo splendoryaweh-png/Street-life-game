@@ -88,12 +88,6 @@ export const TELEGRAM_OFFICIAL_CHANNELS = {
     url: 'https://t.me/Streethustlechatroom',
     username: 'Streethustlechatroom',
   },
-  paymentProof: {
-    id: '-100249102938',
-    name: 'STREET LIFE Payment Proof',
-    url: 'https://t.me/Streethustlepaymentproof',
-    username: 'Streethustlepaymentproof',
-  },
 };
 
 // ============================================================================
