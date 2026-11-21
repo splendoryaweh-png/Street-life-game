@@ -101,6 +101,8 @@ export function detectLanguage(): LanguageCode {
     auto = 'ru';
   } else if (tz.includes('Jakarta') || tgLang === 'id') {
     auto = 'id';
+  } else if (tgLang === 'ar' || tgLang.startsWith('ar-') || /Cairo|Riyadh|Dubai|Kuwait|Qatar|Beirut|Amman|Baghdad|Tunis|Casablanca/.test(tz)) {
+    auto = 'ar';
   } else if (
     tz.includes('Lisbon') ||
     tz.includes('Sao_Paulo') ||
@@ -139,15 +141,20 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const detected = detectLanguage();
-    if (detected && detected !== 'en') {
-      setLanguageState(detected);
-    }
+    setLanguageState(detected);
   }, []);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dataset.language = language;
+  }, [language]);
 
   const setLanguage = useCallback((lang: LanguageCode) => {
     setLanguageState(lang);
     try {
-      localStorage.setItem('street_lang', lang);\n      if (typeof document !== 'undefined') {\n        document.documentElement.lang = lang;\n        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';\n        document.documentElement.dataset.language = lang;\n      }
+      localStorage.setItem('street_lang', lang);
     } catch {}
   }, []);
 
