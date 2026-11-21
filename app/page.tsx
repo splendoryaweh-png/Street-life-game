@@ -69,6 +69,7 @@ export default function StreetLifeApp() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<NavTab>('HOME');
   const [leaderboard] = useState<LeaderboardEntry[]>(() => getLeaderboard());
+  const [isLeaderboardVisible, setIsLeaderboardVisible] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Reactive Game State Store (streetLife_save_v2)
@@ -184,6 +185,26 @@ export default function StreetLifeApp() {
       clearInterval(decayTimer);
       window.removeEventListener('streetlife_bot_notification', handleBotNotification);
     };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const initData = getTelegramInitData();
+    if (!initData) return;
+    fetch('/api/feature-settings', {
+      headers: { 'x-telegram-init-data': initData },
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Feature settings unavailable.');
+        if (active) setIsLeaderboardVisible(result.leaderboardVisible === true);
+      })
+      .catch((error) => {
+        console.error('Could not load player feature settings:', error);
+        if (active) setIsLeaderboardVisible(false);
+      });
+    return () => { active = false; };
   }, []);
 
   const showToast = (msg: string) => {
@@ -640,13 +661,15 @@ export default function StreetLifeApp() {
               onToast={showToast}
             />
 
-            {/* LEADERBOARD - Top Hustlers (with shimmer skeleton loader) */}
-            <Leaderboard
-              entries={leaderboard}
-              userCoins={activeGameState.streetCoin}
-              userName={activeTelegramUser?.first_name ? `${activeTelegramUser.first_name}` : 'You'}
-              isLoading={isLoading}
-            />
+            {/* LEADERBOARD - controlled by Admin Panel feature visibility */}
+            {isLeaderboardVisible && (
+              <Leaderboard
+                entries={leaderboard}
+                userCoins={activeGameState.streetCoin}
+                userName={activeTelegramUser?.first_name ? `${activeTelegramUser.first_name}` : 'You'}
+                isLoading={isLoading}
+              />
+            )}
 
             {/* GAME CARDS (3 working games: Galaxy Shooter, Street Race, Street Rider) */}
             <GameCards
