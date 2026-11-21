@@ -189,22 +189,28 @@ export default function StreetLifeApp() {
 
   useEffect(() => {
     let active = true;
-    const initData = getTelegramInitData();
-    if (!initData) return;
-    fetch('/api/feature-settings', {
-      headers: { 'x-telegram-init-data': initData },
-      cache: 'no-store',
-    })
-      .then(async (response) => {
+    const refreshFeatureVisibility = async () => {
+      const initData = getTelegramInitData();
+      if (!initData) return;
+      try {
+        const response = await fetch('/api/feature-settings', {
+          headers: { 'x-telegram-init-data': initData },
+          cache: 'no-store',
+        });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Feature settings unavailable.');
         if (active) setIsLeaderboardVisible(result.leaderboardVisible === true);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('Could not load player feature settings:', error);
         if (active) setIsLeaderboardVisible(false);
-      });
-    return () => { active = false; };
+      }
+    };
+    void refreshFeatureVisibility();
+    const refreshTimer = window.setInterval(() => void refreshFeatureVisibility(), 15000);
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+    };
   }, []);
 
   const showToast = (msg: string) => {
