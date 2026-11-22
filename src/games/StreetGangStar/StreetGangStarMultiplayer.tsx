@@ -65,8 +65,11 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   };
   const joinRandomCity = () => {
     playClickSound(); let targetCode = ''; try { const saved = JSON.parse(localStorage.getItem('gangstar_rooms') || '[]'); const active = saved.filter((r: any) => Date.now() - r.createdAt < 30 * 60 * 1000); if (active.length > 0) { targetCode = active[Math.floor(Math.random() * active.length)].code; } } catch {}
-    if (!targetCode) { targetCode = `STREET${Math.floor(100 + Math.random() * 900)}`; setIsHost(true); } else { setIsHost(false); }
-    setRoomCode(targetCode); connectToRoom(targetCode, isHost);
+    const shouldHost = !targetCode;
+    if (shouldHost) { targetCode = `STREET${Math.floor(100 + Math.random() * 900)}`; }
+    setIsHost(shouldHost);
+    setRoomCode(targetCode);
+    connectToRoom(targetCode, shouldHost);
   };
   const joinWithCode = (e: React.FormEvent) => {
     e.preventDefault(); const cleaned = customRoomInput.toUpperCase().trim(); if (!cleaned) { onToast('Please enter a valid room code!'); return; }
