@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Shield, Zap, Volume2, VolumeX, Heart, Coins, ShoppingBag, X, ArrowLeft, Users } from 'lucide-react';
 import { playShootSound, playReloadSound, playPickupSound, playCoinSound, playSuccessSound, playSirenSound, playClickSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import { getRandomCityByCountry, CityData, isPointInsideBuilding } from './CityGenerator';
 import { getGangStarText, GangStarTextKey } from './language';
 import { StreetGangStarIntro } from './Intro';
@@ -42,6 +43,8 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   const [hudIsNearCar, setHudIsNearCar] = useState<boolean>(false);
   const [civiliansSavedCount, setCiviliansSavedCount] = useState<number>(0);
   const [gangstersKilledCount, setGangstersKilledCount] = useState<number>(0);
+  const [showDeathAdPrompt, setShowDeathAdPrompt] = useState(false);
+  const [deathAdWatching, setDeathAdWatching] = useState(false);
   const gameStateRef = useRef({
     player: { x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, jumpOffset: 0, jumpVy: 0, isJumping: false },
     unlockedGuns: { pistol: true, shotgun_laser: false, ak_laser: false, sniper_laser: false } as Record<WeaponType, boolean>,
@@ -64,6 +67,30 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     setHudHealth(100); setHudAmmo(WEAPONS.pistol.maxAmmo); setHudMaxAmmo(WEAPONS.pistol.maxAmmo); setHudGun('pistol'); setHudInCover(false); setHudInCar(false); initTrafficAndCivilians();
   }, [initTrafficAndCivilians]);
   const handleStartFromIntro = () => { setShowIntro(false); setupGame(); };
+  const handleWatchAdRevive = async () => {
+    if (deathAdWatching) return;
+    setDeathAdWatching(true);
+    try {
+      await showAdsgramRewardedAd();
+      const s = gameStateRef.current;
+      s.player.health = 60;
+      s.player.x = cityData.spawnPoints[0].x;
+      s.player.y = cityData.spawnPoints[0].y;
+      s.player.inCarId = null;
+      s.player.isCover = false;
+      s.isRunning = true;
+      setHudHealth(60);
+      setHudInCar(false);
+      setHudInCover(false);
+      setShowDeathAdPrompt(false);
+      onToast('Revived! You are back in the streets with 60% health.');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Ad not completed. Revive was not granted.');
+    } finally {
+      setDeathAdWatching(false);
+    }
+  };
+
   const handleReload = useCallback(() => { const s = gameStateRef.current; if (s.player.isReloading) return; const wDef = WEAPONS[s.player.gun]; if (s.player.ammo >= wDef.maxAmmo) return; s.player.isReloading = true; playSfx('reload'); onToast(t('reload_alert')); setTimeout(() => { s.player.ammo = wDef.maxAmmo; s.player.isReloading = false; setHudAmmo(wDef.maxAmmo); }, 900); }, [onToast, playSfx, t]);
   const handleToggleCar = useCallback(() => {
     const s = gameStateRef.current; const p = s.player; if (p.inCarId) { const car = s.cars.find((c) => c.id === p.inCarId); if (car) { car.isOccupied = false; car.hasDriver = false; car.driverType = null; p.x = car.x + 30; p.y = car.y + 30; } p.inCarId = null; setHudInCar(false); playSfx('click'); onToast(t('car_exit')); return; }
@@ -94,6 +121,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     canvas.addEventListener('mousemove', onMouseMove); canvas.addEventListener('mousedown', onMouseDown); window.addEventListener('mouseup', onMouseUp);
     const loop = () => {
       const s = gameStateRef.current; const p = s.player; const now = Date.now();
+      if (!s.isRunning) { animId = requestAnimationFrame(loop); return; }
       if (s.keys.mouseLeft) { shootPlayerLaser(); }
       if (now - s.lastSpawnTime >= 5000) {
         s.lastSpawnTime = now; const edge = cityData.gangsterSpawnEdges[Math.floor(Math.random() * cityData.gangsterSpawnEdges.length)]; const isBus = Math.random() > 0.5;
@@ -176,7 +204,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
             const isDriver = !!p.inCarId; let dmg = 10; if (p.isCover) dmg = 1; else if (isDriver) dmg = 3;
             p.health = Math.max(0, p.health - dmg); setHudHealth(p.health); s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 4; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, color: '#38BDF8', life: 12 }); }
-            if (p.health <= 0) { playSfx('siren'); onToast(t('player_down')); p.health = 100; p.x = cityData.spawnPoints[0].x; p.y = cityData.spawnPoints[0].y; setHudHealth(100); }
+            if (p.health <= 0) { playSfx('siren'); onToast(t('player_down')); s.isRunning = false; setHudHealth(0); setShowDeathAdPrompt(true); }
           }
         }
         if (l.life <= 0 && s.lasers[lIdx]) { s.lasers.splice(lIdx, 1); }
@@ -263,6 +291,19 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       <StreetJoystick onMove={(movement) => { gameStateRef.current.joystickMovement = movement; if (movement.isMoving) { gameStateRef.current.isMouseActive = false; } }} onJump={handleJump} onShoot={shootPlayerLaser} onRunToggle={(running) => { gameStateRef.current.isRunActive = running; }} onHijackOrEnterCar={handleToggleCar} isNearCar={hudIsNearCar} isInCar={hudInCar} isCover={hudInCover} onCoverToggle={handleToggleCover} onReload={handleReload} ammo={hudAmmo} maxAmmo={hudMaxAmmo} />
       {showShopModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-[#FFD700] p-5 shadow-[0_0_35px_rgba(255,215,0,0.3)] text-left relative animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><div className="flex items-center gap-2 text-[#FFD700]"><ShoppingBag className="w-5 h-5" /><h3 className="text-base font-black uppercase tracking-wider">{t('gun_shop')}</h3></div><button onClick={() => setShowShopModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="space-y-2.5">{(Object.keys(WEAPONS) as WeaponType[]).map((wKey) => { const w = WEAPONS[wKey]; const isOwned = gameStateRef.current.unlockedGuns[wKey]; const isEquipped = hudGun === wKey; return (<div key={wKey} className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${isEquipped ? 'bg-[#FFD700]/15 border-[#FFD700]' : 'bg-black/60 border-white/10'}`}><div><h4 className="text-xs font-black text-white">{t(w.nameKey)}</h4><p className="text-[10px] text-gray-400">DMG: {w.damage} | Ammo: {w.maxAmmo}</p></div>{isEquipped ? (<span className="text-[10px] font-mono text-[#FFD700] font-black uppercase">EQUIPPED</span>) : isOwned ? (<button onClick={() => { gameStateRef.current.player.gun = wKey; gameStateRef.current.player.ammo = w.maxAmmo; gameStateRef.current.player.maxAmmo = w.maxAmmo; setHudGun(wKey); setHudAmmo(w.maxAmmo); setHudMaxAmmo(w.maxAmmo); playSfx('click'); setShowShopModal(false); }} type="button" className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase active:scale-95">EQUIP</button>) : (<button onClick={() => handleBuyWeapon(wKey)} type="button" className="px-3 py-1.5 rounded-xl bg-[#FFD700] text-black font-black text-xs uppercase active:scale-95 hover:brightness-110 shadow-md">{w.price} SC</button>)}</div>); })}</div></div></div>)}
       {showAvatarModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-white/20 p-5 shadow-2xl text-left relative animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><h3 className="text-sm font-black uppercase tracking-wider text-white">{t('customize_avatar')}</h3><button onClick={() => setShowAvatarModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="mb-4"><span className="text-xs font-bold text-gray-300 block mb-2">{t('choose_color')}</span><div className="flex items-center gap-2">{['#FFD700', '#22C55E', '#3B82F6', '#EF4444', '#A855F7', '#E2E8F0'].map((col) => (<button key={col} onClick={() => { setAvatarColor(col); if (typeof window !== 'undefined') { localStorage.setItem('gangstar_avatar_color', col); } playSfx('click'); }} type="button" className={`w-9 h-9 rounded-2xl border-2 transition-all cursor-pointer ${avatarColor === col ? 'scale-110 border-white shadow-lg' : 'border-transparent'}`} style={{ backgroundColor: col }} />))}</div></div><button onClick={() => setShowAvatarModal(false)} type="button" className="w-full py-3 rounded-2xl bg-[#FFD700] text-black font-black text-xs uppercase active:scale-95 cursor-pointer shadow-lg shadow-[#FFD700]/30">{t('close')}</button></div></div>)}
+      {showDeathAdPrompt && (
+        <div className="absolute inset-0 z-[90] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-[#14151C] border-2 border-red-500/60 p-6 text-center shadow-[0_0_35px_rgba(239,68,68,0.3)]">
+            <div className="text-4xl mb-3">💀</div>
+            <h3 className="text-xl font-black text-white uppercase">YOU ARE DOWN</h3>
+            <p className="text-xs text-gray-300 mt-2">Watch a rewarded ad to revive and continue your Street Gang Star mission.</p>
+            <button onClick={handleWatchAdRevive} disabled={deathAdWatching} type="button" className="w-full mt-5 py-3 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black text-xs uppercase flex items-center justify-center gap-2 disabled:opacity-60">
+              <span>📺</span>{deathAdWatching ? 'Loading Ad...' : 'Watch Ad to Revive (60% Health)'}
+            </button>
+            <button onClick={() => { setShowDeathAdPrompt(false); onBack(); }} type="button" className="w-full mt-2 py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs uppercase">Exit to Games</button>
+          </div>
+        </div>
+      )}
       {showTeamModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-white/20 p-5 shadow-2xl text-left relative animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><h3 className="text-sm font-black uppercase tracking-wider text-white">{t('team_join')}</h3><button onClick={() => setShowTeamModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="space-y-3"><button onClick={() => { setPlayerTeam('blue'); setShowTeamModal(false); playSfx('click'); onToast('Joined Blue Syndicate Defend Team!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left transition-all ${playerTeam === 'blue' ? 'bg-sky-950/60 border-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.3)]' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-sky-400">{t('team_blue')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_blue_desc')}</p></button><button onClick={() => { setPlayerTeam('red'); setShowTeamModal(false); playSfx('click'); onToast('Joined Red Corsairs Free-For-All!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left transition-all ${playerTeam === 'red' ? 'bg-red-950/60 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-red-400">{t('team_red')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_red_desc')}</p></button></div></div></div>)}
     </div>
   );
