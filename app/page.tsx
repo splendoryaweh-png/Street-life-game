@@ -120,8 +120,6 @@ export default function StreetLifeApp() {
 
   // Initial loading window + background police heat decay timer + bot notification listener
   useEffect(() => {
-    setIsMounted(true);
-
     // Read a referral code passed through the STREET LIFE Telegram bot.
     // Telegram Mini Apps provide start_param; browser testing can use startapp/start.
     try {
@@ -160,6 +158,7 @@ export default function StreetLifeApp() {
     initTelegramWebApp();
 
     const timer = setTimeout(() => {
+      setIsMounted(true);
       setIsLoading(false);
     }, 600);
 
