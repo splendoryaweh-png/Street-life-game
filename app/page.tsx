@@ -141,7 +141,7 @@ export default function StreetLifeApp() {
         if (result.success) {
           playSuccessSound();
           playCoinSound();
-          setToastMessage(result.message);
+          window.setTimeout(() => setToastMessage(result.message), 0);
         }
       }
     } catch (error) {
