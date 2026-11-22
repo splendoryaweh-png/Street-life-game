@@ -1,8 +1,9 @@
 'use client';
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Shield, Zap, Crosshair, RotateCcw, Volume2, VolumeX, Heart, Coins, Car, ShoppingBag, MapPin, X, ArrowLeft, Users, Copy, Check, Trophy, Flame, Radio, Send, Sparkles } from 'lucide-react';
+import { Shield, Zap, Crosshair, RotateCcw, Volume2, VolumeX, Heart, Coins, Car, ShoppingBag, MapPin, X, ArrowLeft, Users, Copy, Check, Trophy, Flame, Radio, Send, Sparkles, Tv } from 'lucide-react';
 import { playShootSound, playReloadSound, playPickupSound, playCoinSound, playSuccessSound, playSirenSound, playClickSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import { getRandomCityByCountry, CityData, isPointInsideBuilding } from './CityGenerator';
 import { getGangStarText, GangStarTextKey } from './language';
 import { WEAPONS, WeaponType, CityCar, Civilian, Gangster, LaserBeam, SparkParticle } from './StreetGangStar';
@@ -38,6 +39,9 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [hudInCar, setHudInCar] = useState<boolean>(false);
   const [hudIsNearCar, setHudIsNearCar] = useState<boolean>(false);
   const [activePlayerCount, setActivePlayerCount] = useState<number>(1);
+  const [isPlayerDown, setIsPlayerDown] = useState<boolean>(false);
+  const [isReviving, setIsReviving] = useState<boolean>(false);
+  const reviveRequestRef = useRef<boolean>(false);
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   const gameStateRef = useRef({
@@ -92,7 +96,57 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         const rem = s.remotePlayers.get(msg.senderId); if (rem) { rem.lastReaction = { emoji: msg.payload.emoji, until: Date.now() + 2000 }; }
       } else if (msg.type === 'host_sync' && !isHost) { s.cars = msg.payload.cars || s.cars; s.civilians = msg.payload.civilians || s.civilians; s.gangsters = msg.payload.gangsters || s.gangsters; }
     };
+    const player = gameStateRef.current.player;
+    player.health = 100; player.hitCount = 0; player.x = newCity.spawnPoints[0].x; player.y = newCity.spawnPoints[0].y; player.inCarId = null; player.isCover = false;
+    setHudHealth(100); setHudInCar(false); setHudInCover(false); setIsPlayerDown(false);
     setInLobby(false); gameStateRef.current.isRunning = true; playSuccessSound(); onToast(`Connected to District Lobby: ${code}!`);
+  };
+
+  const handleWatchAdContinue = async () => {
+    if (reviveRequestRef.current || !isPlayerDown) return;
+    reviveRequestRef.current = true;
+    setIsReviving(true);
+    try {
+      // One Adsgram rewarded session uses the existing approved 3-in-1 ad block.
+      // Revive only after Adsgram confirms that this session completed.
+      await showAdsgramRewardedAd();
+      const s = gameStateRef.current;
+      const p = s.player;
+      p.health = 60;
+      p.hitCount = 4;
+      p.x = cityData.spawnPoints[0].x;
+      p.y = cityData.spawnPoints[0].y;
+      p.inCarId = null;
+      p.isCover = false;
+      p.isJumping = false;
+      p.jumpOffset = 0;
+      s.keys = { w: false, a: false, s: false, d: false, shift: false, mouseLeft: false };
+      s.joystickMovement = { dx: 0, dy: 0, isMoving: false };
+      s.isRunning = true;
+      setHudHealth(60);
+      setHudInCar(false);
+      setHudInCover(false);
+      setIsPlayerDown(false);
+      onToast('Revived! You are back in the match.');
+    } catch (error) {
+      console.error('Multiplayer revive ad was not completed:', error);
+      onToast('Ad not completed or unavailable. You are still down.');
+    } finally {
+      reviveRequestRef.current = false;
+      setIsReviving(false);
+    }
+  };
+
+  const handleBackToLobbyAfterDeath = () => {
+    playSfx('click');
+    gameStateRef.current.isRunning = false;
+    if (channelRef.current) {
+      channelRef.current.close();
+      channelRef.current = null;
+    }
+    setIsPlayerDown(false);
+    setIsReviving(false);
+    setInLobby(true);
   };
 
   const handleSendReaction = (emoji: string) => {
@@ -147,6 +201,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
 
     const loop = () => {
       const s = gameStateRef.current; const p = s.player; const now = Date.now();
+      if (!s.isRunning) { animId = requestAnimationFrame(loop); return; }
       if (s.keys.mouseLeft) { shootPlayerLaser(); }
       if (now - s.lastBroadcastTime >= 100 && channelRef.current) {
         s.lastBroadcastTime = now;
@@ -235,7 +290,19 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             p.hitCount = (p.hitCount || 0) + 1; p.health = Math.max(0, 100 - p.hitCount * 10); setHudHealth(p.health);
             s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#38BDF8', life: 14 }); }
-            if (p.health <= 0 || p.hitCount >= 10) { playSfx('siren'); onToast(t('player_down') + ' - 10 HITS!'); p.health = 100; p.hitCount = 0; p.x = cityData.spawnPoints[0].x; p.y = cityData.spawnPoints[0].y; setHudHealth(100); }
+            if (p.health <= 0 || p.hitCount >= 10) {
+              playSfx('siren');
+              p.health = 0;
+              p.hitCount = 10;
+              p.inCarId = null;
+              p.isCover = false;
+              s.isRunning = false;
+              setHudHealth(0);
+              setHudInCar(false);
+              setHudInCover(false);
+              setIsPlayerDown(true);
+              onToast(t('player_down'));
+            }
           }
         }
         if (l.life <= 0 && s.lasers[lIdx]) { s.lasers.splice(lIdx, 1); }
@@ -344,6 +411,21 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
 
       <GangChat roomCode={roomCode} playerId={myPlayerId} playerName={myPlayerName} playerTeam={myTeam} onToast={onToast} />
       <StreetJoystick onMove={(movement) => { gameStateRef.current.joystickMovement = movement; if (movement.isMoving) { gameStateRef.current.isMouseActive = false; } }} onJump={handleJump} onShoot={shootPlayerLaser} onRunToggle={(running) => { gameStateRef.current.isRunActive = running; }} onHijackOrEnterCar={handleToggleCar} isNearCar={hudIsNearCar} isInCar={hudInCar} isCover={hudInCover} onCoverToggle={handleToggleCover} onReload={handleReload} ammo={hudAmmo} maxAmmo={hudMaxAmmo} />
+      {isPlayerDown && (
+        <div className="absolute inset-0 z-[90] flex items-center justify-center bg-black/85 p-5 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-3xl border-2 border-red-500/60 bg-gradient-to-b from-[#1B1118] to-[#0B0B10] p-6 text-center shadow-[0_0_35px_rgba(239,68,68,0.25)]">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-red-400/40 bg-red-500/15 text-red-400"><Heart className="h-8 w-8 fill-current" /></div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300">MULTIPLAYER · PLAYER DOWN</p>
+            <h2 className="mt-2 text-2xl font-black uppercase text-white">You Were Eliminated</h2>
+            <p className="mt-2 text-xs leading-relaxed text-gray-400">Watch one rewarded video session to continue the match with 60% health, or return to the lobby.</p>
+            <button type="button" onClick={handleWatchAdContinue} disabled={isReviving} className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#FFD700] via-yellow-400 to-amber-500 px-4 py-4 text-sm font-black uppercase tracking-wide text-black shadow-[0_0_18px_rgba(255,215,0,0.35)] disabled:cursor-not-allowed disabled:opacity-60">
+              <Tv className="h-5 w-5" />{isReviving ? 'PLAYING REWARDED AD...' : 'WATCH AD TO CONTINUE'}
+            </button>
+            <button type="button" onClick={handleBackToLobbyAfterDeath} disabled={isReviving} className="mt-3 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3.5 text-xs font-black uppercase tracking-wide text-white hover:bg-white/10 disabled:opacity-50">BACK TO LOBBY</button>
+            <p className="mt-3 text-[10px] text-gray-500">Revival happens only after Adsgram confirms the rewarded ad is complete.</p>
+          </div>
+        </div>
+      )}
       {showTeamModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-white/20 p-5 shadow-2xl text-left animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><h3 className="text-sm font-black uppercase text-white">{t('team_join')}</h3><button onClick={() => setShowTeamModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="space-y-3"><button onClick={() => { setMyTeam('blue'); gameStateRef.current.player.team = 'blue'; setShowTeamModal(false); playSfx('click'); onToast('Blue Team!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left ${myTeam === 'blue' ? 'bg-sky-950/60 border-sky-400' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-sky-400">{t('team_blue')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_blue_desc')}</p></button><button onClick={() => { setMyTeam('red'); gameStateRef.current.player.team = 'red'; setShowTeamModal(false); playSfx('click'); onToast('Red Team!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left ${myTeam === 'red' ? 'bg-red-950/60 border-red-500' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-red-400">{t('team_red')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_red_desc')}</p></button></div></div></div>)}
     </div>
   );
