@@ -3,7 +3,7 @@
 /**
  * STREET LIFE — Central Adsgram Integration
  *
- * Adsgram Reward Block ID: 59485
+ * Adsgram Reward Block ID: 61133
  *
  * Responsibilities:
  * - Load the Adsgram SDK once and handle an already-present script safely.
@@ -13,7 +13,7 @@
  * - Never award coins or game items from this module.
  */
 
-const ADSGRAM_BLOCK_ID = '59485';
+const ADSGRAM_BLOCK_ID = '61133';
 const ADSGRAM_SCRIPT_URL = 'https://sad.adsgram.ai/js/sad.min.js';
 const ADSGRAM_LOAD_TIMEOUT_MS = 15_000;
 
