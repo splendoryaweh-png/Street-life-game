@@ -12,9 +12,11 @@ import {
   Flame,
   Zap,
   Gauge,
+  Tv,
 } from 'lucide-react';
 import { playCoinSound, playSirenSound, playClickSound, playSuccessSound } from '@/lib/sound';
 import { awardGameCompletionReward } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 
 export const DIFFICULTY = 'NORMAL_HARD';
 
@@ -59,6 +61,7 @@ export function StreetRaceModal({
   const [playerHealth, setPlayerHealth] = useState<number>(100);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [gameWon, setGameWon] = useState<boolean>(false);
+  const [adWatching, setAdWatching] = useState(false);
 
   // Mutable Game Loop State
   const gameStateRef = useRef({
@@ -109,6 +112,26 @@ export function StreetRaceModal({
       gameStateRef.current.isRunning = false;
     }
   }, [isOpen, startGame]);
+
+  // Revive the current race only after Adsgram confirms a completed rewarded ad.
+  const handleWatchAdRevive = async () => {
+    if (adWatching) return;
+    setAdWatching(true);
+    try {
+      await showAdsgramRewardedAd();
+      const state = gameStateRef.current;
+      state.health = 50;
+      state.traffic = [];
+      state.isRunning = true;
+      setPlayerHealth(50);
+      setGameOver(false);
+      onToast('Revived! Your race continues with 50% health.');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Ad not completed. Revive was not granted.');
+    } finally {
+      setAdWatching(false);
+    }
+  };
 
   // MOVEMENT CONTROLS: EXACT SPECIFICATION
   // LEFT = left (steers left lane)
@@ -466,7 +489,17 @@ export function StreetRaceModal({
             </div>
             <h3 className="text-2xl font-black text-white uppercase">CAR CRASHED!</h3>
             <p className="text-xs text-gray-400 mt-1">Totaled your vehicle in heavy highway traffic.</p>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col gap-2 w-full max-w-[260px]">
+              <button
+                onClick={handleWatchAdRevive}
+                disabled={adWatching}
+                type="button"
+                className="w-full px-5 py-3 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black text-xs uppercase flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                <Tv className="w-4 h-4" />
+                {adWatching ? 'Loading Ad...' : 'Watch Ad to Revive (50% Health)'}
+              </button>
+              <div className="flex gap-2 justify-center">
               <button
                 onClick={startGame}
                 type="button"
@@ -481,6 +514,7 @@ export function StreetRaceModal({
               >
                 Exit
               </button>
+              </div>
             </div>
           </div>
         )}
