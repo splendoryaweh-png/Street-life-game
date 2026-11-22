@@ -186,6 +186,38 @@ export default function StreetLifeApp() {
     };
   }, []);
 
+  // Register the Telegram player on the server as soon as the signed Mini App
+  // session is available. Daily login and other account-backed rewards require
+  // this players row to exist before their first claim.
+  useEffect(() => {
+    if (!isMounted || !activeTelegramUser) return;
+    const initData = getTelegramInitData();
+    if (!initData) return;
+
+    let active = true;
+    void fetch('/api/player/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-telegram-init-data': initData,
+      },
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.ok) {
+          throw new Error(result.error || 'Player registration failed.');
+        }
+      })
+      .catch((error) => {
+        if (active) console.error('Telegram player registration failed:', error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isMounted, activeTelegramUser]);
+
   useEffect(() => {
     let active = true;
     const refreshFeatureVisibility = async () => {
