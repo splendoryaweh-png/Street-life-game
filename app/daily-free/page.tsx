@@ -178,13 +178,19 @@ export default function DailyFreePage() {
 
   // Timer countdown loop & client hydration sync
   useEffect(() => {
-    refreshState();
-    setTimeLeft(getTimeUntilReset());
+    // Defer hydration reads so effect setup does not synchronously cascade React state.
+    const hydrateTimer = setTimeout(() => {
+      refreshState();
+      setTimeLeft(getTimeUntilReset());
+    }, 0);
     const timerInterval = setInterval(() => {
       setTimeLeft(getTimeUntilReset());
     }, 1000);
 
-    return () => clearInterval(timerInterval);
+    return () => {
+      clearTimeout(hydrateTimer);
+      clearInterval(timerInterval);
+    };
   }, [refreshState]);
 
   // Trigger floating token animation
