@@ -73,6 +73,8 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
   const [featureSettingsSaving, setFeatureSettingsSaving] = useState(false);
 
   const refreshPlayerCount = useCallback(async () => {
+    // Yield before any state updates so this is safe when started by an effect.
+    await Promise.resolve();
     const initData = (window as any).Telegram?.WebApp?.initData || '';
     if (!initData) {
       setPlayerCountError(true);
@@ -105,8 +107,10 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
     let active = true;
     const initData = (window as any).Telegram?.WebApp?.initData || '';
     if (!initData) {
-      setFeatureSettingsLoading(false);
-      return;
+      void Promise.resolve().then(() => {
+        if (active) setFeatureSettingsLoading(false);
+      });
+      return () => { active = false; };
     }
     fetch('/api/feature-settings', {
       headers: { 'x-telegram-init-data': initData },
