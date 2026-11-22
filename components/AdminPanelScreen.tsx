@@ -100,7 +100,8 @@ export function AdminPanelScreen({ gameState, onToast, onBack }: AdminPanelScree
   }, []);
 
   useEffect(() => {
-    void refreshPlayerCount();
+    const timer = window.setTimeout(() => { void refreshPlayerCount(); }, 0);
+    return () => window.clearTimeout(timer);
   }, [refreshPlayerCount]);
 
   useEffect(() => {
