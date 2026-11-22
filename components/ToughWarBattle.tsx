@@ -16,6 +16,7 @@ import {
   Shield,
   Volume2,
   VolumeX,
+  Tv,
 } from 'lucide-react';
 import {
   playCoinSound,
@@ -26,6 +27,7 @@ import {
   playPunchSound,
 } from '@/lib/sound';
 import { awardGameCompletionReward } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 
 interface ToughWarBattleProps {
   isOpen: boolean;
@@ -77,6 +79,7 @@ export function ToughWarBattle({
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [gameWon, setGameWon] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [adWatching, setAdWatching] = useState(false);
 
   // Mutable Game Loop State
   const gameStateRef = useRef({
@@ -133,6 +136,27 @@ export function ToughWarBattle({
       gameStateRef.current.isRunning = false;
     }
   }, [isOpen, startGame]);
+
+  // Revive in the same battle only after Adsgram confirms a completed ad.
+  const handleWatchAdRevive = async () => {
+    if (adWatching) return;
+    setAdWatching(true);
+    try {
+      await showAdsgramRewardedAd();
+      const state = gameStateRef.current;
+      state.health = 50;
+      state.enemies = [];
+      state.bullets = [];
+      state.isRunning = true;
+      setPlayerHealth(50);
+      setGameOver(false);
+      onToast('Revived! Defend your territory with 50% health.');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Ad not completed. Revive was not granted.');
+    } finally {
+      setAdWatching(false);
+    }
+  };
 
   // Movement handler with discrete speed
   const handleMove = useCallback((dir: 'up' | 'down' | 'left' | 'right') => {
@@ -589,7 +613,17 @@ export function ToughWarBattle({
             <p className="text-xs text-gray-400 mt-1">
               Syndicate thugs overran your position in {territoryName}.
             </p>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col gap-2 w-full max-w-[260px]">
+              <button
+                onClick={handleWatchAdRevive}
+                disabled={adWatching}
+                type="button"
+                className="w-full px-5 py-3 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black text-xs uppercase flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                <Tv className="w-4 h-4" />
+                {adWatching ? 'Loading Ad...' : 'Watch Ad to Revive (50% Health)'}
+              </button>
+              <div className="flex gap-2 justify-center">
               <button
                 onClick={startGame}
                 type="button"
@@ -604,6 +638,7 @@ export function ToughWarBattle({
               >
                 Exit
               </button>
+              </div>
             </div>
           </div>
         )}
