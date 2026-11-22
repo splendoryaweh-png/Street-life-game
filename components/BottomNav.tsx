@@ -3,7 +3,7 @@
 import React from 'react';
 import { NavTab } from '@/types/game';
 import { useLanguage } from '@/src/contexts/LanguageContext';
-import { Mic2, Gamepad2, ShoppingBag, Swords, User, Home } from 'lucide-react';
+import { Mic2, Gamepad2, ShoppingBag, Swords, User, Home, Tv } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: NavTab;
@@ -18,12 +18,13 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
     { id: 'SHOP', label: t('nav_shop', 'SHOP'), icon: ShoppingBag },
     { id: 'WAR', label: t('nav_war', 'TOUGH WAR'), icon: Swords },
     { id: 'PROFILE', label: t('nav_profile', 'PROFILE'), icon: User },
+    { id: 'WATCH', label: t('watch', 'WATCH'), icon: Tv },
     { id: 'HOME', label: t('nav_home', 'HOME'), icon: Home },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 w-full z-50 bg-black border-t border-white/10 select-none pb-[max(0.25rem,env(safe-area-inset-bottom))]">
-      <div className="max-w-md mx-auto grid grid-cols-6 items-center">
+      <div className="max-w-md mx-auto grid grid-cols-7 items-center">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive =
