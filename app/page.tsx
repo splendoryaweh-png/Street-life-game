@@ -47,22 +47,21 @@ import { TransactionsModal } from '@/components/TransactionsModal';
 import { HowToPlayModal } from '@/components/HowToPlayModal';
 import { useLanguage } from '@/src/contexts/LanguageContext';
 
-let cachedTelegramUser: TelegramUser | null = null;
-let isTelegramChecked = false;
-
 function getTelegramUserSnapshot(): TelegramUser | null {
   if (typeof window === 'undefined') return null;
-  if (!isTelegramChecked) {
-    cachedTelegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user || null;
-    isTelegramChecked = true;
-  }
-  return cachedTelegramUser;
+  // Telegram may inject WebApp.initData after the first React render.
+  // Read the live value instead of permanently caching an initial null.
+  return window.Telegram?.WebApp?.initDataUnsafe?.user || null;
 }
 
 function subscribeTelegramUser(callback: () => void) {
   if (typeof window === 'undefined') return () => {};
   window.addEventListener('load', callback);
-  return () => window.removeEventListener('load', callback);
+  window.addEventListener('streetlife_telegram_user_ready', callback);
+  return () => {
+    window.removeEventListener('load', callback);
+    window.removeEventListener('streetlife_telegram_user_ready', callback);
+  };
 }
 
 export default function StreetLifeApp() {
@@ -156,6 +155,8 @@ export default function StreetLifeApp() {
     }
 
     initTelegramWebApp();
+    // Notify the external store after Telegram's WebApp bridge is initialized.
+    window.dispatchEvent(new Event('streetlife_telegram_user_ready'));
 
     const timer = setTimeout(() => {
       setIsMounted(true);
