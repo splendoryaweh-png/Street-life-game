@@ -439,5 +439,21 @@
   "studio_maximum": "Max",
   "studio_stop_recording_aria": "Stop recording",
   "studio_start_recording_aria": "Start recording",
-  "shop_item_walking_name": "Walking"
+  "shop_item_walking_name": "Walking",
+  "shop_item_chain_watch_set_name": "Better Chain + Watch Set",
+  "shop_item_diamond_set_name": "Diamond Set",
+  "shop_item_shared_room_rent_name": "Share Room Rent",
+  "shop_item_studio_rent_name": "Studio Rent",
+  "shop_item_1bed_rent_name": "One Bedroom Rent",
+  "shop_item_luxury_rent_name": "Luxury House Rent",
+  "shop_item_studio_buy_name": "Buy Studio",
+  "shop_item_1bed_buy_name": "Buy One Bedroom",
+  "shop_item_basic_phone_name": "Basic Phone",
+  "shop_item_mid_smartphone_name": "Middle-Level Smartphone",
+  "shop_item_flagship_phone_name": "Big Brand Phone",
+  "shop_item_foldable_pro_name": "Foldable Pro",
+  "shop_item_luxury_gold_phone_name": "Gold Luxury Phone",
+  "shop_item_bedroom_studio_name": "Bedroom Studio (Starter)",
+  "shop_item_street_studio_name": "Street Studio",
+  "shop_item_pro_studio_name": "Pro Studio"
 }
