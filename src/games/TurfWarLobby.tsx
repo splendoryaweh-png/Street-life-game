@@ -442,18 +442,18 @@ export function TurfWarLobby({
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs font-black uppercase text-white flex items-center gap-1">
                           <span>{info.icon}</span>
-                          <span>{info.title}</span>
+                          <span>{r === 'attacker' ? t('turf_role_attacker', 'ATTACKER') : t('turf_role_defender', 'DEFENDER')}</span>
                         </span>
                         <span
                           className={`text-[8px] font-black px-1.5 py-0.5 rounded-md ${
                             r === 'attacker' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
                           }`}
                         >
-                          {info.badge}
+                          {r === 'attacker' ? t('turf_role_attacker_badge', 'STRIKE FORCE') : t('turf_role_defender_badge', 'FORTRESS GUARD')}
                         </span>
                       </div>
                       <p className="text-[9px] text-gray-400 leading-tight line-clamp-2">
-                        {info.perk}
+                        {r === 'attacker' ? t('turf_role_attacker_perk', '+20% Gun Damage & Faster Laser Spread') : t('turf_role_defender_perk', '+35% Max Armor Shield & Zone Health Regeneration')}
                       </p>
                     </button>
                   );
@@ -517,7 +517,7 @@ export function TurfWarLobby({
               type="button"
               className="px-5 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-black text-xs uppercase active:scale-95 cursor-pointer"
             >
-              JOIN
+              {t('turf_join', 'JOIN')}
             </button>
           </div>
         </div>
@@ -643,11 +643,11 @@ export function TurfWarLobby({
                   <div>
                     {p.ready ? (
                       <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500 text-emerald-400 text-[10px] font-black uppercase tracking-wider">
-                        READY
+                        {t('turf_ready', 'READY')}
                       </span>
                     ) : (
                       <span className="px-3 py-1 rounded-full bg-white/10 text-gray-400 text-[10px] font-bold uppercase">
-                        WAITING
+                        {t('turf_waiting', 'WAITING')}
                       </span>
                     )}
                   </div>
