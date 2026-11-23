@@ -289,5 +289,13 @@
   "referral_claim": "Claim 520",
   "referral_welcome_claimed": "Welcome bonus claimed (+520 coins)",
   "referral_invited_count": "Hustlers Invited:",
-  "referral_simulate": "Simulate 1 Invite (+100)"
+  "referral_simulate": "Simulate 1 Invite (+100)",
+  "shop_inventory_title": "INVENTORY - Street Hustle",
+  "shop_view_character": "View Character",
+  "shop_tab": "Shop",
+  "shop_craft": "Craft",
+  "shop_market": "Market",
+  "shop_balance": "Balance:",
+  "shop_energy": "Energy:",
+  "shop_renew_rent": "Renew Rent"
 }
