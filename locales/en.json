@@ -297,5 +297,21 @@
   "shop_market": "Market",
   "shop_balance": "Balance:",
   "shop_energy": "Energy:",
-  "shop_renew_rent": "Renew Rent"
+  "shop_renew_rent": "Renew Rent",
+  "daily_free_title": "Daily Free System",
+  "daily_free_all": "All Daily Free",
+  "daily_free_completed": "Completed",
+  "daily_free_unlocked": "Unlocked",
+  "daily_free_locked": "Locked",
+  "daily_free_claimed_today": "Claimed Today ✓ (Come Back Tomorrow)",
+  "daily_free_play_to_unlock": "Play 1 Game to Unlock 🔒",
+  "daily_free_verifying": "Verifying Reward...",
+  "daily_free_claim_day": "Claim Day",
+  "daily_free_nitro": "Free Nitro Daily",
+  "daily_free_charges_left": "free daily charges left",
+  "daily_free_racing_coins": "Racing Coins 2X",
+  "daily_free_racing_desc": "First 5 road coins daily give 2x reward!",
+  "daily_free_active_today": "ACTIVE TODAY",
+  "daily_free_simulate": "Simulate Play",
+  "daily_free_relock": "Re-Lock Test"
 }
