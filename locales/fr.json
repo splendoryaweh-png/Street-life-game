@@ -398,5 +398,8 @@
   "shop_duration": "Durée",
   "shop_locked_studio_beat": "BEAT DE STUDIO VERROUILLÉ",
   "shop_level": "Niveau",
-  "watch_ad_get_10_sc": "REGARDER UNE PUB POUR GAGNER 10 SC"
+  "watch_ad_get_10_sc": "REGARDER UNE PUB POUR GAGNER 10 SC",
+  "home_total_net_worth": "Valeur nette totale",
+  "home_coin_transactions_last_10": "Transactions de pièces (10 dernières)",
+  "home_street_novel": "📖 Roman de rue"
 }
