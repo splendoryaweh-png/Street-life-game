@@ -186,5 +186,10 @@
   "turf_watch_continue": "REGARDER UNE PUB POUR CONTINUER",
   "turf_back_home": "RETOUR À L’ACCUEIL",
   "turf_ad_success_note": "Le match reprend uniquement après la fin de la publicité récompensée.",
-  "turf_hour_victory": "VICTOIRE ! 1 HEURE !"
+  "turf_hour_victory": "VICTOIRE ! 1 HEURE !",
+  "studio_off": "ARRÊT",
+  "studio_balanced": "ÉQUILIBRÉ",
+  "studio_max": "MAX",
+  "studio_beat_volume_aria": "Volume du beat",
+  "studio_voice_volume_aria": "Volume de la voix"
 }
