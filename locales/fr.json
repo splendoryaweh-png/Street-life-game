@@ -429,5 +429,16 @@
   "watch_after_five_ads": "Après 5 pubs",
   "watch_unlocked": "DÉBLOQUÉ",
   "shop_inside_house": "Intérieur de la maison",
-  "shop_vehicle_view": "Véhicule"
+  "shop_vehicle_view": "Véhicule",
+  "studio_live_stereo_mixed": "STÉRÉO EN DIRECT • MIXÉ",
+  "studio_ready_beat_voice_mix": "PRÊT • MIX BEAT + VOIX",
+  "studio_mixer_help": "Réglez chaque curseur séparément. Les changements s’appliquent au mix enregistré.",
+  "studio_recording_mixed_track": "ENREGISTREMENT MIXÉ",
+  "studio_vocal_booth_beat_voice": "CABINE VOCALE - BEAT + VOIX",
+  "studio_daily_label": "Quotidien",
+  "studio_recording_label": "Enregistrement",
+  "studio_minimum": "Min",
+  "studio_maximum": "Max",
+  "studio_stop_recording_aria": "Arrêter l’enregistrement",
+  "studio_start_recording_aria": "Commencer l’enregistrement"
 }
