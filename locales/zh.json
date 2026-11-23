@@ -306,5 +306,21 @@
   "shop_market": "市场",
   "shop_balance": "余额：",
   "shop_energy": "能量：",
-  "shop_renew_rent": "续租"
+  "shop_renew_rent": "续租",
+  "daily_free_title": "每日免费系统",
+  "daily_free_all": "全部每日免费奖励",
+  "daily_free_completed": "已完成",
+  "daily_free_unlocked": "已解锁",
+  "daily_free_locked": "已锁定",
+  "daily_free_claimed_today": "今天已领取 ✓（明天再来）",
+  "daily_free_play_to_unlock": "玩 1 场游戏即可解锁 🔒",
+  "daily_free_verifying": "正在验证奖励...",
+  "daily_free_claim_day": "领取第",
+  "daily_free_nitro": "每日免费氮气",
+  "daily_free_charges_left": "每日免费次数剩余",
+  "daily_free_racing_coins": "赛车金币 2 倍",
+  "daily_free_racing_desc": "每天前 5 枚道路金币可获得双倍奖励！",
+  "daily_free_active_today": "今日已激活",
+  "daily_free_simulate": "模拟游戏",
+  "daily_free_relock": "重新锁定测试"
 }
