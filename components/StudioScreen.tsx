@@ -943,7 +943,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
             type="button"
             className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-black text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(6,182,212,0.4)] active:scale-95 transition-all cursor-pointer shrink-0"
           >
-            {isAdWatching ? '{t('studio_opening_ad', 'Opening Adsgram...')}' : '{t('studio_ten_coins', '+10 Coins')}'}
+            {isAdWatching ? t('studio_opening_ad', 'Opening Adsgram...') : t('studio_ten_coins', '+10 Coins')}
           </button>
         </div>
 
