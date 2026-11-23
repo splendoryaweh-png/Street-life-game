@@ -129,6 +129,12 @@ export function detectLanguage(): LanguageCode {
     auto = 'id';
   } else if (tgLang === 'ar' || tgLang.startsWith('ar-') || /Cairo|Riyadh|Dubai|Kuwait|Qatar|Beirut|Amman|Baghdad|Tunis|Casablanca/.test(tz)) {
     auto = 'ar';
+  } else if (tgLang === 'zh' || tgLang.startsWith('zh-') || /Shanghai|Chongqing|Hong_Kong|Macau|Taipei/.test(tz)) {
+    auto = 'zh';
+  } else if (tgLang === 'ko' || /Seoul|Pyongyang/.test(tz)) {
+    auto = 'ko';
+  } else if (tgLang === 'he' || tgLang.startsWith('he-') || /Jerusalem|Tel_Aviv/.test(tz)) {
+    auto = 'he';
   } else if (
     tz.includes('Lisbon') ||
     tz.includes('Sao_Paulo') ||
