@@ -398,5 +398,19 @@
   "studio_filter_warm": "Warm",
   "studio_filter_bw": "B&W",
   "studio_filter_cool": "Cool",
-  "studio_filter_vintage": "Vintage"
+  "studio_filter_vintage": "Vintage",
+  "watch_milestone_bonus_label": "Extra milestone reward",
+  "watch_milestone_claimed_short": "CLAIMED",
+  "watch_milestone_ready": "READY TO CLAIM",
+  "watch_tap_for_details": "TAP FOR DETAILS",
+  "watch_milestone_details": "Watch the required number of regular ads to unlock this milestone. Then watch one more rewarded video to claim the bonus.",
+  "watch_milestone_progress": "Progress",
+  "watch_milestone_bonus": "Milestone bonus: +10 SC",
+  "watch_milestone_ad_note": "The claim video also earns its regular +10 SC ad reward and counts toward your daily ad limit.",
+  "watch_milestone_claimed": "Milestone reward claimed!",
+  "watch_milestone_watch_claim": "WATCH AD & CLAIM +10 SC",
+  "watch_milestone_need_ads": "Watch more regular ads to unlock this reward.",
+  "watch_milestone_already_claimed": "You already claimed this milestone today.",
+  "watch_milestone_locked": "Watch the required ads to unlock this milestone.",
+  "watch_ad_incomplete": "The ad was not completed. No reward was added."
 }
