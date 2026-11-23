@@ -464,5 +464,10 @@
   "studio_maximum": "최대",
   "studio_stop_recording_aria": "녹음 중지",
   "studio_start_recording_aria": "녹음 시작",
-  "shop_item_walking_name": "걷기"
+  "shop_item_walking_name": "걷기",
+  "studio_filter_normal": "기본",
+  "studio_filter_warm": "따뜻함",
+  "studio_filter_bw": "흑백",
+  "studio_filter_cool": "차가움",
+  "studio_filter_vintage": "빈티지"
 }
