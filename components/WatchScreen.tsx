@@ -183,19 +183,19 @@ export function WatchScreen({
               </div>
 
               <h1 className="text-xl sm:text-2xl font-black tracking-wider text-white uppercase">
-                WATCH &amp; EARN
+                {t('watch_screen_title', 'WATCH & EARN')}
               </h1>
             </div>
 
             <p className="text-xs text-[#9CA3AF] font-medium tracking-wide mt-0.5">
-              Watch short video sponsors • Earn instant Street Coins
+              {t('watch_screen_subtitle', 'Watch short video sponsors • Earn instant Street Coins')}
             </p>
           </div>
         </div>
 
         <div className="flex flex-col items-end">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            AD COUNTER
+            {t('watch_ad_counter', 'AD COUNTER')}
           </span>
 
           <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-[#FFD700] text-black shadow-[0_0_8px_rgba(255,215,0,0.5)]">
@@ -216,7 +216,7 @@ export function WatchScreen({
 
           <div className="flex items-center gap-1.5 text-gray-400 font-mono text-[11px]">
             <Clock className="w-3.5 h-3.5 text-gray-400" />
-            <span>Reset in {timeUntilReset}</span>
+            <span>{t('watch_reset_in', 'Reset in')} {timeUntilReset}</span>
           </div>
         </div>
 
@@ -235,7 +235,7 @@ export function WatchScreen({
         <div className="mt-3 flex items-center justify-between text-[11px] pt-2 border-t border-white/5">
           <div className="flex items-center gap-1 text-gray-300">
             <Sparkles className="w-3.5 h-3.5 text-[#FFD700]" />
-            <span>Earn 10 Street Coins per video sponsor</span>
+            <span>{t('watch_earn_per_video', 'Earn 10 Street Coins per video sponsor')}</span>
           </div>
 
           <span className="font-mono font-bold text-[#FFD700]">
@@ -270,7 +270,7 @@ export function WatchScreen({
           </button>
 
           <h2 className="text-2xl font-black text-white tracking-wide mt-4 flex items-center justify-center gap-2">
-            Watch Ad{' '}
+            {t('watch_ad_title', 'Watch Ad')}{' '}
             <span className="text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.6)]">
               +10 SC
             </span>
@@ -278,7 +278,7 @@ export function WatchScreen({
 
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300 font-mono">
             <Clock className="w-3.5 h-3.5 text-[#FFD700]" />
-            <span>Rewarded by Adsgram</span>
+            <span>{t('watch_rewarded_by', 'Rewarded by Adsgram')}</span>
           </div>
 
           <button
@@ -294,13 +294,10 @@ export function WatchScreen({
             <Play className="w-4 h-4 fill-current" />
 
             {isLimitReached
-              ? 'DAILY LIMIT REACHED (33/33)'
+              ? t('watch_daily_limit', 'DAILY LIMIT REACHED (33/33)')
               : isPlayingAd
-                ? 'LOADING ADSGRAM...'
-                : `WATCH AD ${Math.min(
-                    33,
-                    adsWatchedToday + 1
-                  )}/33 (+10 SC)`}
+                ? t('watch_loading', 'LOADING ADSGRAM...')
+                : `${t('watch_button', 'WATCH AD')} ${Math.min(33, adsWatchedToday + 1)}/33 (+10 SC)`}
           </button>
         </div>
       </div>
@@ -308,7 +305,7 @@ export function WatchScreen({
       <div className="rounded-2xl bg-[#14141A] border border-[#FFD700]/30 p-4">
         <h3 className="text-xs font-black tracking-wider text-white uppercase mb-3 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-[#FFD700]" />
-          DAILY BONUS MULTIPLIERS
+          {t('watch_bonus_multipliers', 'DAILY BONUS MULTIPLIERS')}
         </h3>
 
         <div className="grid grid-cols-2 gap-2.5">
@@ -321,7 +318,7 @@ export function WatchScreen({
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-gray-400">
-                MILESTONE 1 (5 ADS)
+                {t('watch_milestone_one', 'MILESTONE 1 (5 ADS)')}
               </span>
 
               {adsWatchedToday >= 5 && (
@@ -334,13 +331,13 @@ export function WatchScreen({
                 10 COINS
               </div>
               <p className="text-[10px] text-gray-300">
-                Fixed reward per completed ad
+                {t('watch_fixed_reward', 'Fixed reward per completed ad')}
               </p>
             </div>
 
             <span className="text-[9px] font-mono text-gray-400">
               {adsWatchedToday >= 5
-                ? 'ACTIVE NOW'
+                ? t('watch_active_now', 'ACTIVE NOW')
                 : `${adsWatchedToday}/5 Watched`}
             </span>
           </div>
@@ -354,7 +351,7 @@ export function WatchScreen({
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-gray-400">
-                MILESTONE 2 (10 ADS)
+                {t('watch_milestone_two', 'MILESTONE 2 (10 ADS)')}
               </span>
 
               {adsWatchedToday >= 10 && (
@@ -367,13 +364,13 @@ export function WatchScreen({
                 10 COINS
               </div>
               <p className="text-[10px] text-gray-300">
-                No extra coin multiplier
+                {t('watch_no_multiplier', 'No extra coin multiplier')}
               </p>
             </div>
 
             <span className="text-[9px] font-mono text-gray-400">
               {adsWatchedToday >= 10
-                ? 'ACTIVE NOW'
+                ? t('watch_active_now', 'ACTIVE NOW')
                 : `${adsWatchedToday}/10 Watched`}
             </span>
           </div>
@@ -396,7 +393,7 @@ export function WatchScreen({
             <div>
               <div className="flex items-center gap-2">
                 <h4 className="text-sm font-black text-white group-hover:text-[#FFD700] transition-colors">
-                  Watch 2 Ads Task
+                  {t('watch_task_title', 'Watch 2 Ads Task')}
                 </h4>
 
                 {adsWatchedToday >= 2 ? (
@@ -411,7 +408,7 @@ export function WatchScreen({
               </div>
 
               <p className="text-xs text-gray-400">
-                Complete daily challenge in TASKS tab • +1,000 S
+                {t('watch_task_desc', 'Complete daily challenge in TASKS tab')} • +1,000 S
               </p>
             </div>
           </div>
@@ -433,7 +430,7 @@ export function WatchScreen({
             <div>
               <div className="flex items-center gap-2">
                 <h4 className="text-sm font-black text-white">
-                  Boost x2 for 1 hour
+                  {t('watch_boost_title', 'Boost x2 for 1 hour')}
                 </h4>
 
                 {boostRemaining ? (
@@ -448,7 +445,7 @@ export function WatchScreen({
               </div>
 
               <p className="text-xs text-gray-400">
-                Double coins in Galaxy Shooter, Street Race &amp; Delivery
+                {t('watch_boost_desc', 'Double coins in Galaxy Shooter, Street Race & Delivery')}
               </p>
             </div>
           </div>
@@ -484,11 +481,11 @@ export function WatchScreen({
             </div>
 
             <span className="text-[11px] font-black uppercase tracking-widest text-[#FFD700] bg-[#FFD700]/10 border border-[#FFD700]/30 px-3 py-1 rounded-full">
-              REWARD UNLOCKED
+              {t('watch_reward_unlocked', 'REWARD UNLOCKED')}
             </span>
 
             <h3 className="text-3xl font-black text-white mt-3 mb-1 tracking-tight">
-              +{rewardModal.amount.toLocaleString()} S CLAIMED
+              +{rewardModal.amount.toLocaleString()} S {t('watch_claimed', 'CLAIMED')}
             </h3>
 
             {rewardModal.multiplier > 1 && (
