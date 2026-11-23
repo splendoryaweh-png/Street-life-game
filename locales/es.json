@@ -422,5 +422,10 @@
   "shop_item_luxury_gold_phone_name": "Teléfono dorado de lujo",
   "shop_item_bedroom_studio_name": "Estudio de dormitorio (Inicial)",
   "shop_item_street_studio_name": "Estudio callejero",
-  "shop_item_pro_studio_name": "Estudio profesional"
+  "shop_item_pro_studio_name": "Estudio profesional",
+  "watch_coins_per_ad": "+10 monedas / anuncio",
+  "watch_coins_label": "10 MONEDAS",
+  "watch_watched_suffix": "Vistos",
+  "watch_after_five_ads": "Después de 5 anuncios",
+  "watch_unlocked": "DESBLOQUEADO"
 }
