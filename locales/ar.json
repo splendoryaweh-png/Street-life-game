@@ -193,5 +193,13 @@
   "studio_beat_voice": "إيقاع + صوت",
   "studio_beat_volume": "مستوى صوت الإيقاع",
   "studio_voice_volume": "مستوى صوت الصوت",
-  "studio_locked": "مقفل"
+  "studio_locked": "مقفل",
+  "turf_player_down": "لقد سقطت",
+  "turf_death_description": "شاهد إعلانًا لمتابعة هذه المباراة من حيث توقفت، أو عُد إلى الصفحة الرئيسية.",
+  "turf_earned": "المكتسب",
+  "turf_ad_playing": "جارٍ تشغيل الإعلان...",
+  "turf_watch_continue": "شاهد إعلانًا للمتابعة",
+  "turf_back_home": "العودة إلى الرئيسية",
+  "turf_ad_success_note": "لن تُستأنف المباراة إلا بعد اكتمال الإعلان المكافئ.",
+  "turf_hour_victory": "فوز! ساعة واحدة!"
 }
