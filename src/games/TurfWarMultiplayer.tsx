@@ -7,7 +7,7 @@ import { addGameCoins } from '@/lib/storage';
 import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import confetti from 'canvas-confetti';
 
-export interface TurfWarMultiplayerProps { onBack: () => void; onToast: (msg: string) => void; currentCoins: number; initialRoomCode?: string; }
+export interface TurfWarMultiplayerProps { onBack: () => void; onBackHome?: () => void; onToast: (msg: string) => void; currentCoins: number; initialRoomCode?: string; }
 interface PlayerState { id: string; name: string; role: TurfRole; x: number; y: number; vx: number; vy: number; angle: number; hp: number; maxHp: number; armor: number; maxArmor: number; kills: number; score: number; color: string; isMe: boolean; isAlive: boolean; isFiring: boolean; ammo: number; maxAmmo: number; isReloading: boolean; reloadProgress: number; hitCount: number; inTankId: string | null; insideBuildingId: string | null; }
 interface Enemy { id: string; type: 'thug' | 'enforcer'; x: number; y: number; vx: number; vy: number; hp: number; maxHp: number; speed: number; damage: number; radius: number; color: string; lastAttack: number; targetPlayerId: string; hitCount: number; lastShoot: number; inTankId: string | null; }
 interface Tank { id: string; x: number; y: number; angle: number; hp: number; maxHp: number; occupiedBy: string | null; occupiedByType: 'player' | 'enemy' | null; isExploded: boolean; barracksId: string; }
@@ -19,7 +19,7 @@ interface Barracks { id: string; x: number; y: number; w: number; h: number; doo
 
 const MATCH_DURATION_SECONDS = 3600;
 
-export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, onToast, currentCoins, initialRoomCode }) => {
+export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, onBackHome, onToast, currentCoins, initialRoomCode }) => {
   const [inGame, setInGame] = useState(false);
   const [roomCode, setRoomCode] = useState(initialRoomCode || '');
   const [isHost, setIsHost] = useState(true);
@@ -216,7 +216,7 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
       broadcastChannelRef.current.close();
       broadcastChannelRef.current = null;
     }
-    onBack();
+    (onBackHome || onBack)();
   };
 
   const fireBullet = (me: PlayerState, angle: number) => {
