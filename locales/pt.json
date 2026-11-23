@@ -422,5 +422,10 @@
   "shop_item_luxury_gold_phone_name": "Celular dourado de luxo",
   "shop_item_bedroom_studio_name": "Estúdio no quarto (Inicial)",
   "shop_item_street_studio_name": "Estúdio de rua",
-  "shop_item_pro_studio_name": "Estúdio profissional"
+  "shop_item_pro_studio_name": "Estúdio profissional",
+  "watch_coins_per_ad": "+10 moedas / anúncio",
+  "watch_coins_label": "10 MOEDAS",
+  "watch_watched_suffix": "Assistidos",
+  "watch_after_five_ads": "Após 5 anúncios",
+  "watch_unlocked": "DESBLOQUEADO"
 }
