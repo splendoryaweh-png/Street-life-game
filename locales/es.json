@@ -275,5 +275,13 @@
   "referral_claim": "Reclamar 520",
   "referral_welcome_claimed": "Bono de bienvenida reclamado (+520 monedas)",
   "referral_invited_count": "Amigos invitados:",
-  "referral_simulate": "Simular 1 invitación (+100)"
+  "referral_simulate": "Simular 1 invitación (+100)",
+  "shop_inventory_title": "INVENTARIO - Street Hustle",
+  "shop_view_character": "Ver personaje",
+  "shop_tab": "Tienda",
+  "shop_craft": "Fabricar",
+  "shop_market": "Mercado",
+  "shop_balance": "Saldo:",
+  "shop_energy": "Energía:",
+  "shop_renew_rent": "Renovar alquiler"
 }
