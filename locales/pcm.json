@@ -420,5 +420,10 @@
   "shop_item_designer_shirt_name": "Designer na Polo",
   "shop_item_hoodie_set_name": "Set ng Hoodie",
   "shop_item_luxury_jacket_name": "Marangyang Jacket",
-  "shop_item_formal_suit_name": "Pormal na Suit"
+  "shop_item_formal_suit_name": "Pormal na Suit",
+  "watch_coins_per_ad": "+10 Coin for each ad",
+  "watch_coins_label": "10 COIN",
+  "watch_watched_suffix": "Don watch",
+  "watch_after_five_ads": "After 5 Ads",
+  "watch_unlocked": "DON OPEN"
 }
