@@ -281,6 +281,7 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
   const { language, t } = useLanguage();
   const isPortuguese = language === 'pt';
   const isArabic = language === 'ar' || (typeof document !== 'undefined' && document.documentElement.dataset.language === 'ar');
+  const isRtl = isArabic || language === 'he';
   const arabicGuide: Record<string, { title: string; intro: string; steps: string[] }> = {
     start: { title: '١. ابدأ هنا: فهم الشاشة الرئيسية', intro: 'الشاشة الرئيسية هي لوحة التحكم الأساسية. مرّر للأعلى والأسفل لرؤية الصفحة كاملة؛ فالمحتوى لا يقتصر على الجزء الظاهر أولاً.', steps: ['يظهر رصيد Street Coins بالقرب من الأعلى. اضغط على الرصيد أو اختصار المعاملات لمراجعة نشاط العملات.', 'استخدم مركز الأنشطة وشريط التنقل السفلي لفتح أقسام Street Life المختلفة.', 'تعيدك الرئيسية إلى لوحة التحكم. تفتح الألعاب مكتبة الألعاب. يفتح الاستوديو أدوات الأداء الحر. يفتح المتجر العناصر والترقيات. تفتح حرب الشوارع منطقة القتال. ويحتوي الملف الشخصي على بيانات اللاعب والإعدادات.', 'يمكن للاختصارات الأخرى فتح المهام وشاهد واربح والبنك والمخزون والأقسام المتاحة الأخرى. اقرأ عنوان كل شاشة لتعرف مكانك.', 'إذا بدا أن جزءًا من الشاشة غير ظاهر، فمرّر داخل الصفحة. وفي الشاشات المدعومة، يخفي زر العين شريطي التنقل العلوي والسفلي أو يظهرهما.'] },
     games: { title: '٢. اختر لعبة وافهم أوضاع اللعب', intro: 'افتح الألعاب من شريط التنقل السفلي. تنقسم المكتبة إلى ألعاب أكشن ثلاثية الأبعاد وألعاب مصغّرة. اختر فئة ثم بطاقة اللعبة لفتحها.', steps: ['عصابات الشوارع: افتح مركز اللعبة ثم اختر لاعبًا واحدًا أو اللعب الجماعي. يمكنك إنشاء غرفة برمز دعوة أو الانضمام برمز أو استخدام المطابقة العشوائية عند توفرها.', 'سباق الشوارع: اختر السباق واقرأ التعليمات واستخدم أدوات القيادة الظاهرة. تجنب المرور والعوائق واجمع العملات عند توفرها.', 'توصيل الدراجات: اتبع مهمة التوصيل والوقت المحدد واستخدم أزرار الدراجة للوصول إلى الوجهة.', 'نرد الشوارع: اختر لاعبًا واحدًا أو اللعب الجماعي. ينشئ المضيف غرفة ويشارك رمزها، ويدخل اللاعبون الآخرون الرمز للانضمام.', 'تشمل الألعاب المصغّرة الأخرى حرب المناطق وتحدي الشوارع وماكينات الشوارع وبطاقات الشوارع. اقرأ قواعد كل لعبة؛ فالأهداف وأدوات التحكم تختلف.', 'قد تظهر على بعض البطاقات عبارة قريبًا. لا يمكن لعب هذه الألعاب حتى يتم تفعيلها في تحديث لاحق.', 'استخدم زر الرجوع داخل اللعبة للعودة إلى القائمة، وتجنب إغلاق تيليجرام أثناء المباراة.'] },
@@ -349,9 +350,9 @@ export function HowToPlayModal({ isOpen, onClose }: HowToPlayModalProps) {
           </div>
         </div>
 
-        <div dir={isArabic ? "rtl" : "ltr"} className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y p-4 space-y-3 [WebkitOverflowScrolling:touch]">
+        <div dir={isRtl ? "rtl" : "ltr"} className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y p-4 space-y-3 [WebkitOverflowScrolling:touch]">
           {displayChapters.map(({ id, icon: Icon, title, color, intro, steps }) => (
-            <article dir={isArabic ? "rtl" : "ltr"} id={'guide-' + id} key={id} className="scroll-mt-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3.5">
+            <article dir={isRtl ? "rtl" : "ltr"} id={'guide-' + id} key={id} className="scroll-mt-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3.5">
               <div className="flex items-center gap-3 mb-2">
                 <div className={'w-10 h-10 shrink-0 rounded-xl bg-white/[0.06] flex items-center justify-center ' + color}>
                   <Icon className="w-5 h-5" />
