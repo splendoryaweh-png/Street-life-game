@@ -186,5 +186,10 @@
   "turf_watch_continue": "TONTON IKLAN UNTUK LANJUT",
   "turf_back_home": "KEMBALI KE BERANDA",
   "turf_ad_success_note": "Pertandingan dilanjutkan hanya setelah iklan hadiah selesai.",
-  "turf_hour_victory": "MENANG! 1 JAM!"
+  "turf_hour_victory": "MENANG! 1 JAM!",
+  "studio_off": "MATI",
+  "studio_balanced": "SEIMBANG",
+  "studio_max": "MAKS",
+  "studio_beat_volume_aria": "Volume beat",
+  "studio_voice_volume_aria": "Volume vokal"
 }
