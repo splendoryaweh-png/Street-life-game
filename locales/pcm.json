@@ -200,5 +200,10 @@
   "turf_watch_continue": "WATCH AD MAKE YOU CONTINUE",
   "turf_back_home": "GO BACK HOME",
   "turf_ad_success_note": "Match go continue only after you finish the rewarded ad.",
-  "turf_hour_victory": "YOU WIN! ONE HOUR!"
+  "turf_hour_victory": "YOU WIN! ONE HOUR!",
+  "studio_off": "OFF",
+  "studio_balanced": "BALANCE",
+  "studio_max": "FULL",
+  "studio_beat_volume_aria": "Beat Volume",
+  "studio_voice_volume_aria": "Voice Volume"
 }
