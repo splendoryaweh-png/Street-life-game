@@ -340,7 +340,7 @@
   "shop_owned": "Possuído",
   "shop_buy_eat": "Comprar e comer",
   "shop_eat": "Comer",
-  "shop_studio_view": "Visualização do estúdio",
+  "shop_studio_view": "Estúdio",
   "shop_track_payout": "Pagamento por faixa",
   "shop_fan_base": "Base de fãs",
   "shop_beats_library_access": "Acesso à biblioteca de batidas:",
@@ -427,5 +427,7 @@
   "watch_coins_label": "10 MOEDAS",
   "watch_watched_suffix": "Assistidos",
   "watch_after_five_ads": "Após 5 anúncios",
-  "watch_unlocked": "DESBLOQUEADO"
+  "watch_unlocked": "DESBLOQUEADO",
+  "shop_inside_house": "Dentro de casa",
+  "shop_vehicle_view": "Veículo"
 }
