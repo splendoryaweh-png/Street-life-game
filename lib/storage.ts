@@ -323,6 +323,7 @@ export const SERVER_GAME_STATE_SNAPSHOT: UserGameState = {
   // PROM 4: Watch Ads
   watchCountDaily: 0,
   lastWatchDate: null,
+  watchMilestonesClaimedToday: [],
   boostUntil: null,
   // PROM 6: Task System
   completedTasks: DEFAULT_COMPLETED_TASKS,
@@ -404,6 +405,7 @@ function persistState(state: UserGameState) {
       equippedItems: state.equippedItems,
       watchCountDaily: state.watchCountDaily,
       lastWatchDate: state.lastWatchDate,
+      watchMilestonesClaimedToday: state.watchMilestonesClaimedToday || [],
       boostUntil: state.boostUntil,
       // PROM 6: Task System
       completedTasks: state.completedTasks,
@@ -696,6 +698,7 @@ export function subscribeGameState(listener: () => void) {
         inventoryArray,
         equippedItems,
         watchCountDaily,
+        watchMilestonesClaimedToday: lastWatchDate === todayStr && Array.isArray(loadedData.watchMilestonesClaimedToday) ? loadedData.watchMilestonesClaimedToday.filter((n: unknown) => n === 5 || n === 10) : [],
         boostUntil,
         completedTasks,
         taskProgress,
@@ -1500,6 +1503,55 @@ export function claimWatchAdReward(_baseAmount: number = WATCH_AD_REWARD): {
     limitReached: nextCount >= WATCH_AD_DAILY_LIMIT,
     boostActivated,
   };
+}
+
+/**
+ * Claims a daily Watch milestone after a separate Adsgram rewarded video is
+ * confirmed complete. The claim ad also earns the normal 10 SC ad reward.
+ */
+export function claimWatchMilestoneReward(milestone: 5 | 10): {
+  success: boolean;
+  reward: number;
+  dailyCount: number;
+  reason?: 'locked' | 'claimed' | 'limit';
+} {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const sameDay = currentSnapshot.lastWatchDate === todayStr;
+  const currentCount = sameDay ? (currentSnapshot.watchCountDaily || 0) : 0;
+  const claimed = sameDay ? (currentSnapshot.watchMilestonesClaimedToday || []) : [];
+  if (currentCount < milestone) return { success: false, reward: 0, dailyCount: currentCount, reason: 'locked' };
+  if (claimed.includes(milestone)) return { success: false, reward: 0, dailyCount: currentCount, reason: 'claimed' };
+  if (currentCount >= WATCH_AD_DAILY_LIMIT) return { success: false, reward: 0, dailyCount: currentCount, reason: 'limit' };
+
+  const dailyCount = currentCount + 1;
+  const baseReward = WATCH_AD_REWARD;
+  const milestoneReward = 10;
+  const now = Date.now();
+  const transaction: CoinTransaction = {
+    id: `tx_ad_milestone_${milestone}_${now}_${Math.random().toString(36).slice(2, 8)}`,
+    type: 'ad_reward',
+    description: `+${baseReward + milestoneReward} SC for milestone ${milestone} rewarded ad`,
+    amount: baseReward + milestoneReward,
+    timestamp: now,
+  };
+  let boostUntil = currentSnapshot.boostUntil || null;
+  if (dailyCount >= 5 && (!boostUntil || Date.now() > boostUntil)) {
+    boostUntil = Date.now() + 60 * 60 * 1000;
+  }
+  currentSnapshot = {
+    ...currentSnapshot,
+    streetCoin: (currentSnapshot.streetCoin || 0) + baseReward + milestoneReward,
+    adsWatched: (currentSnapshot.adsWatched || 0) + 1,
+    watchCountDaily: dailyCount,
+    lastWatchDate: todayStr,
+    watchMilestonesClaimedToday: [...claimed, milestone],
+    boostUntil,
+    transactions: [transaction, ...(currentSnapshot.transactions || [])].slice(0, 30),
+    hasPlayedToday: true,
+  };
+  persistState(currentSnapshot);
+  notifyListeners();
+  return { success: true, reward: baseReward + milestoneReward, dailyCount };
 }
 
 // ---------------------------------------------------------------------------
