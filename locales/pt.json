@@ -275,5 +275,13 @@
   "referral_claim": "Resgatar 520",
   "referral_welcome_claimed": "Bônus de boas-vindas resgatado (+520 moedas)",
   "referral_invited_count": "Amigos convidados:",
-  "referral_simulate": "Simular 1 convite (+100)"
+  "referral_simulate": "Simular 1 convite (+100)",
+  "shop_inventory_title": "INVENTÁRIO - Street Hustle",
+  "shop_view_character": "Ver personagem",
+  "shop_tab": "Loja",
+  "shop_craft": "Criar",
+  "shop_market": "Mercado",
+  "shop_balance": "Saldo:",
+  "shop_energy": "Energia:",
+  "shop_renew_rent": "Renovar aluguel"
 }
