@@ -445,5 +445,10 @@
   "shop_item_luxury_gold_phone_name": "豪华黄金手机",
   "shop_item_bedroom_studio_name": "卧室录音室（入门）",
   "shop_item_street_studio_name": "街头录音室",
-  "shop_item_pro_studio_name": "专业录音室"
+  "shop_item_pro_studio_name": "专业录音室",
+  "watch_coins_per_ad": "+10 金币 / 广告",
+  "watch_coins_label": "10 金币",
+  "watch_watched_suffix": "已观看",
+  "watch_after_five_ads": "观看 5 个广告后",
+  "watch_unlocked": "已解锁"
 }
