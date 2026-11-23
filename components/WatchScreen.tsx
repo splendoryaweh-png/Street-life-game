@@ -14,7 +14,6 @@ import {
   Zap,
   ListChecks,
   CheckCircle2,
-  Tv,
   X,
   Gift,
   ArrowLeft,
@@ -239,7 +238,7 @@ export function WatchScreen({
           </div>
 
           <span className="font-mono font-bold text-[#FFD700]">
-            +10 Coins / ad
+            {t('watch_coins_per_ad', '+10 Coins / ad')}
           </span>
         </div>
       </div>
@@ -327,7 +326,7 @@ export function WatchScreen({
             <span className="text-[9px] font-mono text-gray-400">
               {adsWatchedToday >= 5
                 ? t('watch_active_now', 'ACTIVE NOW')
-                : `${adsWatchedToday}/5 Watched`}
+                : `${adsWatchedToday}/5 ${t('watch_watched_suffix', 'Watched')}`}
             </span>
           </div>
 
@@ -360,7 +359,7 @@ export function WatchScreen({
             <span className="text-[9px] font-mono text-gray-400">
               {adsWatchedToday >= 10
                 ? t('watch_active_now', 'ACTIVE NOW')
-                : `${adsWatchedToday}/10 Watched`}
+                : `${adsWatchedToday}/10 ${t('watch_watched_suffix', 'Watched')}`}
             </span>
           </div>
         </div>
