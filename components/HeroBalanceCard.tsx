@@ -3,6 +3,7 @@
 import React from 'react';
 import { Sparkles, TrendingUp, ReceiptText, BookOpen } from 'lucide-react';
 import { playClickSound } from '@/lib/sound';
+import { useLanguage } from '@/src/contexts/LanguageContext';
 
 interface HeroBalanceCardProps {
   streetCoin: number;
@@ -15,6 +16,7 @@ export function HeroBalanceCard({
   onOpenTransactions,
   onOpenNovel,
 }: HeroBalanceCardProps) {
+  const { t } = useLanguage();
   // Conversions based on 100,000 Coin = $1.00
   const usdValue = (streetCoin / 100000).toFixed(2);
   // Using the game's exact calibrated ratio (12,450 = 0.122 TON)
@@ -28,7 +30,7 @@ export function HeroBalanceCard({
       {/* Mini top badge */}
       <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-[#FFD700] mb-2">
         <Sparkles className="w-3 h-3 text-[#FFD700]" />
-        <span>Total Net Worth</span>
+        <span>{t('home_total_net_worth', 'Total Net Worth')}</span>
       </div>
 
       {/* Main Street Coin Balance (Large Gold) */}
@@ -67,7 +69,7 @@ export function HeroBalanceCard({
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FFD700]/10 hover:bg-[#FFD700]/20 text-[#FFD700] text-xs font-bold border border-[#FFD700]/30 transition-all cursor-pointer active:scale-95 shadow-sm shadow-[#FFD700]/10"
             >
               <ReceiptText className="w-3.5 h-3.5" />
-              <span>Coin Transactions (Last 10)</span>
+              <span>{t('home_coin_transactions_last_10', 'Coin Transactions (Last 10)')}</span>
             </button>
           )}
 
@@ -82,7 +84,7 @@ export function HeroBalanceCard({
               className="mt-3 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-black hover:bg-[#1a1a1a] text-[#FFD700] text-xs font-bold border border-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.35)] hover:shadow-[0_0_20px_rgba(255,215,0,0.55)] transition-all cursor-pointer active:scale-95"
             >
               <BookOpen className="w-3.5 h-3.5 text-[#FFD700]" />
-              <span>📖 Street Novel</span>
+              <span>{t('home_street_novel', '📖 Street Novel')}</span>
             </button>
           )}
         </div>
