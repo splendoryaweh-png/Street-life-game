@@ -178,5 +178,13 @@
   "studio_beat_voice": "БИТ + ВОКАЛ",
   "studio_beat_volume": "ГРОМКОСТЬ БИТА",
   "studio_voice_volume": "ГРОМКОСТЬ ВОКАЛА",
-  "studio_locked": "Заблокировано"
+  "studio_locked": "Заблокировано",
+  "turf_player_down": "ВЫ ПОВЕРЖЕНЫ",
+  "turf_death_description": "Посмотрите рекламу, чтобы продолжить этот матч с того места, где остановились, или вернитесь домой.",
+  "turf_earned": "ЗАРАБОТАНО",
+  "turf_ad_playing": "ВОСПРОИЗВОДИТСЯ РЕКЛАМА...",
+  "turf_watch_continue": "СМОТРЕТЬ РЕКЛАМУ И ПРОДОЛЖИТЬ",
+  "turf_back_home": "НА ГЛАВНУЮ",
+  "turf_ad_success_note": "Матч продолжится только после полного просмотра рекламы.",
+  "turf_hour_victory": "ПОБЕДА! 1 ЧАС!"
 }
