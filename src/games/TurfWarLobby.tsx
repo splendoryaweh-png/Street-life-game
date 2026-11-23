@@ -21,6 +21,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import { playClickSound, playSuccessSound } from '@/lib/sound';
+import { useLanguage } from '@/src/contexts/LanguageContext';
 
 export type TurfRole = 'attacker' | 'defender';
 
@@ -72,6 +73,7 @@ export function TurfWarLobby({
   initialRoomCode,
   onToast,
 }: TurfWarLobbyProps) {
+  const { t } = useLanguage();
   const [myId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       let saved = localStorage.getItem('street_turf_player_id');
@@ -362,10 +364,10 @@ export function TurfWarLobby({
               ⚔️
             </div>
             <h1 className="text-2xl font-black uppercase tracking-tight text-white flex items-center justify-center gap-2">
-              <span>TURF WAR MULTIPLAYER</span>
+              <span>{t('turf_lobby_title', 'TURF WAR MULTIPLAYER')}</span>
             </h1>
             <p className="text-xs text-[#FFD700] font-bold mt-1 tracking-wide">
-              UNLIMITED PROGRESS • 1 HOUR PER MATCH • 4 PLAYERS
+              {t('turf_lobby_subtitle', 'UNLIMITED PROGRESS • 1 HOUR PER MATCH • 4 PLAYERS')}
             </p>
           </div>
 
@@ -380,10 +382,10 @@ export function TurfWarLobby({
                   onChange={(e) => setMyName(e.target.value)}
                   maxLength={18}
                   className="bg-transparent border-b border-white/20 text-xs font-black uppercase text-white focus:outline-none focus:border-[#FFD700] px-1 py-0.5"
-                  placeholder="Your Hustler Name"
+                  placeholder={t("turf_name_placeholder", "Your Hustler Name")}
                 />
               </div>
-              <span className="text-[10px] text-gray-400 font-mono uppercase">LOBBY HERO</span>
+              <span className="text-[10px] text-gray-400 font-mono uppercase">{t('turf_lobby_hero', 'LOBBY HERO')}</span>
             </div>
 
             {/* Avatar & Color Pickers */}
@@ -420,7 +422,7 @@ export function TurfWarLobby({
             {/* Role Switcher */}
             <div>
               <span className="text-[10px] text-gray-400 font-black uppercase tracking-wider block mb-1.5">
-                SELECT 1-HOUR ROLE:
+                {t('turf_role_select', 'SELECT 1-HOUR ROLE:')}
               </span>
               <div className="grid grid-cols-2 gap-2">
                 {(['attacker', 'defender'] as TurfRole[]).map((r) => {
@@ -467,8 +469,8 @@ export function TurfWarLobby({
                 <Crown className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-black uppercase text-white">Create Squad Room (Host)</h3>
-                <p className="text-[10px] text-gray-400">Generate 4-player room code & lead the war</p>
+                <h3 className="text-xs font-black uppercase text-white">{t('turf_create_squad_room', 'Create Squad Room (Host)')}</h3>
+                <p className="text-[10px] text-gray-400">{t('turf_create_squad_desc', 'Generate 4-player room code & lead the war')}</p>
               </div>
             </div>
             <button
@@ -476,7 +478,7 @@ export function TurfWarLobby({
               type="button"
               className="w-full py-3 rounded-2xl bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-black text-xs uppercase tracking-wider shadow-lg shadow-[#FFD700]/20 active:scale-95 transition-all cursor-pointer"
             >
-              CREATE TURF ROOM
+              {t('turf_create_room', 'CREATE TURF ROOM')}
             </button>
           </div>
 
@@ -487,8 +489,8 @@ export function TurfWarLobby({
                 <Radio className="w-4 h-4 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-xs font-black uppercase text-white">Quick Random Join</h3>
-                <p className="text-[10px] text-gray-400">Drop into any open active city warfare match</p>
+                <h3 className="text-xs font-black uppercase text-white">{t('turf_quick_random_join', 'Quick Random Join')}</h3>
+                <p className="text-[10px] text-gray-400">{t('turf_random_join_desc', 'Drop into any open active city warfare match')}</p>
               </div>
             </div>
             <button
@@ -496,7 +498,7 @@ export function TurfWarLobby({
               type="button"
               className="w-full py-3 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-sky-500/30 active:scale-95 transition-all cursor-pointer"
             >
-              RANDOM JOIN SQUAD
+              {t('turf_random_join_button', 'RANDOM JOIN SQUAD')}
             </button>
           </div>
 
@@ -504,7 +506,7 @@ export function TurfWarLobby({
           <div className="p-3.5 rounded-3xl bg-black/60 border border-white/10 shadow-xl flex items-center gap-2">
             <input
               type="text"
-              placeholder="ENTER CODE (TURF-XXXX)"
+              placeholder={t("turf_enter_code_placeholder", "ENTER CODE (TURF-XXXX)")}
               value={inputCode}
               onChange={(e) => setInputCode(e.target.value.toUpperCase())}
               maxLength={12}
@@ -524,11 +526,11 @@ export function TurfWarLobby({
         <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 text-[10px] text-gray-400 space-y-1 my-3">
           <div className="text-white font-black uppercase flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-[#FFD700]" />
-            <span>TURF WAR RULES</span>
+            <span>{t('turf_rules', 'TURF WAR RULES')}</span>
           </div>
-          <p>• Unlimited Waves: Enemies grow stronger every wave without end.</p>
-          <p>• 1 Hour Match: Survive for 3600 seconds to claim the +1,000 SC Vault Bonus.</p>
-          <p>• Rewards: +10 SC per kill • +100 SC per wave survived.</p>
+          <p>• {t('turf_rules_waves', 'Unlimited Waves: Enemies grow stronger every wave without end.')}</p>
+          <p>• {t('turf_rules_hour', '1 Hour Match: Survive for 3600 seconds to claim the +1,000 SC Vault Bonus.')}</p>
+          <p>• {t('turf_rules_rewards', 'Rewards: +10 SC per kill • +100 SC per wave survived.')}</p>
         </div>
       </div>
     );
@@ -556,14 +558,14 @@ export function TurfWarLobby({
           </button>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/40 text-red-400 text-xs font-black">
             <Radio className="w-3.5 h-3.5 animate-pulse" />
-            <span>LOBBY READY ({players.length}/4)</span>
+            <span>{t('turf_lobby_ready', 'LOBBY READY')} ({players.length}/4)</span>
           </div>
         </div>
 
         {/* Big Room Code Header */}
         <div className="p-4 rounded-3xl bg-gradient-to-b from-[#1C1E2E] to-[#11121C] border-2 border-[#FFD700] text-center shadow-[0_0_35px_rgba(255,215,0,0.25)] mb-4">
           <span className="text-[10px] text-gray-400 uppercase font-mono tracking-widest block mb-1">
-            SQUAD ROOM FREQUENCY
+            {t('turf_room_frequency', 'SQUAD ROOM FREQUENCY')}
           </span>
           <div className="flex items-center justify-center gap-3">
             <span className="text-3xl font-black font-mono tracking-wider text-white">
@@ -573,20 +575,20 @@ export function TurfWarLobby({
               onClick={handleCopyCode}
               type="button"
               className="p-2 rounded-2xl bg-[#FFD700] text-black active:scale-95 hover:brightness-110 shadow cursor-pointer"
-              title="Copy Room Code"
+              title={t("turf_copy_room_code", "Copy Room Code")}
             >
               {copied ? <Check className="w-5 h-5 text-black" /> : <Copy className="w-5 h-5 text-black" />}
             </button>
           </div>
           <p className="text-[11px] text-gray-300 mt-2">
-            Share this code with teammates to join before the 1-hour warfare begins!
+            {t('turf_share_room_code', 'Share this code with teammates to join before the 1-hour warfare begins!')}
           </p>
         </div>
 
         {/* 4 Squad Player Slots */}
         <div className="space-y-2.5 mb-4">
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-black uppercase text-gray-400">Squad Members (Max 4)</span>
+            <span className="text-xs font-black uppercase text-gray-400">{t('turf_squad_members', 'Squad Members (Max 4)')}</span>
             <span className="text-[10px] font-mono text-emerald-400">BroadcastChannel P2P</span>
           </div>
 
@@ -620,7 +622,7 @@ export function TurfWarLobby({
                           </span>
                         )}
                         {isMe && (
-                          <span className="text-[9px] text-[#FFD700] font-mono font-bold">(YOU)</span>
+                          <span className="text-[9px] text-[#FFD700] font-mono font-bold">({t('turf_you', 'YOU')})</span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -658,7 +660,7 @@ export function TurfWarLobby({
                 key={`empty_${slotIdx}`}
                 className="p-3 rounded-2xl border border-dashed border-white/15 bg-black/30 flex items-center justify-center text-gray-500 text-xs font-mono"
               >
-                + Empty Squad Slot
+                {t('turf_empty_slot', '+ Empty Squad Slot')}
               </div>
             );
           })}
@@ -667,7 +669,7 @@ export function TurfWarLobby({
         {/* Change Role While in Lobby */}
         <div className="p-3 rounded-2xl bg-black/40 border border-white/10 mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-gray-400 font-black uppercase">Your 1-Hour Role:</span>
+            <span className="text-[10px] text-gray-400 font-black uppercase">{t('turf_your_role', 'Your 1-Hour Role:')}</span>
             <span className="text-xs font-black text-[#FFD700] uppercase">
               {ROLES_INFO[myRole].icon} {ROLES_INFO[myRole].title}
             </span>
@@ -700,7 +702,7 @@ export function TurfWarLobby({
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-[#FFD700] to-yellow-400 text-black font-black text-sm uppercase tracking-wider shadow-[0_0_30px_rgba(255,215,0,0.5)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
           >
             <Play className="w-5 h-5 fill-black" />
-            <span>START 1-HOUR TURF WAR (HOST)</span>
+            <span>{t('turf_start_host', 'START 1-HOUR TURF WAR (HOST)')}</span>
           </button>
         ) : (
           <button
@@ -712,12 +714,12 @@ export function TurfWarLobby({
                 : 'bg-[#FFD700] text-black shadow-lg shadow-[#FFD700]/30'
             }`}
           >
-            {players.find((p) => p.id === myId)?.ready ? 'READY! (WAITING FOR HOST)' : 'PRESS TO BE READY'}
+            {players.find((p) => p.id === myId)?.ready ? t('turf_ready_wait_host', 'READY! (WAITING FOR HOST)') : t('turf_press_ready', 'PRESS TO BE READY')}
           </button>
         )}
 
         <div className="text-center text-[10px] text-gray-500 font-mono">
-          Unlimited Waves • 1-Hour Match Countdown • 10 SC / Kill
+          {t('turf_match_summary', 'Unlimited Waves • 1-Hour Match Countdown • 10 SC / Kill')}
         </div>
       </div>
     </div>
