@@ -440,5 +440,19 @@
   "studio_minimum": "Mín.",
   "studio_maximum": "Máx.",
   "studio_stop_recording_aria": "Detener grabación",
-  "studio_start_recording_aria": "Iniciar grabación"
+  "studio_start_recording_aria": "Iniciar grabación",
+  "studio_ad_earn_help": "Gana +10 Street Coins por anuncio (máximo 5 al día por anuncio • 33 anuncios disponibles)",
+  "studio_heading": "ESTUDIO FREESTYLE",
+  "studio_level_desc": "Estudio nivel {level}",
+  "studio_rent_status_expired": "ALQUILER DEL ESTUDIO VENCIDO",
+  "studio_rent_status_active": "ALQUILER DEL ESTUDIO ACTIVO",
+  "studio_ad_count": "Anuncio {count}/33 - 10 monedas",
+  "profile_secret_admin_explain": "Activado al mantener pulsado. Introduce el correo del administrador para desbloquear los controles del sistema:",
+  "profile_privacy_intro": "Tu privacidad y la seguridad de tus datos son fundamentales para nuestra arquitectura:",
+  "profile_local_data_desc": "Los datos guardados, ajustes de sonido, inventario e idioma se almacenan de forma segura en el navegador de tu dispositivo.",
+  "profile_telegram_auth_desc": "Los identificadores de Telegram solo se usan para mostrar la clasificación y verificar logros del juego.",
+  "profile_no_data_desc": "Nunca vendemos, alquilamos ni distribuimos información personal a terceros.",
+  "profile_version": "Versión",
+  "profile_platform": "Plataforma",
+  "profile_support": "Soporte"
 }
