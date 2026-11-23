@@ -192,5 +192,13 @@
   "studio_beat_voice": "节拍 + 人声",
   "studio_beat_volume": "节拍音量",
   "studio_voice_volume": "人声音量",
-  "studio_locked": "已锁定"
+  "studio_locked": "已锁定",
+  "turf_player_down": "你已倒下",
+  "turf_death_description": "观看广告即可从停止的位置继续本场比赛，或返回主页。",
+  "turf_earned": "已获得",
+  "turf_ad_playing": "正在播放奖励广告...",
+  "turf_watch_continue": "观看广告继续",
+  "turf_back_home": "返回主页",
+  "turf_ad_success_note": "只有完整观看奖励广告后，比赛才会恢复。",
+  "turf_hour_victory": "胜利！一小时！"
 }
