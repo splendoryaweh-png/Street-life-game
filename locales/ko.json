@@ -185,5 +185,12 @@
   "profile_no_data_desc": "개인정보를 제3자에게 판매, 대여 또는 배포하지 않습니다.",
   "profile_version": "버전",
   "profile_platform": "플랫폼",
-  "profile_support": "지원"
+  "profile_support": "지원",
+  "studio_pause": "일시정지",
+  "studio_play_beat": "비트 재생",
+  "studio_mixer_controls": "믹서 컨트롤",
+  "studio_beat_voice": "비트 + 보컬",
+  "studio_beat_volume": "비트 볼륨",
+  "studio_voice_volume": "보컬 볼륨",
+  "studio_locked": "잠김"
 }
