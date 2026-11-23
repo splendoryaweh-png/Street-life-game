@@ -452,5 +452,16 @@
   "watch_after_five_ads": "광고 5개 후",
   "watch_unlocked": "잠금 해제",
   "shop_inside_house": "집 안",
-  "shop_vehicle_view": "차량"
+  "shop_vehicle_view": "차량",
+  "studio_live_stereo_mixed": "라이브 스테레오 • 믹스",
+  "studio_ready_beat_voice_mix": "준비 완료 • 비트+보컬 믹스",
+  "studio_mixer_help": "각 슬라이더를 따로 조절하세요. 변경 사항은 녹음 믹스에 적용됩니다.",
+  "studio_recording_mixed_track": "믹스 트랙 녹음 중",
+  "studio_vocal_booth_beat_voice": "보컬 부스 - 비트 + 보컬",
+  "studio_daily_label": "매일",
+  "studio_recording_label": "녹음",
+  "studio_minimum": "최소",
+  "studio_maximum": "최대",
+  "studio_stop_recording_aria": "녹음 중지",
+  "studio_start_recording_aria": "녹음 시작"
 }
