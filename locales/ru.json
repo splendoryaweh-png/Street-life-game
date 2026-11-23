@@ -455,5 +455,10 @@
   "profile_version": "Версия",
   "profile_platform": "Платформа",
   "profile_support": "Поддержка",
-  "shop_item_walking_name": "Пешком"
+  "shop_item_walking_name": "Пешком",
+  "studio_filter_normal": "Обычный",
+  "studio_filter_warm": "Тёплый",
+  "studio_filter_bw": "Чёрно-белый",
+  "studio_filter_cool": "Холодный",
+  "studio_filter_vintage": "Винтаж"
 }
