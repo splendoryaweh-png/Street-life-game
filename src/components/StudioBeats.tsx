@@ -202,11 +202,11 @@ export function StudioBeats({
   const [videoFilter, setVideoFilter] = useState<'none' | 'warm' | 'mono' | 'cool' | 'vintage'>('none');
   const cameraSwitchingRef = useRef(false);
   const videoFilterOptions = [
-    { id: 'none' as const, label: 'Normal', style: 'none' },
-    { id: 'warm' as const, label: 'Warm', style: 'sepia(0.22) saturate(1.25)' },
-    { id: 'mono' as const, label: 'B&W', style: 'grayscale(1)' },
-    { id: 'cool' as const, label: 'Cool', style: 'saturate(1.15) hue-rotate(12deg)' },
-    { id: 'vintage' as const, label: 'Vintage', style: 'sepia(0.38) contrast(1.08) saturate(0.82)' },
+    { id: 'none' as const, label: t('studio_filter_normal', 'Normal'), style: 'none' },
+    { id: 'warm' as const, label: t('studio_filter_warm', 'Warm'), style: 'sepia(0.22) saturate(1.25)' },
+    { id: 'mono' as const, label: t('studio_filter_bw', 'B&W'), style: 'grayscale(1)' },
+    { id: 'cool' as const, label: t('studio_filter_cool', 'Cool'), style: 'saturate(1.15) hue-rotate(12deg)' },
+    { id: 'vintage' as const, label: t('studio_filter_vintage', 'Vintage'), style: 'sepia(0.38) contrast(1.08) saturate(0.82)' },
   ];
   const activeVideoFilter = videoFilterOptions.find(filter => filter.id === videoFilter)?.style || 'none';
   const [cameraError, setCameraError] = useState('');
@@ -1327,13 +1327,13 @@ export function StudioBeats({
                       {isRecording ? t('studio_stop', 'Stop') : t('studio_record', 'Record')}
                     </button>
                     <button type="button" onClick={handlePreview} disabled={isRecording || (!recordedBlob && !recordingsByBeat[currentBeat.id])} className="pointer-events-auto rounded-xl bg-blue-600 px-3 py-3 text-[11px] font-black uppercase text-white disabled:opacity-40 active:scale-95">
-                      Preview
+                      {t('studio_preview', 'Preview')}
                     </button>
                     <button type="button" onClick={handlePost} disabled={isRecording || (!recordedBlob && !recordingsByBeat[currentBeat.id])} className="pointer-events-auto rounded-xl bg-emerald-500 px-3 py-3 text-[11px] font-black uppercase text-black disabled:opacity-40 active:scale-95">
-                      Post
+                      {t('studio_post', 'Post')}
                     </button>
                     <button type="button" onClick={handleDisableCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
-                      Close
+                      {t('studio_close_camera', 'Close')}
                     </button>
                   </div>
                   <div className="w-full flex items-center justify-center gap-2 overflow-x-auto touch-pan-x pb-0.5">
