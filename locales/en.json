@@ -192,5 +192,13 @@
   "studio_beat_voice": "BEAT + VOICE",
   "studio_beat_volume": "BEAT VOLUME",
   "studio_voice_volume": "VOICE VOLUME",
-  "studio_locked": "Locked"
+  "studio_locked": "Locked",
+  "turf_player_down": "YOU ARE DOWN",
+  "turf_death_description": "Watch an ad to continue this match from where you stopped, or return home.",
+  "turf_earned": "EARNED",
+  "turf_ad_playing": "PLAYING REWARDED AD...",
+  "turf_watch_continue": "WATCH ADS TO CONTINUE",
+  "turf_back_home": "BACK TO HOME",
+  "turf_ad_success_note": "Your match resumes only after the rewarded ad finishes successfully.",
+  "turf_hour_victory": "VICTORY! 1 HOUR!"
 }
