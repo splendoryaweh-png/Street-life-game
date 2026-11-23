@@ -244,22 +244,50 @@ export function WatchScreen({
         </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-3xl border border-[#D6A900] bg-gradient-to-r from-[#3A2A05] via-[#4A3508] to-[#2B2008] p-1 shadow-[0_0_24px_rgba(255,215,0,0.18)]">
+      <div className="mx-auto w-full max-w-[420px]">
         <button
           type="button"
           disabled={isLimitReached || isPlayingAd}
           onClick={handleStartAd}
           aria-label={isLimitReached ? t('watch_daily_limit', 'DAILY LIMIT REACHED (33/33)') : t('watch_ad_get_10_sc', 'WATCH AD TO GET 10 SC')}
-          className={`relative z-10 flex min-h-[76px] w-full items-center justify-center gap-3 rounded-[1.35rem] border-2 border-[#C99B00] bg-gradient-to-r from-[#49330A] via-[#3A2A0A] to-[#49330A] px-4 py-4 text-center font-black tracking-[0.12em] text-[#FFD700] transition-all duration-200 touch-manipulation ${isLimitReached || isPlayingAd ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:brightness-125 active:scale-[0.99]'}`}
+          className={`group relative flex aspect-square w-full flex-col items-center justify-center overflow-hidden rounded-[2rem] border-[3px] border-[#E2B522] bg-[radial-gradient(circle_at_50%_18%,#76530D_0%,#49330A_42%,#171207_100%)] p-6 text-center shadow-[0_0_35px_rgba(255,215,0,0.24),inset_0_0_30px_rgba(255,215,0,0.10)] transition-all duration-200 touch-manipulation ${isLimitReached || isPlayingAd ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:brightness-110 active:scale-[0.985]'}`}
         >
-          <Tv className="h-7 w-7 shrink-0 text-[#FFD700]" />
-          <span className="text-base sm:text-lg">
-            {isLimitReached
-              ? t('watch_daily_limit', 'DAILY LIMIT REACHED (33/33)')
-              : isPlayingAd
-                ? t('watch_loading', 'LOADING ADSGRAM...')
-                : t('watch_ad_get_10_sc', 'WATCH AD TO GET 10 SC')}
-          </span>
+          <div className="pointer-events-none absolute inset-3 rounded-[1.45rem] border border-[#FFD700]/35" />
+          <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#FFD700]/10 blur-2xl" />
+          <div className="relative z-10 flex w-full flex-col items-center">
+            <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl border-2 border-[#FFD700]/70 bg-black/35 shadow-[0_0_25px_rgba(255,215,0,0.22)] sm:h-24 sm:w-24">
+              <Tv className="h-11 w-11 text-[#FFD700] sm:h-14 sm:w-14" />
+            </div>
+            <span className="text-xs font-black uppercase tracking-[0.28em] text-[#FFE58A] sm:text-sm">
+              {t('watch_screen_title', 'WATCH & EARN')}
+            </span>
+            <span className="mt-2 text-4xl font-black leading-none tracking-tight text-[#FFD700] drop-shadow-[0_2px_10px_rgba(255,215,0,0.35)] sm:text-5xl">
+              +10 SC
+            </span>
+            <span className="mt-3 max-w-[260px] text-base font-black uppercase leading-tight tracking-[0.12em] text-white sm:text-lg">
+              {isLimitReached
+                ? t('watch_daily_limit', 'DAILY LIMIT REACHED (33/33)')
+                : isPlayingAd
+                  ? t('watch_loading', 'LOADING ADSGRAM...')
+                  : t('watch_ad_get_10_sc', 'WATCH AD TO GET 10 SC')}
+            </span>
+            <div className="mt-6 w-full max-w-[270px] rounded-2xl border border-[#FFD700]/35 bg-black/35 px-4 py-3">
+              <div className="mb-2 flex items-center justify-between gap-2 text-xs font-extrabold text-white">
+                <span>{t('watch_ad_counter', 'ADS WATCHED')}</span>
+                <span className="font-mono text-[#FFD700]">{adsWatchedToday}/{maxDailyAds}</span>
+              </div>
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/15">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-amber-400 via-[#FFD700] to-yellow-200 transition-all duration-500"
+                  style={{ width: `${Math.min(100, (adsWatchedToday / maxDailyAds) * 100)}%` }}
+                />
+              </div>
+              <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-[#E8D9A5]">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{t('watch_reset_in', 'Resets in')} {timeUntilReset}</span>
+              </div>
+            </div>
+          </div>
         </button>
       </div>
 
