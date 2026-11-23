@@ -53,6 +53,8 @@ export function WatchScreen({
   const [boostRemaining, setBoostRemaining] = useState<string | null>(null);
 
   const adsWatchedToday = gameState.watchCountDaily ?? 0;
+  const todayUtc = new Date().toISOString().split('T')[0];
+  const claimedMilestonesToday = gameState.lastWatchDate === todayUtc ? (gameState.watchMilestonesClaimedToday || []) : [];
   const maxDailyAds = 33;
   const isLimitReached = adsWatchedToday >= maxDailyAds;
 
@@ -160,7 +162,7 @@ export function WatchScreen({
   const handleClaimMilestone = async (milestone: 5 | 10) => {
     if (adRequestInProgress.current || isPlayingAd) return;
     if (adsWatchedToday < milestone) return;
-    if ((gameState.watchMilestonesClaimedToday || []).includes(milestone)) return;
+    if (claimedMilestonesToday.includes(milestone)) return;
     if (isLimitReached) { onToast(t('watch_daily_limit', 'Daily ad limit reached.')); return; }
     adRequestInProgress.current = true;
     setIsPlayingAd(true);
