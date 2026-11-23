@@ -1051,14 +1051,14 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
           {/* 8 Category Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
             {[
-              { id: 'clothes', label: 'Clothes', icon: '👕' },
-              { id: 'houses', label: 'Houses', icon: '🏠' },
-              { id: 'vehicles', label: 'Vehicles', icon: '🚗' },
-              { id: 'phones', label: 'Phones', icon: '📱' },
-              { id: 'house_design', label: 'Design', icon: '✨' },
-              { id: 'studio_levels', label: 'Studio', icon: '🎙️' },
-              { id: 'studio_filters', label: 'Filters', icon: '🎛️' },
-              { id: 'food_drinks', label: 'Food', icon: '🍔' },
+              { id: 'clothes', label: t('shop_cat_clothes', 'Clothes'), icon: '👕' },
+              { id: 'houses', label: t('shop_cat_houses', 'Houses'), icon: '🏠' },
+              { id: 'vehicles', label: t('shop_cat_vehicles', 'Vehicles'), icon: '🚗' },
+              { id: 'phones', label: t('shop_cat_phones', 'Phones'), icon: '📱' },
+              { id: 'house_design', label: t('shop_cat_design', 'Design'), icon: '✨' },
+              { id: 'studio_levels', label: t('shop_cat_studio', 'Studio'), icon: '🎙️' },
+              { id: 'studio_filters', label: t('shop_cat_filters', 'Filters'), icon: '🎛️' },
+              { id: 'food_drinks', label: t('shop_cat_food', 'Food'), icon: '🍔' },
             ].map((cat) => (
               <button
                 key={cat.id}
@@ -1087,13 +1087,13 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               </div>
               <div>
                 <h4 className="text-xs font-black text-white flex items-center gap-1.5">
-                  <span>Freestyle Booth (15 Beats)</span>
+                  <span>{t('shop_freestyle_booth', 'Freestyle Booth (15 Beats)')}</span>
                   <span className="px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-300 text-[9px]">
                     Lvl {playerStudioLevel}
                   </span>
                 </h4>
                 <p className="text-[10px] text-purple-300">
-                  {unlockedBeatsCount}/15 Beats Unlocked • Record & test beats
+                  {unlockedBeatsCount}/15 {t('shop_beats_unlocked', 'Beats Unlocked • Record & test beats')}
                 </p>
               </div>
             </div>
@@ -1105,7 +1105,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               type="button"
               className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black text-[11px] uppercase tracking-wider flex items-center gap-1 shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
             >
-              <span>Enter Booth</span>
+              <span>{t('shop_enter_booth', 'Enter Booth')}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -1148,10 +1148,10 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           {isEquipped ? (
                             <>
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Equipped</span>
+                              <span>{t('shop_equipped', 'Equipped')}</span>
                             </>
                           ) : (
-                            <span>Wear</span>
+                            <span>{t('shop_wear', 'Wear')}</span>
                           )}
                         </button>
                       ) : (
@@ -1160,7 +1160,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           type="button"
                           className="w-full py-2 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-black uppercase tracking-wider shadow-[0_0_10px_rgba(250,204,21,0.3)] active:scale-95 transition-all cursor-pointer"
                         >
-                          Buy ({item.price.toLocaleString()} SC)
+                          {t('shop_buy_for', 'Buy')} ({item.price.toLocaleString()} SC)
                         </button>
                       )}
                     </div>
@@ -1279,7 +1279,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           type="button"
                           className="w-full py-2 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-black uppercase tracking-wider shadow-[0_0_10px_rgba(250,204,21,0.3)] active:scale-95 transition-all cursor-pointer"
                         >
-                          Buy ({item.price.toLocaleString()} SC)
+                          {t('shop_buy_for', 'Buy')} ({item.price.toLocaleString()} SC)
                         </button>
                       )}
                     </div>
@@ -1328,7 +1328,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           type="button"
                           className="w-full py-2 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-xs font-black uppercase tracking-wider shadow-[0_0_10px_rgba(250,204,21,0.3)] active:scale-95 transition-all cursor-pointer"
                         >
-                          Buy ({item.price.toLocaleString()} SC)
+                          {t('shop_buy_for', 'Buy')} ({item.price.toLocaleString()} SC)
                         </button>
                       )}
                     </div>
@@ -1485,7 +1485,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           type="button"
                           className="w-full py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-black text-xs font-black uppercase tracking-wider shadow-[0_0_10px_rgba(6,182,212,0.3)] active:scale-95 transition-all cursor-pointer"
                         >
-                          Buy ({item.price.toLocaleString()} SC)
+                          {t('shop_buy_for', 'Buy')} ({item.price.toLocaleString()} SC)
                         </button>
                       )}
                     </div>
