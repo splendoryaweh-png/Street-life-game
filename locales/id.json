@@ -91,5 +91,15 @@
   "syndicate_territories": "WILAYAH SINDIKAT",
   "reward": "Hadiah",
   "hard": "Sulit",
-  "attack": "SERANG"
+  "attack": "SERANG",
+  "hub_tasks": "Tugas",
+  "hub_bank": "Bank",
+  "hub_daily_free": "Hadiah harian",
+  "studio_tier": "Tingkat Studio",
+  "studio_long_beats": "14 Beat Panjang",
+  "studio_vocal_booth": "Booth Vokal & Sewa",
+  "studio_level_0": "LEVEL 0 • GRATIS",
+  "studio_level_1": "LEVEL 1 • PRO",
+  "profile_save": "Simpan",
+  "profile_beats": "Beat"
 }
