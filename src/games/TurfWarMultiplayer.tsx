@@ -4,6 +4,7 @@ import { Swords, Shield, Heart, Skull, Crosshair, Trophy, Coins, Crown, Zap, Vol
 import { TurfWarLobby, TurfRole, TurfLobbyPlayer } from './TurfWarLobby';
 import { playShootSound, playPunchSound, playCoinSound, playSuccessSound, playClickSound, playSirenSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import confetti from 'canvas-confetti';
 
 export interface TurfWarMultiplayerProps { onBack: () => void; onToast: (msg: string) => void; currentCoins: number; initialRoomCode?: string; }
@@ -31,6 +32,8 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
   const [totalKills, setTotalKills] = useState(0);
   const [earnedCoins, setEarnedCoins] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [isReviving, setIsReviving] = useState(false);
+  const reviveInProgressRef = useRef(false);
   const [isHourVictory, setIsHourVictory] = useState(false);
   const [nearTankPrompt, setNearTankPrompt] = useState<string | null>(null);
   const myPlayerId = useRef<string>('p_' + Math.random().toString(36).substring(2, 8));
@@ -169,7 +172,52 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
   }, [inGame, isGameOver, isHourVictory, isHost]);
 
   const handleMatchHourCompleted = () => { setIsHourVictory(true); const killBonus = totalKills * 10; const waveBonus = currentWave * 100; const hourBonus = 1000; const totalAward = killBonus + waveBonus + hourBonus; setEarnedCoins(totalAward); addGameCoins(totalAward, `+${totalAward} SC - Barracks Survived!`, 'wave_complete'); playSuccessSound(); confetti({ particleCount: 150, spread: 90 }); onToast(`1-HOUR SURVIVED! +${totalAward} SC!`); };
-  const handlePlayerDied = () => { setIsGameOver(true); const killBonus = totalKills * 10; const waveBonus = Math.max(0, (currentWave - 1) * 100); const totalAward = killBonus + waveBonus; setEarnedCoins(totalAward); if (totalAward > 0) { addGameCoins(totalAward, `+${totalAward} SC - Wave ${currentWave}`, 'wave_complete'); } playPunchSound(); };
+  const handlePlayerDied = () => {
+    if (isGameOver) return;
+    setIsGameOver(true);
+    const killBonus = totalKills * 10;
+    const waveBonus = Math.max(0, (currentWave - 1) * 100);
+    const totalAward = killBonus + waveBonus;
+    setEarnedCoins(totalAward);
+    if (totalAward > 0) addGameCoins(totalAward, `+${totalAward} SC - Wave ${currentWave}`, 'wave_complete');
+    playPunchSound();
+  };
+
+  // One rewarded Adsgram session resumes the same match at the exact death location.
+  const handleWatchAdContinue = async () => {
+    if (reviveInProgressRef.current || !isGameOver) return;
+    reviveInProgressRef.current = true;
+    setIsReviving(true);
+    try {
+      await showAdsgramRewardedAd();
+      const me = playersRef.current.get(myPlayerId.current);
+      if (!me) throw new Error('Player state is unavailable.');
+      me.hp = 60;
+      me.armor = 0;
+      me.isAlive = true;
+      me.hitCount = 0;
+      me.vx = 0;
+      me.vy = 0;
+      me.isFiring = false;
+      // Remove nearby hostile shots so the player is not eliminated on the first resumed frame.
+      bulletsRef.current = bulletsRef.current.filter((bullet) => !bullet.isEnemyBullet);
+      setIsGameOver(false);
+      onToast('You are back in the same match!');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Ad not completed. You are still down.');
+    } finally {
+      reviveInProgressRef.current = false;
+      setIsReviving(false);
+    }
+  };
+
+  const handleBackHomeAfterDeath = () => {
+    if (broadcastChannelRef.current) {
+      broadcastChannelRef.current.close();
+      broadcastChannelRef.current = null;
+    }
+    onBack();
+  };
 
   const fireBullet = (me: PlayerState, angle: number) => {
     if (me.ammo <= 0) { triggerReload(); return; }
@@ -430,13 +478,26 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
         </div>
       </div>
 
-      {(isGameOver || isHourVictory) && (
+      {isGameOver && !isHourVictory && (
+        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-40 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-red-500/60 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl">
+            <div className="text-4xl mb-3">💀</div>
+            <h2 className="text-2xl font-black mb-2 text-white">YOU ARE DOWN</h2>
+            <p className="text-xs text-slate-300 mb-4">Watch an ad to continue this match from where you stopped, or return home.</p>
+            <div className="bg-amber-500/20 border border-amber-500/40 rounded-xl p-3 mb-4"><span className="text-xs text-amber-300">EARNED</span><div className="text-2xl font-black text-amber-400">{earnedCoins} SC</div></div>
+            <button onClick={handleWatchAdContinue} disabled={isReviving} className="w-full py-4 bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black rounded-xl disabled:opacity-60">{isReviving ? 'PLAYING REWARDED AD...' : '📺 WATCH ADS TO CONTINUE'}</button>
+            <button onClick={handleBackHomeAfterDeath} disabled={isReviving} className="w-full mt-3 py-3 bg-white/10 border border-white/15 text-white font-black rounded-xl disabled:opacity-50">BACK TO HOME</button>
+            <p className="text-[10px] text-slate-500 mt-3">Your match resumes only after the rewarded ad finishes successfully.</p>
+          </div>
+        </div>
+      )}
+      {isHourVictory && (
         <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-40 flex items-center justify-center p-4">
           <div className="bg-slate-900 border-2 border-amber-500/50 rounded-2xl p-6 max-w-sm w-full text-center">
-            <h2 className="text-2xl font-black mb-2">{isHourVictory ? 'VICTORY! 1 HOUR!' : 'WASTED!'}</h2>
+            <h2 className="text-2xl font-black mb-2">VICTORY! 1 HOUR!</h2>
             <p className="text-sm text-slate-400 mb-4">Wave {currentWave} | Kills {totalKills} | Time {formatTime(MATCH_DURATION_SECONDS - matchTimeRemaining)}</p>
             <div className="bg-amber-500/20 border border-amber-500/40 rounded-xl p-3 mb-4"><span className="text-xs text-amber-300">EARNED</span><div className="text-2xl font-black text-amber-400">{earnedCoins} SC</div></div>
-            <button onClick={onBack} className="w-full py-3 bg-amber-500 text-black font-black rounded-xl">BACK TO LOBBY</button>
+            <button onClick={onBack} className="w-full py-3 bg-amber-500 text-black font-black rounded-xl">BACK TO HOME</button>
           </div>
         </div>
       )}
