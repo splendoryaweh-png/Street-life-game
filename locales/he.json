@@ -306,5 +306,21 @@
   "shop_market": "שוק",
   "shop_balance": "יתרה:",
   "shop_energy": "אנרגיה:",
-  "shop_renew_rent": "חידוש שכירות"
+  "shop_renew_rent": "חידוש שכירות",
+  "daily_free_title": "מערכת יומית בחינם",
+  "daily_free_all": "כל התגמולים היומיים",
+  "daily_free_completed": "הושלם",
+  "daily_free_unlocked": "נפתח",
+  "daily_free_locked": "נעול",
+  "daily_free_claimed_today": "נאסף היום ✓ (חזרו מחר)",
+  "daily_free_play_to_unlock": "שחקו משחק אחד כדי לפתוח 🔒",
+  "daily_free_verifying": "מאמתים את התגמול...",
+  "daily_free_claim_day": "קבלת יום",
+  "daily_free_nitro": "ניטרו יומי בחינם",
+  "daily_free_charges_left": "טעינות יומיות בחינם שנותרו",
+  "daily_free_racing_coins": "מטבעות מרוץ פי 2",
+  "daily_free_racing_desc": "חמשת מטבעות הדרך הראשונים בכל יום מעניקים תגמול כפול!",
+  "daily_free_active_today": "פעיל היום",
+  "daily_free_simulate": "הדמיית משחק",
+  "daily_free_relock": "נעילה מחדש של הבדיקה"
 }
