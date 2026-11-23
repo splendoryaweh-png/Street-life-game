@@ -275,5 +275,13 @@
   "referral_claim": "Получить 520",
   "referral_welcome_claimed": "Приветственный бонус получен (+520 монет)",
   "referral_invited_count": "Приглашено друзей:",
-  "referral_simulate": "Смоделировать 1 приглашение (+100)"
+  "referral_simulate": "Смоделировать 1 приглашение (+100)",
+  "shop_inventory_title": "ИНВЕНТАРЬ - Street Hustle",
+  "shop_view_character": "Посмотреть персонажа",
+  "shop_tab": "Магазин",
+  "shop_craft": "Создание",
+  "shop_market": "Рынок",
+  "shop_balance": "Баланс:",
+  "shop_energy": "Энергия:",
+  "shop_renew_rent": "Продлить аренду"
 }
