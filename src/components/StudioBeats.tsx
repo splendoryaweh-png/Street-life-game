@@ -1103,7 +1103,7 @@ export function StudioBeats({
         <div className="w-full h-12 bg-black/70 rounded-2xl p-2 border border-white/10 mb-3 relative">
           <canvas ref={canvasRef} width={340} height={40} className="w-full h-full"/>
           <div className="absolute bottom-1 right-2 text-[9px] font-mono text-gray-500">
-            {isPlaying?'LIVE STEREO • MIXED':'READY • BEAT+VOICE MIX'}
+            {isPlaying ? t('studio_live_stereo_mixed', 'LIVE STEREO • MIXED') : t('studio_ready_beat_voice_mix', 'READY • BEAT+VOICE MIX')}
           </div>
         </div>
 
@@ -1200,7 +1200,7 @@ export function StudioBeats({
           </div>
 
           <p className="text-[10px] text-gray-400 mt-3 text-center">
-            Adjust each slider independently. Changes apply to the recording mix.
+            {t('studio_mixer_help', 'Adjust each slider independently. Changes apply to the recording mix.')}
           </p>
         </div>
 
@@ -1210,19 +1210,19 @@ export function StudioBeats({
             <div className="flex items-center gap-2">
               <span className={`w-2.5 h-2.5 rounded-full ${isRecording?'bg-red-500 animate-ping':'bg-[#FFD700]'}`}/>
               <span className="font-black text-white uppercase text-[11px]">
-                {isRecording?'RECORDING MIXED TRACK':'VOCAL BOOTH - BEAT + VOICE'}
+                {isRecording ? t('studio_recording_mixed_track', 'RECORDING MIXED TRACK') : t('studio_vocal_booth_beat_voice', 'VOCAL BOOTH - BEAT + VOICE')}
               </span>
             </div>
 
             <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-[#FFD700] text-xs font-mono font-black border border-[#FFD700]/30">
-              Daily: {dailyRecordCount}/{dailyRecordLimit}
+              {t('studio_daily_label', 'Daily')}: {dailyRecordCount}/{dailyRecordLimit}
             </span>
           </div>
 
           <div className="space-y-1.5 mb-2.5">
             <div className="flex items-center justify-between text-[11px] font-mono">
               <span className={`font-bold ${recordingSeconds<60?'text-red-400':'text-emerald-400'}`}>
-                Recording: {formatRecordingTimer(recordingSeconds)} / Min 1:00 / Max 3:00
+                {t('studio_recording_label', 'Recording')}: {formatRecordingTimer(recordingSeconds)} / {t('studio_minimum', 'Min')} 1:00 / {t('studio_maximum', 'Max')} 3:00
               </span>
             </div>
 
@@ -1323,8 +1323,8 @@ export function StudioBeats({
                     <button type="button" onClick={handleSwitchCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
                       <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5"/> {t('studio_flip', 'Flip')}</span>
                     </button>
-                    <button type="button" onClick={() => handleRecordBeat(currentBeat)} disabled={dailyRecordCount >= dailyRecordLimit && !isRecording} className={"pointer-events-auto min-w-20 rounded-xl px-3 py-3 text-[11px] font-black uppercase shadow-xl active:scale-95 disabled:opacity-40 " + (isRecording ? 'bg-red-600 text-white' : 'bg-[#FFD700] text-black')} aria-label={isRecording ? 'Stop recording' : 'Start recording'}>
-                      {isRecording ? 'Stop' : 'Record'}
+                    <button type="button" onClick={() => handleRecordBeat(currentBeat)} disabled={dailyRecordCount >= dailyRecordLimit && !isRecording} className={"pointer-events-auto min-w-20 rounded-xl px-3 py-3 text-[11px] font-black uppercase shadow-xl active:scale-95 disabled:opacity-40 " + (isRecording ? 'bg-red-600 text-white' : 'bg-[#FFD700] text-black')} aria-label={isRecording ? t('studio_stop_recording_aria', 'Stop recording') : t('studio_start_recording_aria', 'Start recording')}>
+                      {isRecording ? t('studio_stop', 'Stop') : t('studio_record', 'Record')}
                     </button>
                     <button type="button" onClick={handlePreview} disabled={isRecording || (!recordedBlob && !recordingsByBeat[currentBeat.id])} className="pointer-events-auto rounded-xl bg-blue-600 px-3 py-3 text-[11px] font-black uppercase text-white disabled:opacity-40 active:scale-95">
                       Preview
