@@ -128,5 +128,17 @@
   "earn_up_to": "Gana hasta 5k SC",
   "video_sponsors": "Patrocinadores de vídeo",
   "daily_free_vault": "Bóveda diaria gratis",
-  "free_nitro_spins": "Nitro y giros gratis"
+  "free_nitro_spins": "Nitro y giros gratis",
+  "studio_preview_mix": "Escuchar mezcla",
+  "studio_post_mix": "Publicar mezcla",
+  "studio_video_freestyle": "FREESTYLE EN VÍDEO",
+  "studio_camera_recording": "La cámara graba el ritmo y la voz juntos",
+  "studio_enable_camera_video": "Activar cámara para vídeo",
+  "studio_close_camera": "Cerrar cámara",
+  "studio_enable_camera": "Activar cámara",
+  "studio_live_camera": "CÁMARA EN DIRECTO",
+  "studio_flip": "Cambiar cámara",
+  "free": "GRATIS",
+  "studio_record_mix": "Grabar mezcla",
+  "studio_daily_limit": "Límite diario alcanzado"
 }
