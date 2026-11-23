@@ -431,6 +431,11 @@ export default function StreetLifeApp() {
             gameState={activeGameState}
             onToast={showToast}
             onGameActiveChange={(isActive) => setIs3DGameActive(isActive)}
+            onBackHome={() => {
+              setIs3DGameActive(false);
+              closeAllModals();
+              setActiveTab('HOME');
+            }}
           />
         ) : activeTab === 'SHOP' || activeTab === 'INVENTORY' ? (
           <InventoryScreen gameState={activeGameState} onToast={showToast} />
