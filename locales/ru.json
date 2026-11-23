@@ -186,5 +186,10 @@
   "turf_watch_continue": "СМОТРЕТЬ РЕКЛАМУ И ПРОДОЛЖИТЬ",
   "turf_back_home": "НА ГЛАВНУЮ",
   "turf_ad_success_note": "Матч продолжится только после полного просмотра рекламы.",
-  "turf_hour_victory": "ПОБЕДА! 1 ЧАС!"
+  "turf_hour_victory": "ПОБЕДА! 1 ЧАС!",
+  "studio_off": "ВЫКЛ.",
+  "studio_balanced": "БАЛАНС",
+  "studio_max": "МАКС.",
+  "studio_beat_volume_aria": "Громкость бита",
+  "studio_voice_volume_aria": "Громкость вокала"
 }
