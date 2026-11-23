@@ -228,7 +228,7 @@ export function DailyRewardStrip({
             className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-white/5 text-[#9CA3AF] border border-white/5 cursor-not-allowed flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {t('daily_free_claimed_today', '{t('daily_free_claimed_today', 'Claimed Today ✓ (Come Back Tomorrow)')}')}
+            {t('daily_free_claimed_today', 'Claimed Today ✓ (Come Back Tomorrow)')}
           </button>
         ) : !hasPlayedToday ? (
           <button
