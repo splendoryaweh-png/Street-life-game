@@ -270,5 +270,14 @@
   "watch_boost_title": "1 小时 2 倍加成",
   "watch_boost_desc": "Galaxy Shooter、Street Race 和 Delivery 双倍金币",
   "watch_reward_unlocked": "奖励已解锁",
-  "watch_claimed": "已领取"
+  "watch_claimed": "已领取",
+  "guide_handbook": "Street Life 玩家手册",
+  "guide_title": "完整指南：如何游玩",
+  "guide_subtitle": "整个应用的分步帮助。",
+  "guide_jump": "跳转到主题",
+  "guide_illustration_note": "操作流程示意图，并非实际截图。真实按钮布局显示在游戏界面中。",
+  "guide_video_soon": "视频教程即将推出",
+  "guide_video_text": "本指南以后可以添加视频链接。",
+  "guide_footer": "Street Life 的功能和要求可能随更新而变化。请始终遵循每个屏幕显示的最新说明。",
+  "guide_done": "明白了 — 开始游戏"
 }
