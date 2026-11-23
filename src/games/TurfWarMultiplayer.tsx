@@ -6,6 +6,7 @@ import { playShootSound, playPunchSound, playCoinSound, playSuccessSound, playCl
 import { addGameCoins } from '@/lib/storage';
 import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '@/src/contexts/LanguageContext';
 
 export interface TurfWarMultiplayerProps { onBack: () => void; onBackHome?: () => void; onToast: (msg: string) => void; currentCoins: number; initialRoomCode?: string; }
 interface PlayerState { id: string; name: string; role: TurfRole; x: number; y: number; vx: number; vy: number; angle: number; hp: number; maxHp: number; armor: number; maxArmor: number; kills: number; score: number; color: string; isMe: boolean; isAlive: boolean; isFiring: boolean; ammo: number; maxAmmo: number; isReloading: boolean; reloadProgress: number; hitCount: number; inTankId: string | null; insideBuildingId: string | null; }
@@ -20,6 +21,7 @@ interface Barracks { id: string; x: number; y: number; w: number; h: number; doo
 const MATCH_DURATION_SECONDS = 3600;
 
 export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, onBackHome, onToast, currentCoins, initialRoomCode }) => {
+  const { t } = useLanguage();
   const [inGame, setInGame] = useState(false);
   const [roomCode, setRoomCode] = useState(initialRoomCode || '');
   const [isHost, setIsHost] = useState(true);
@@ -482,22 +484,22 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
         <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-40 flex items-center justify-center p-4">
           <div className="bg-slate-900 border-2 border-red-500/60 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl">
             <div className="text-4xl mb-3">💀</div>
-            <h2 className="text-2xl font-black mb-2 text-white">YOU ARE DOWN</h2>
-            <p className="text-xs text-slate-300 mb-4">Watch an ad to continue this match from where you stopped, or return home.</p>
-            <div className="bg-amber-500/20 border border-amber-500/40 rounded-xl p-3 mb-4"><span className="text-xs text-amber-300">EARNED</span><div className="text-2xl font-black text-amber-400">{earnedCoins} SC</div></div>
-            <button onClick={handleWatchAdContinue} disabled={isReviving} className="w-full py-4 bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black rounded-xl disabled:opacity-60">{isReviving ? 'PLAYING REWARDED AD...' : '📺 WATCH ADS TO CONTINUE'}</button>
-            <button onClick={handleBackHomeAfterDeath} disabled={isReviving} className="w-full mt-3 py-3 bg-white/10 border border-white/15 text-white font-black rounded-xl disabled:opacity-50">BACK TO HOME</button>
-            <p className="text-[10px] text-slate-500 mt-3">Your match resumes only after the rewarded ad finishes successfully.</p>
+            <h2 className="text-2xl font-black mb-2 text-white">{t('turf_player_down', 'YOU ARE DOWN')}</h2>
+            <p className="text-xs text-slate-300 mb-4">{t('turf_death_description', 'Watch an ad to continue this match from where you stopped, or return home.')}</p>
+            <div className="bg-amber-500/20 border border-amber-500/40 rounded-xl p-3 mb-4"><span className="text-xs text-amber-300">{t('turf_earned', 'EARNED')}</span><div className="text-2xl font-black text-amber-400">{earnedCoins} SC</div></div>
+            <button onClick={handleWatchAdContinue} disabled={isReviving} className="w-full py-4 bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black rounded-xl disabled:opacity-60">{isReviving ? '{t('turf_ad_playing', 'PLAYING REWARDED AD...')}' : '📺 {t('turf_watch_continue', 'WATCH ADS TO CONTINUE')}'}</button>
+            <button onClick={handleBackHomeAfterDeath} disabled={isReviving} className="w-full mt-3 py-3 bg-white/10 border border-white/15 text-white font-black rounded-xl disabled:opacity-50">{t('turf_back_home', 'BACK TO HOME')}</button>
+            <p className="text-[10px] text-slate-500 mt-3">{t('turf_ad_success_note', 'Your match resumes only after the rewarded ad finishes successfully.')}</p>
           </div>
         </div>
       )}
       {isHourVictory && (
         <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-40 flex items-center justify-center p-4">
           <div className="bg-slate-900 border-2 border-amber-500/50 rounded-2xl p-6 max-w-sm w-full text-center">
-            <h2 className="text-2xl font-black mb-2">VICTORY! 1 HOUR!</h2>
+            <h2 className="text-2xl font-black mb-2">{t('turf_hour_victory', 'VICTORY! 1 HOUR!')}</h2>
             <p className="text-sm text-slate-400 mb-4">Wave {currentWave} | Kills {totalKills} | Time {formatTime(MATCH_DURATION_SECONDS - matchTimeRemaining)}</p>
-            <div className="bg-amber-500/20 border border-amber-500/40 rounded-xl p-3 mb-4"><span className="text-xs text-amber-300">EARNED</span><div className="text-2xl font-black text-amber-400">{earnedCoins} SC</div></div>
-            <button onClick={onBack} className="w-full py-3 bg-amber-500 text-black font-black rounded-xl">BACK TO HOME</button>
+            <div className="bg-amber-500/20 border border-amber-500/40 rounded-xl p-3 mb-4"><span className="text-xs text-amber-300">{t('turf_earned', 'EARNED')}</span><div className="text-2xl font-black text-amber-400">{earnedCoins} SC</div></div>
+            <button onClick={onBack} className="w-full py-3 bg-amber-500 text-black font-black rounded-xl">{t('turf_back_home', 'BACK TO HOME')}</button>
           </div>
         </div>
       )}
