@@ -363,7 +363,7 @@
   "shop_owned": "בבעלותך",
   "shop_buy_eat": "קנייה ואכילה",
   "shop_eat": "לאכול",
-  "shop_studio_view": "תצוגת סטודיו",
+  "shop_studio_view": "סטודיו",
   "shop_track_payout": "תשלום לרצועה",
   "shop_fan_base": "מספר מעריצים",
   "shop_beats_library_access": "גישה לספריית הביטים:",
@@ -450,5 +450,7 @@
   "watch_coins_label": "10 מטבעות",
   "watch_watched_suffix": "נצפו",
   "watch_after_five_ads": "אחרי 5 פרסומות",
-  "watch_unlocked": "נפתח"
+  "watch_unlocked": "נפתח",
+  "shop_inside_house": "בתוך הבית",
+  "shop_vehicle_view": "רכב"
 }
