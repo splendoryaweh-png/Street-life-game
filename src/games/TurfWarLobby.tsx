@@ -155,7 +155,7 @@ export function TurfWarLobby({
             if (filtered.length >= 4) return filtered;
             return [...filtered, newP];
           });
-          onToast(`${newP.name} joined the squad!`);
+          onToast(t('turf_toast_player_joined', '{name} joined the squad!').replace('{name}', newP.name));
           playSuccessSound();
 
           // Host replies with existing players
@@ -179,7 +179,7 @@ export function TurfWarLobby({
         );
       } else if (data.type === 'START_MATCH') {
         playSuccessSound();
-        onToast('Match started! Loading 1-Hour Turf Warzone...');
+        onToast(t('turf_toast_match_started', 'Match started! Loading 1-Hour Turf Warzone...'));
         onStartMatch(roomCode, isHost, myRole, data.players || players);
       } else if (data.type === 'PLAYER_LEAVE') {
         setPlayers((prev) => prev.filter((p) => p.id !== data.playerId));
@@ -224,14 +224,14 @@ export function TurfWarLobby({
       localStorage.setItem('turf_public_rooms', JSON.stringify(active.slice(0, 10)));
     } catch {}
 
-    onToast(`Squad Room Created: ${newCode}`);
+    onToast(t('turf_toast_room_created', 'Squad Room Created: {code}').replace('{code}', newCode));
   };
 
   // Join Room with Code
   const joinRoomWithCode = (targetCode: string, host = false) => {
     const clean = targetCode.trim().toUpperCase();
     if (!clean) {
-      onToast('Enter a valid room code!');
+      onToast(t('turf_toast_valid_room', 'Enter a valid room code!'));
       return;
     }
     playClickSound();
@@ -250,7 +250,7 @@ export function TurfWarLobby({
     };
     setPlayers([me]);
     setInRoom(true);
-    onToast(`Joined room ${clean}! Connecting...`);
+    onToast(t('turf_toast_joined_room', 'Joined room {code}! Connecting...').replace('{code}', clean));
   };
 
   // Random Join
@@ -332,7 +332,7 @@ export function TurfWarLobby({
     playClickSound();
     navigator.clipboard?.writeText(roomCode);
     setCopied(true);
-    onToast(`Copied room code: ${roomCode}`);
+    onToast(t('turf_toast_copied_code', 'Copied room code: {code}').replace('{code}', roomCode));
     setTimeout(() => setCopied(false), 2000);
   };
 
