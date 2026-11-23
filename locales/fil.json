@@ -256,5 +256,10 @@
   "shop_item_luxury_gold_phone_name": "Marangyang Gold na Telepono",
   "shop_item_bedroom_studio_name": "Bedroom Studio (Panimula)",
   "shop_item_street_studio_name": "Street Studio",
-  "shop_item_pro_studio_name": "Pro Studio"
+  "shop_item_pro_studio_name": "Pro Studio",
+  "watch_coins_per_ad": "+10 Coin / ad",
+  "watch_coins_label": "10 COIN",
+  "watch_watched_suffix": "Napanood",
+  "watch_after_five_ads": "Pagkatapos ng 5 Ads",
+  "watch_unlocked": "NA-UNLOCK"
 }
