@@ -786,7 +786,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
             </h1>
           </div>
           <p className="text-xs font-semibold text-gray-400 mt-0.5">
-            Level {playerStudioLevel} Studio • {playerStudioLevel === 0 ? '4 Beats (Free for 30 days)' : '7 Beats (Level 1 Pro)'}
+            Level {playerStudioLevel} Studio • {playerStudioLevel === 0 ? '4 Beats ({t('studio_free_30_days', 'Free for 30 days')})' : '7 Beats (Level 1 Pro)'}
           </p>
         </div>
 
@@ -874,16 +874,16 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
                       : 'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30'
                   }`}
                 >
-                  {playerStudioLevel === 0 ? 'Free for 30 days' : '30 Days Rent'}
+                  {playerStudioLevel === 0 ? '{t('studio_free_30_days', 'Free for 30 days')}' : '{t('studio_rent_30_days', '30 Days Rent')}'}
                 </span>
               </div>
 
               <p className="text-xs font-mono font-bold mt-1 text-gray-300">
                 {rentExpired ? (
-                  <span className="text-red-400">All studios locked. Renew to record.</span>
+                  <span className="text-red-400">{t('studio_all_locked', 'All studios locked. Renew to record.')}</span>
                 ) : (
                   <span>
-                    Rent expires in <span className="text-[#FFD700] font-black">{daysRemaining} days</span>
+                    {t('studio_rent_expires_in', 'Rent expires in ')}<span className="text-[#FFD700] font-black">{daysRemaining} days</span>
                   </span>
                 )}
               </p>
@@ -898,7 +898,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
                 type="button"
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-amber-500 text-black font-black text-xs uppercase shadow-[0_0_15px_rgba(239,68,68,0.5)] active:scale-95 transition-all cursor-pointer"
               >
-                Renew Rent 🔓
+                {t('studio_renew_rent', 'Renew Rent 🔓')}
               </button>
             ) : (
               playerStudioLevel === 0 && (
@@ -907,7 +907,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
                   type="button"
                   className="px-3 py-1.5 rounded-xl bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-black text-[11px] uppercase shadow-[0_0_12px_rgba(255,215,0,0.4)] active:scale-95 transition-all cursor-pointer"
                 >
-                  Unlock Lvl 1 (100k)
+                  {t('studio_unlock_level_1', 'Unlock Lvl 1 (100k)')}
                 </button>
               )
             )}
@@ -925,14 +925,14 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-black uppercase text-white tracking-wide">
-                  Watch Ad Under Studio
+                  {t('studio_watch_ad', 'Watch Ad Under Studio')}
                 </span>
                 <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
                   Ad {currentAdIndex}/33 - 10 coins
                 </span>
               </div>
               <p className="text-[11px] text-gray-400 mt-0.5">
-                Earn +10 Street Coins per ad (Max 5/day per ad • 33 ads available)
+                {t('studio_ad_earn_help', 'Earn +10 Street Coins per ad (Max 5/day per ad • 33 ads available)')}
               </p>
             </div>
           </div>
@@ -943,7 +943,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
             type="button"
             className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-black text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(6,182,212,0.4)] active:scale-95 transition-all cursor-pointer shrink-0"
           >
-            {isAdWatching ? 'Opening Adsgram...' : '+10 Coins'}
+            {isAdWatching ? '{t('studio_opening_ad', 'Opening Adsgram...')}' : '{t('studio_ten_coins', '+10 Coins')}'}
           </button>
         </div>
 
@@ -967,7 +967,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#FFD700] text-black">
-                  READY FOR RECORDING
+                  {t('studio_ready_recording', 'READY FOR RECORDING')}
                 </span>
                 <span className="text-xs font-black text-white">{selectedBeatMetadata.name}</span>
               </div>
@@ -993,10 +993,10 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       <div className="flex items-center justify-between mb-3 px-1">
         <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
           <Disc3 className="w-4 h-4 text-[#FFD700] animate-spin" style={{ animationDuration: '6s' }} />
-          <span>Available Beats ({displayedBeats.length}/{availableBeats.length})</span>
+          <span>{t('studio_available_beats', 'Available Beats')} ({displayedBeats.length}/{availableBeats.length})</span>
         </h2>
         <span className="text-[11px] font-mono text-gray-400">
-          Click beat to select
+          {t('studio_click_beat_select', 'Click beat to select')}
         </span>
       </div>
 
@@ -1024,7 +1024,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
               {isSelected && (
                 <div className="mb-2.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FFD700]/20 border border-[#FFD700]/50 text-[#FFD700] text-[10px] font-black uppercase tracking-wider">
                   <Sparkles className="w-3 h-3 text-[#FFD700]" />
-                  <span>SELECTED BEAT FOR RECORDING</span>
+                  <span>{t('studio_selected_beat', 'SELECTED BEAT FOR RECORDING')}</span>
                 </div>
               )}
 
@@ -1074,7 +1074,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
                 <div className="mb-3 px-3 py-2 rounded-xl bg-red-950/50 border border-red-500/60 flex items-center justify-between text-xs font-bold text-red-300 animate-pulse">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-                    <span>{isVirtualMic ? 'RECORDING VIRTUAL VOCAL OVER BEAT...' : 'RECORDING LIVE MIC OVER BEAT...'}</span>
+                    <span>{isVirtualMic ? '{t('studio_recording_virtual_label', 'RECORDING VIRTUAL VOCAL OVER BEAT...')}' : '{t('studio_recording_live_label', 'RECORDING LIVE MIC OVER BEAT...')}'}</span>
                   </div>
                   <span className="font-mono text-white text-sm">{recordSeconds}s / 60s</span>
                 </div>
@@ -1195,8 +1195,8 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
 
       {/* FOOTER INFO */}
       <div className="mt-8 text-center text-gray-500 text-[10px] space-y-1">
-        <p>Telegram Community: {GROUP_TELEGRAM}</p>
-        <p>Admin Contact: https://t.me/Gammyadmin • v1.0 Launch - Sunday</p>
+        <p>{t('studio_telegram_community', 'Telegram Community')}: {GROUP_TELEGRAM}</p>
+        <p>{t('studio_admin_contact', 'Admin Contact')}: https://t.me/Gammyadmin • v1.0 Launch - Sunday</p>
       </div>
     </div>
   );
