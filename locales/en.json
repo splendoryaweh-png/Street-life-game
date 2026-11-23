@@ -378,5 +378,8 @@
   "watch_coins_label": "10 COINS",
   "watch_watched_suffix": "Watched",
   "watch_after_five_ads": "After 5 Ads",
-  "watch_unlocked": "UNLOCKED"
+  "watch_unlocked": "UNLOCKED",
+  "shop_inside_house": "Inside House",
+  "shop_studio_view": "Studio",
+  "shop_vehicle_view": "Vehicle"
 }
