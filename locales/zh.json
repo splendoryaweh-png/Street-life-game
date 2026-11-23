@@ -363,7 +363,7 @@
   "shop_owned": "已拥有",
   "shop_buy_eat": "购买并食用",
   "shop_eat": "食用",
-  "shop_studio_view": "录音室视图",
+  "shop_studio_view": "录音室",
   "shop_track_payout": "每首曲目收益",
   "shop_fan_base": "粉丝数",
   "shop_beats_library_access": "节拍库访问权限：",
@@ -450,5 +450,7 @@
   "watch_coins_label": "10 金币",
   "watch_watched_suffix": "已观看",
   "watch_after_five_ads": "观看 5 个广告后",
-  "watch_unlocked": "已解锁"
+  "watch_unlocked": "已解锁",
+  "shop_inside_house": "室内",
+  "shop_vehicle_view": "车辆"
 }
