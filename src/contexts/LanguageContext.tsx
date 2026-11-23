@@ -56,7 +56,7 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
 
 /**
  * AUTO-DETECT LANGUAGE LOGIC (Per Requirements)
- * - If localStorage.getItem('street_lang') exists, use it
+ * - If a player has explicitly selected a language in Settings, keep that manual preference
  * - Else auto-detect:
  *     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
  *     const tgLang = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code || "en"
@@ -71,13 +71,13 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
  * - Save to localStorage street_lang
  */
 function getPlayerLanguageStorageKey(): string {
-  if (typeof window === 'undefined') return 'street_lang';
+  if (typeof window === 'undefined') return 'street_lang_manual';
   try {
-    const tg = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { id?: number | string } } } } }).Telegram;
+    const tg = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { id?: number | string } } } }).Telegram;
     const telegramId = tg?.WebApp?.initDataUnsafe?.user?.id;
-    return telegramId ? `street_lang:${telegramId}` : 'street_lang';
+    return telegramId ? `street_lang_manual:${telegramId}` : 'street_lang_manual';
   } catch {
-    return 'street_lang';
+    return 'street_lang_manual';
   }
 }
 
