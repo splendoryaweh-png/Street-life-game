@@ -452,5 +452,16 @@
   "watch_after_five_ads": "观看 5 个广告后",
   "watch_unlocked": "已解锁",
   "shop_inside_house": "室内",
-  "shop_vehicle_view": "车辆"
+  "shop_vehicle_view": "车辆",
+  "studio_live_stereo_mixed": "实时立体声 • 混音",
+  "studio_ready_beat_voice_mix": "就绪 • 节拍+人声混音",
+  "studio_mixer_help": "分别调整每个滑块。更改会应用到录音混音中。",
+  "studio_recording_mixed_track": "正在录制混合音轨",
+  "studio_vocal_booth_beat_voice": "人声录音间 - 节拍+人声",
+  "studio_daily_label": "每日",
+  "studio_recording_label": "录音",
+  "studio_minimum": "最短",
+  "studio_maximum": "最长",
+  "studio_stop_recording_aria": "停止录音",
+  "studio_start_recording_aria": "开始录音"
 }
