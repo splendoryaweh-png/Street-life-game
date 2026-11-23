@@ -283,5 +283,21 @@
   "shop_market": "Marché",
   "shop_balance": "Solde :",
   "shop_energy": "Énergie :",
-  "shop_renew_rent": "Renouveler la location"
+  "shop_renew_rent": "Renouveler la location",
+  "daily_free_title": "Système quotidien gratuit",
+  "daily_free_all": "Toutes les récompenses quotidiennes",
+  "daily_free_completed": "Terminé",
+  "daily_free_unlocked": "Débloqué",
+  "daily_free_locked": "Verrouillé",
+  "daily_free_claimed_today": "Déjà réclamé aujourd’hui ✓ (revenez demain)",
+  "daily_free_play_to_unlock": "Jouez à 1 jeu pour débloquer 🔒",
+  "daily_free_verifying": "Vérification de la récompense...",
+  "daily_free_claim_day": "Réclamer le jour",
+  "daily_free_nitro": "Nitro quotidien gratuit",
+  "daily_free_charges_left": "charges gratuites quotidiennes restantes",
+  "daily_free_racing_coins": "Pièces de course x2",
+  "daily_free_racing_desc": "Les 5 premières pièces de route du jour donnent une récompense x2 !",
+  "daily_free_active_today": "ACTIF AUJOURD’HUI",
+  "daily_free_simulate": "Simuler une partie",
+  "daily_free_relock": "Reverrouiller le test"
 }
