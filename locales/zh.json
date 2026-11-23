@@ -421,5 +421,8 @@
   "shop_duration": "时长",
   "shop_locked_studio_beat": "录音室节拍已锁定",
   "shop_level": "等级",
-  "watch_ad_get_10_sc": "观看广告即可获得 10 SC"
+  "watch_ad_get_10_sc": "观看广告即可获得 10 SC",
+  "home_total_net_worth": "总净资产",
+  "home_coin_transactions_last_10": "金币交易记录（最近 10 条）",
+  "home_street_novel": "📖 街头小说"
 }
