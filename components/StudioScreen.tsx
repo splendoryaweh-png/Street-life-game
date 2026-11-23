@@ -786,7 +786,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
             </h1>
           </div>
           <p className="text-xs font-semibold text-gray-400 mt-0.5">
-            Level {playerStudioLevel} Studio • {playerStudioLevel === 0 ? '4 Beats ({t('studio_free_30_days', 'Free for 30 days')})' : '7 Beats (Level 1 Pro)'}
+            Level {playerStudioLevel} Studio • {playerStudioLevel === 0 ? `4 Beats (${t('studio_free_30_days', 'Free for 30 days')})` : '7 Beats (Level 1 Pro)'}
           </p>
         </div>
 
@@ -874,7 +874,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
                       : 'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30'
                   }`}
                 >
-                  {playerStudioLevel === 0 ? '{t('studio_free_30_days', 'Free for 30 days')}' : '{t('studio_rent_30_days', '30 Days Rent')}'}
+                  {playerStudioLevel === 0 ? t('studio_free_30_days', 'Free for 30 days') : t('studio_rent_30_days', '30 Days Rent')}
                 </span>
               </div>
 
@@ -1074,7 +1074,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
                 <div className="mb-3 px-3 py-2 rounded-xl bg-red-950/50 border border-red-500/60 flex items-center justify-between text-xs font-bold text-red-300 animate-pulse">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-                    <span>{isVirtualMic ? '{t('studio_recording_virtual_label', 'RECORDING VIRTUAL VOCAL OVER BEAT...')}' : '{t('studio_recording_live_label', 'RECORDING LIVE MIC OVER BEAT...')}'}</span>
+                    <span>{isVirtualMic ? t('studio_recording_virtual_label', 'RECORDING VIRTUAL VOCAL OVER BEAT...') : t('studio_recording_live_label', 'RECORDING LIVE MIC OVER BEAT...')}</span>
                   </div>
                   <span className="font-mono text-white text-sm">{recordSeconds}s / 60s</span>
                 </div>
