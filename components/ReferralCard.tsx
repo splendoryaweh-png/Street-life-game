@@ -162,7 +162,7 @@ export function ReferralCard({
           ) : (
             <Copy className="w-4 h-4" />
           )}
-          {copiedLink ? '{t('referral_link_copied', 'Invitation Link Copied')}' : '{t('referral_copy_link', 'Copy Telegram Invitation Link')}'}
+          {copiedLink ? t('referral_link_copied', 'Invitation Link Copied') : t('referral_copy_link', 'Copy Telegram Invitation Link')}
         </button>
 
         <a
