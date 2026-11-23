@@ -1957,11 +1957,11 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             <div className="flex flex-col items-center">
               <span className="text-3xl">🎙️</span>
               <h4 className="text-base font-black text-white mt-1">
-                {isRecording ? 'LIVE FREESTYLE RECORDING IN PROGRESS...' : 'STEP 3: RECORD FREESTYLE TRACK'}
+                {isRecording ? t('shop_live_recording', 'LIVE FREESTYLE RECORDING IN PROGRESS...') : t('shop_step3_record', 'STEP 3: RECORD FREESTYLE TRACK')}
               </h4>
               <p className="text-xs text-gray-300 mt-0.5">
                 {isRecording
-                  ? `Speaking on mic... ${recordingSeconds}s elapsed (${recordingSeconds < 60 ? `Need ${60 - recordingSeconds}s more` : 'Minimum 60s reached ✅'})`
+                  ? `${t('shop_speaking_mic', 'Speaking on mic...')} ${recordingSeconds}s ${t('shop_elapsed', 'elapsed')} (${recordingSeconds < 60 ? `${t('shop_need_more_seconds', 'Need')} ${60 - recordingSeconds}s ${t('shop_more', 'more')}` : t('shop_minimum_reached', 'Minimum 60s reached ✅')})`
                   : `Selected Beat: "${t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)}" • ${selectedBeatMetadata.bpm} BPM • Plays live while recording`}
               </p>
             </div>
@@ -1978,7 +1978,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                 />
                 <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-red-600/90 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md">
                   <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                  <span>REC • {recordingSeconds}s</span>
+                  <span>{t('shop_recording', 'REC')} • {recordingSeconds}s</span>
                 </div>
                 <div className="absolute bottom-3 left-3 right-3 p-2 rounded-xl bg-black/80 backdrop-blur-sm border border-white/10 text-left text-[11px] text-[#FFD700] font-mono flex items-center justify-between">
                   <span>🎵 {t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)} ({selectedBeatMetadata.bpm} BPM)</span>
@@ -2061,7 +2061,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                 >
                   <Square className="w-4 h-4 fill-white" />
                   <span>
-                    Finish & Submit Track ({recordingSeconds}s / {recordingSeconds < 60 ? `Need ${60 - recordingSeconds}s more` : 'Ready to Send! ✅'})
+                    {t('shop_finish_submit', 'Finish & Submit Track')} ({recordingSeconds}s / {recordingSeconds < 60 ? `${t('shop_need_more_seconds', 'Need')} ${60 - recordingSeconds}s ${t('shop_more', 'more')}` : t('shop_ready_to_send', 'Ready to Send! ✅')})
                   </span>
                 </button>
                 <p className="text-[10px] text-gray-400">
@@ -2082,15 +2082,15 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   <button
                     onClick={() => setShowAdsgramChain(true)}
                     type="button"
-                    title="Watch 3 Ads for 10 SC"
+                    title={t('shop_watch_3_ads', 'Watch 3 Ads for 10 SC')}
                     className="px-3.5 py-4 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
                   >
                     <Tv className="w-4 h-4" />
-                    <span>+10 SC</span>
+                    <span>{t('shop_10_sc_ad', '+10 SC Ad')}</span>
                   </button>
                 </div>
                 <p className="text-[10px] text-gray-400">
-                  Requires 5 Energy. Backing beat &ldquo;{t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)}&rdquo; ({selectedBeatMetadata.bpm} BPM) loops live during recording.
+                  {t('shop_requires_5_energy', 'Requires 5 Energy. Backing beat')} &ldquo;{t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)}&rdquo; ({selectedBeatMetadata.bpm} BPM) loops live during recording.
                 </p>
               </div>
             )}
@@ -2102,11 +2102,11 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
                     <span className="text-xs font-black text-emerald-300 uppercase tracking-wider">
-                      Recorded Track Ready for Preview
+                      {t('shop_recorded_track_ready', 'Recorded Track Ready for Preview')}
                     </span>
                   </div>
                   <span className="text-[10px] font-mono text-gray-400">
-                    Duration: {recordingSeconds}s
+                    {t('shop_duration', 'Duration')}: {recordingSeconds}s
                   </span>
                 </div>
 
@@ -2238,10 +2238,10 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               </div>
               <div>
                 <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[9px] font-black uppercase tracking-wider">
-                  LOCKED STUDIO BEAT
+                  {t('shop_locked_studio_beat', 'LOCKED STUDIO BEAT')}
                 </span>
                 <h3 className="text-base font-black text-white tracking-tight mt-0.5">
-                  Upgrade Studio to Unlock
+                  {t('shop_upgrade_to_unlock', 'Upgrade Studio to Unlock')}
                 </h3>
               </div>
             </div>
@@ -2253,7 +2253,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   <span className="text-2xl">{lockedBeatToUpgrade.icon}</span>
                   <div>
                     <h4 className="text-sm font-black text-white">{t(`shop_beat_${lockedBeatToUpgrade.id}_name`, lockedBeatToUpgrade.title)}</h4>
-                    <p className="text-[10px] text-purple-300">{lockedBeatToUpgrade.genre} • {lockedBeatToUpgrade.bpm} BPM</p>
+                    <p className="text-[10px] text-purple-300">{t(`shop_beat_${lockedBeatToUpgrade.id}_genre`, lockedBeatToUpgrade.genre)} • {lockedBeatToUpgrade.bpm} BPM</p>
                   </div>
                 </div>
                 <span className="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-400/30 text-[10px] font-mono font-bold">
@@ -2280,7 +2280,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-400">{t('shop_required_studio', 'Required Studio:')}</span>
                 <span className="font-black text-amber-300">
-                  Level {lockedBeatToUpgrade.requiredStudioLevel} ({STUDIO_LEVEL_NAMES[lockedBeatToUpgrade.requiredStudioLevel] || 'Upgraded Studio'})
+                  {t('shop_level', 'Level')} {lockedBeatToUpgrade.requiredStudioLevel} ({t(`shop_studio_level_${lockedBeatToUpgrade.requiredStudioLevel}`, STUDIO_LEVEL_NAMES[lockedBeatToUpgrade.requiredStudioLevel] || 'Upgraded Studio')})
                 </span>
               </div>
 
@@ -2294,7 +2294,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-400">{t('shop_your_current_studio', 'Your Current Studio:')}</span>
                 <span className="font-bold text-gray-200">
-                  Level {playerStudioLevel} ({t(`shop_item_${currentStudioInfo.id}_name`, currentStudioInfo.name)})
+                  {t('shop_level', 'Level')} {playerStudioLevel} ({t(`shop_item_${currentStudioInfo.id}_name`, currentStudioInfo.name)})
                 </span>
               </div>
 
