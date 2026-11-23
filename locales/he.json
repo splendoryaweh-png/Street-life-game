@@ -464,5 +464,10 @@
   "studio_maximum": "מקסימום",
   "studio_stop_recording_aria": "עצור הקלטה",
   "studio_start_recording_aria": "התחל הקלטה",
-  "shop_item_walking_name": "הליכה"
+  "shop_item_walking_name": "הליכה",
+  "studio_filter_normal": "רגיל",
+  "studio_filter_warm": "חם",
+  "studio_filter_bw": "שחור-לבן",
+  "studio_filter_cool": "קר",
+  "studio_filter_vintage": "וינטג׳"
 }
