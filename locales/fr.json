@@ -455,5 +455,10 @@
   "profile_version": "Version",
   "profile_platform": "Plateforme",
   "profile_support": "Assistance",
-  "shop_item_walking_name": "À pied"
+  "shop_item_walking_name": "À pied",
+  "studio_filter_normal": "Normal",
+  "studio_filter_warm": "Chaud",
+  "studio_filter_bw": "Noir et blanc",
+  "studio_filter_cool": "Froid",
+  "studio_filter_vintage": "Vintage"
 }
