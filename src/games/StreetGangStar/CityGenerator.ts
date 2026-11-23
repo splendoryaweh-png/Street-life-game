@@ -1,6 +1,6 @@
 /**
  * Street Gang Star - City & Map Generator
- * Generates an expansive 4000x4000 px realistic district layout:
+ * Generates an expansive 8000x8000 px realistic district layout:
  * - Multi-lane arterial roads, avenues, cross-streets
  * - Walkable compound courtyards, alleys, entering zones
  * - Detailed building architectures and collision bounding boxes
@@ -164,7 +164,7 @@ function createSeededRandom(seed: number) {
 }
 
 /**
- * Generates an expansive 4000x4000 px street city
+ * Generates an expansive 8000x8000 px street city
  */
 export function getRandomCityByCountry(countryCode?: string, seedStr?: string): CityData {
   let selectedCountry = (countryCode || '').toUpperCase().trim();
