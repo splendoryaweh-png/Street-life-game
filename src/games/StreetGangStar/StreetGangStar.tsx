@@ -21,6 +21,7 @@ export interface CityCar { id: string; x: number; y: number; vx: number; vy: num
 export interface Civilian { id: string; x: number; y: number; vx: number; vy: number; speed: number; facingAngle: number; state: 'walking' | 'scared' | 'saved'; color: string; hitCount?: number; }
 export interface Gangster { id: string; type: 'fighter_motor' | 'fighter_bus'; x: number; y: number; vx: number; vy: number; health: number; maxHealth: number; speed: number; facingAngle: number; gun: WeaponType; lastShootTime: number; vehicleType: 'motorcycle' | 'bus' | 'tank'; }
 export interface SparkParticle { x: number; y: number; vx: number; vy: number; color: string; life: number; }
+export interface EjectedDriver { id: string; x: number; y: number; facingAngle: number; state: 'falling' | 'standing'; stateAt: number; lastShootTime: number; }
 interface StreetGangStarProps { onBack: () => void; onToast: (msg: string) => void; language?: string; initialCountry?: string; }
 export function StreetGangStar({ onBack, onToast, language = 'en', initialCountry = 'NG' }: StreetGangStarProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -48,7 +49,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   const gameStateRef = useRef({
     player: { x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, jumpOffset: 0, jumpVy: 0, isJumping: false },
     unlockedGuns: { pistol: true, shotgun_laser: false, ak_laser: false, sniper_laser: false } as Record<WeaponType, boolean>,
-    cars: [] as CityCar[], civilians: [] as Civilian[], gangsters: [] as Gangster[], lasers: [] as LaserBeam[], sparks: [] as SparkParticle[],
+    cars: [] as CityCar[], civilians: [] as Civilian[], gangsters: [] as Gangster[], ejectedDrivers: [] as EjectedDriver[], lasers: [] as LaserBeam[], sparks: [] as SparkParticle[],
     keys: { w: false, a: false, s: false, d: false, shift: false, mouseLeft: false },
     joystickMovement: { dx: 0, dy: 0, isMoving: false }, isRunActive: false, isMouseActive: false, mousePos: { x: 0, y: 0 }, screenDim: { w: 800, h: 600 }, lastSpawnTime: Date.now(), isRunning: false,
   });
@@ -63,7 +64,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length] }); } s.civilians = civs;
   }, [cityData]);
   const setupGame = useCallback(() => {
-    const s = gameStateRef.current; s.player.x = cityData.spawnPoints[0].x; s.player.y = cityData.spawnPoints[0].y; s.player.health = 100; s.player.ammo = WEAPONS.pistol.maxAmmo; s.player.maxAmmo = WEAPONS.pistol.maxAmmo; s.player.gun = 'pistol'; s.player.isCover = false; s.player.inCarId = null; s.gangsters = []; s.lasers = []; s.sparks = []; s.lastSpawnTime = Date.now(); s.isRunning = true;
+    const s = gameStateRef.current; s.player.x = cityData.spawnPoints[0].x; s.player.y = cityData.spawnPoints[0].y; s.player.health = 100; s.player.ammo = WEAPONS.pistol.maxAmmo; s.player.maxAmmo = WEAPONS.pistol.maxAmmo; s.player.gun = 'pistol'; s.player.isCover = false; s.player.inCarId = null; s.gangsters = []; s.ejectedDrivers = []; s.lasers = []; s.sparks = []; s.lastSpawnTime = Date.now(); s.isRunning = true;
     setHudHealth(100); setHudAmmo(WEAPONS.pistol.maxAmmo); setHudMaxAmmo(WEAPONS.pistol.maxAmmo); setHudGun('pistol'); setHudInCover(false); setHudInCar(false); initTrafficAndCivilians();
   }, [initTrafficAndCivilians]);
   const handleStartFromIntro = () => { setShowIntro(false); setupGame(); };
