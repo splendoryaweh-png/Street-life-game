@@ -415,5 +415,10 @@
   "watch_ad_get_10_sc": "WATCH AD MAKE YOU GET 10 SC",
   "home_total_net_worth": "Total Net Worth",
   "home_coin_transactions_last_10": "Coin Transaction (Last 10)",
-  "home_street_novel": "📖 Street Novel"
+  "home_street_novel": "📖 Street Novel",
+  "shop_item_basic_tshirt_name": "Basic na T-shirt",
+  "shop_item_designer_shirt_name": "Designer na Polo",
+  "shop_item_hoodie_set_name": "Set ng Hoodie",
+  "shop_item_luxury_jacket_name": "Marangyang Jacket",
+  "shop_item_formal_suit_name": "Pormal na Suit"
 }
