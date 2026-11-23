@@ -75,6 +75,7 @@ import {
   Filter,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '@/src/contexts/LanguageContext';
 
 interface InventoryScreenProps {
   gameState: UserGameState;
@@ -105,6 +106,7 @@ function calculateDaysLeft(expiresTimestamp: number, currentNow: number): number
 }
 
 export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
+  const { t } = useLanguage();
   const userId = gameState.deviceId || 'player_anon';
 
   // Persistent Player State
@@ -876,7 +878,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
     <div className="w-full min-h-[calc(100dvh-5rem)] flex-1 overflow-y-auto pb-40 pt-4 px-4 overscroll-contain space-y-4 select-none font-sans">
       {/* ------------------------------------------------------------- */}
       {/* 3. TOP NAVIGATION - INVENTORY HEADER */}
-      {/* 🏪 INVENTORY - Street Hustle */}
+      {/* 🏪 {t('shop_inventory_title', 'INVENTORY - Street Hustle')} */}
       {/* [Shop] [Craft] [Market] [Studio 🔒/✅] */}
       {/* 💰 Balance: {SC} SC | ⚡ Energy: {ENERGY}/100 */}
       {/* ------------------------------------------------------------- */}
@@ -885,7 +887,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
           <div className="flex items-center gap-2">
             <span className="text-xl">🏪</span>
             <h2 className="text-lg font-black tracking-tight text-white uppercase">
-              INVENTORY - Street Hustle
+              {t('shop_inventory_title', 'INVENTORY - Street Hustle')}
             </h2>
           </div>
           <button
@@ -894,7 +896,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             className="px-2.5 py-1 rounded-xl bg-yellow-400/20 border border-yellow-400/50 text-yellow-300 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 active:scale-95 cursor-pointer shadow-[0_0_10px_rgba(250,204,21,0.3)]"
           >
             <Eye className="w-3.5 h-3.5" />
-            <span>View Character</span>
+            <span>{t('shop_view_character', 'View Character')}</span>
           </button>
         </div>
 
@@ -910,7 +912,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             }`}
           >
             <Store className="w-3.5 h-3.5" />
-            <span>Shop</span>
+            <span>{t('shop_tab', 'Shop')}</span>
           </button>
 
           <button
@@ -919,7 +921,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             className="py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1 text-gray-500 hover:text-gray-300 transition-all cursor-pointer"
           >
             <Hammer className="w-3.5 h-3.5" />
-            <span>Craft</span>
+            <span>{t('shop_craft', 'Craft')}</span>
           </button>
 
           <button
@@ -928,7 +930,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             className="py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1 text-gray-500 hover:text-gray-300 transition-all cursor-pointer"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Market</span>
+            <span>{t('shop_market', 'Market')}</span>
           </button>
 
           <button
@@ -943,7 +945,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             }`}
           >
             <Mic className="w-3.5 h-3.5" />
-            <span>Studio</span>
+            <span>{t('studio', 'Studio')}</span>
             {playerStudioLevel >= 1 ? (
               <span className="text-[10px]">Lvl {playerStudioLevel} ✅</span>
             ) : (
@@ -956,7 +958,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
         <div className="flex items-center justify-between pt-1 text-xs font-mono font-bold">
           <div className="flex items-center gap-1.5 text-[#FFD700]">
             <span>💰</span>
-            <span>Balance:</span>
+            <span>{t('shop_balance', 'Balance:')}</span>
             <span className="text-white font-black text-sm">
               {gameState.streetCoin.toLocaleString()} SC
             </span>
@@ -964,7 +966,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
 
           <div className="flex items-center gap-1.5 text-cyan-400">
             <span>⚡</span>
-            <span>Energy:</span>
+            <span>{t('shop_energy', 'Energy:')}</span>
             <span
               className={`font-black text-sm ${
                 playerState.energy <= 20 ? 'text-red-400 animate-pulse' : 'text-emerald-400'
@@ -997,7 +999,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               }}
               className="px-2.5 py-1 rounded-lg bg-yellow-400 text-black text-[10px] font-black uppercase hover:bg-yellow-300 transition-all cursor-pointer"
             >
-              Renew Rent
+              {t('shop_renew_rent', 'Renew Rent')}
             </button>
           </div>
         )}
@@ -1225,7 +1227,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           }`}
                         >
                           {isRentExpired
-                            ? `Renew Rent (${item.price.toLocaleString()} SC)`
+                            ? `{t('shop_renew_rent', 'Renew Rent')} (${item.price.toLocaleString()} SC)`
                             : isRent
                             ? `Rent (${item.price.toLocaleString()} SC)`
                             : `Buy (${item.price.toLocaleString()} SC)`}
