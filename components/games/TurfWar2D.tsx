@@ -33,6 +33,7 @@ import { TurfWarMultiplayer } from '@/src/games/TurfWar/TurfWarMultiplayer';
 
 interface TurfWar2DProps {
   onBack: () => void;
+  onBackHome?: () => void;
   onToast: (msg: string) => void;
   currentCoins: number;
 }
@@ -85,7 +86,7 @@ interface Bullet {
   damage: number;
 }
 
-export function TurfWar2D({ onBack, onToast, currentCoins = 0 }: TurfWar2DProps) {
+export function TurfWar2D({ onBack, onBackHome, onToast, currentCoins = 0 }: TurfWar2DProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [playMode, setPlayMode] = useState<'single' | 'multiplayer'>('single');
@@ -1148,6 +1149,7 @@ export function TurfWar2D({ onBack, onToast, currentCoins = 0 }: TurfWar2DProps)
     return (
       <TurfWarMultiplayer
         onBack={() => setPlayMode('single')}
+        onBackHome={onBackHome}
         onToast={onToast}
         currentCoins={currentCoins}
       />
