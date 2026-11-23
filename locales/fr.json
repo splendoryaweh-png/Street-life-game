@@ -299,5 +299,19 @@
   "daily_free_racing_desc": "Les 5 premières pièces de route du jour donnent une récompense x2 !",
   "daily_free_active_today": "ACTIF AUJOURD’HUI",
   "daily_free_simulate": "Simuler une partie",
-  "daily_free_relock": "Reverrouiller le test"
+  "daily_free_relock": "Reverrouiller le test",
+  "shop_cat_clothes": "Vêtements",
+  "shop_cat_houses": "Maisons",
+  "shop_cat_vehicles": "Véhicules",
+  "shop_cat_phones": "Téléphones",
+  "shop_cat_design": "Design",
+  "shop_cat_studio": "Studio",
+  "shop_cat_filters": "Filtres",
+  "shop_cat_food": "Nourriture",
+  "shop_freestyle_booth": "Studio Freestyle (15 rythmes)",
+  "shop_beats_unlocked": "Rythmes débloqués • Enregistrer et tester",
+  "shop_enter_booth": "Entrer dans le studio",
+  "shop_equipped": "Équipé",
+  "shop_wear": "Porter",
+  "shop_buy_for": "Acheter"
 }
