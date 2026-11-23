@@ -313,5 +313,19 @@
   "shop_market": "Market",
   "shop_balance": "Balance:",
   "shop_energy": "Energy:",
-  "shop_renew_rent": "Renew Rent"
+  "shop_renew_rent": "Renew Rent",
+  "shop_cat_clothes": "Clothes",
+  "shop_cat_houses": "Houses",
+  "shop_cat_vehicles": "Vehicles",
+  "shop_cat_phones": "Phones",
+  "shop_cat_design": "Design",
+  "shop_cat_studio": "Studio",
+  "shop_cat_filters": "Filters",
+  "shop_cat_food": "Food",
+  "shop_freestyle_booth": "Freestyle Booth (15 Beats)",
+  "shop_beats_unlocked": "Beats don open • Record and test beats",
+  "shop_enter_booth": "Enter Booth",
+  "shop_equipped": "E don equip",
+  "shop_wear": "Wear",
+  "shop_buy_for": "Buy"
 }
