@@ -91,5 +91,15 @@
   "syndicate_territories": "TERRITORIOS DEL SINDICATO",
   "reward": "Recompensa",
   "hard": "Difícil",
-  "attack": "ATACAR"
+  "attack": "ATACAR",
+  "hub_tasks": "Tareas",
+  "hub_bank": "Banco",
+  "hub_daily_free": "Regalo diario",
+  "studio_tier": "Nivel del estudio",
+  "studio_long_beats": "14 pistas largas",
+  "studio_vocal_booth": "Cabina vocal y alquiler",
+  "studio_level_0": "NIVEL 0 • GRATIS",
+  "studio_level_1": "NIVEL 1 • PRO",
+  "profile_save": "Guardar",
+  "profile_beats": "Pistas"
 }
