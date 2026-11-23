@@ -398,5 +398,8 @@
   "shop_duration": "Durasi",
   "shop_locked_studio_beat": "BEAT STUDIO TERKUNCI",
   "shop_level": "Level",
-  "watch_ad_get_10_sc": "TONTON IKLAN UNTUK MENDAPATKAN 10 SC"
+  "watch_ad_get_10_sc": "TONTON IKLAN UNTUK MENDAPATKAN 10 SC",
+  "home_total_net_worth": "Total Kekayaan Bersih",
+  "home_coin_transactions_last_10": "Transaksi Koin (10 Terakhir)",
+  "home_street_novel": "📖 Novel Jalanan"
 }
