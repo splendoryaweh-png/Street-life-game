@@ -505,7 +505,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
       } catch {}
     }
 
-    onToast(`🎵 Selected "${beat.title}" (${beat.bpm} BPM) • Saved for Recording!`);
+    onToast(`🎵 Selected "${t(`shop_beat_${beat.id}_name`, beat.title)}" (${beat.bpm} BPM) • Saved for Recording!`);
 
     if (autoPlay) {
       startBeatAudioLoop(beat.id);
@@ -1555,11 +1555,11 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   FREESTYLE BOOTH
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/40 text-[10px] font-black uppercase tracking-wider">
-                  Level {playerStudioLevel} • {STUDIO_LEVEL_NAMES[playerStudioLevel] || currentStudioInfo.name}
+                  Level {playerStudioLevel} • {t(`shop_studio_level_${playerStudioLevel}`, STUDIO_LEVEL_NAMES[playerStudioLevel] || currentStudioInfo.name)}
                 </span>
               </div>
               <h3 className="text-lg font-black text-white uppercase tracking-tight mt-1 flex items-center gap-1.5">
-                <span>{currentStudioInfo.name}</span>
+                <span>{t(`shop_item_${currentStudioInfo.id}_name`, currentStudioInfo.name)}</span>
                 {playerStudioLevel >= 1 && <span className="text-emerald-400 text-sm">✅</span>}
               </h3>
             </div>
@@ -1697,7 +1697,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               {/* Active Selected Beat indicator */}
               <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#2B1F08] to-[#150F02] border border-[#FFD700]/70 text-[11px] text-[#FFD700] font-mono font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(255,215,0,0.25)]">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#FFD700] animate-pulse" />
-                <span>Selected: {selectedBeatMetadata.name} ({selectedBeatMetadata.bpm} BPM)</span>
+                <span>Selected: {t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)} ({selectedBeatMetadata.bpm} BPM)</span>
               </div>
             </div>
 
@@ -1742,7 +1742,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   <span className="text-[10px] text-gray-400 block uppercase font-bold">{t('shop_beat_name', 'Beat Name')}</span>
                   <span className="font-black text-white flex items-center gap-1.5 mt-0.5 text-sm">
                     <span>{selectedBeatMetadata.icon}</span>
-                    <span className="truncate">{selectedBeatMetadata.name} ({selectedBeatMetadata.title})</span>
+                    <span className="truncate">{t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)} ({selectedBeatMetadata.title})</span>
                   </span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-black/60 border border-white/10">
@@ -1892,15 +1892,15 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                     <div className="mt-2.5 space-y-1">
                       <div className="flex items-baseline justify-between gap-1">
                         <h4 className={`text-sm font-black truncate ${isSelected ? 'text-[#FFD700]' : 'text-white'}`}>
-                          {beat.title}
+                          {t(`shop_beat_${beat.id}_name`, beat.title)}
                         </h4>
                         <span className="text-[10px] text-gray-400 font-bold truncate">
-                          {beat.genre}
+                          {t(`shop_beat_${beat.id}_genre`, beat.genre)}
                         </span>
                       </div>
 
                       <p className="text-[11px] text-gray-300 leading-snug line-clamp-2">
-                        {beat.description}
+                        {t(`shop_beat_${beat.id}_desc`, beat.description)}
                       </p>
 
                       {/* File Path Metadata Display */}
@@ -1962,7 +1962,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               <p className="text-xs text-gray-300 mt-0.5">
                 {isRecording
                   ? `Speaking on mic... ${recordingSeconds}s elapsed (${recordingSeconds < 60 ? `Need ${60 - recordingSeconds}s more` : 'Minimum 60s reached ✅'})`
-                  : `Selected Beat: "${selectedBeatMetadata.name}" • ${selectedBeatMetadata.bpm} BPM • Plays live while recording`}
+                  : `Selected Beat: "${t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)}" • ${selectedBeatMetadata.bpm} BPM • Plays live while recording`}
               </p>
             </div>
 
@@ -1981,7 +1981,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   <span>REC • {recordingSeconds}s</span>
                 </div>
                 <div className="absolute bottom-3 left-3 right-3 p-2 rounded-xl bg-black/80 backdrop-blur-sm border border-white/10 text-left text-[11px] text-[#FFD700] font-mono flex items-center justify-between">
-                  <span>🎵 {selectedBeatMetadata.name} ({selectedBeatMetadata.bpm} BPM)</span>
+                  <span>🎵 {t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)} ({selectedBeatMetadata.bpm} BPM)</span>
                   <span className="text-emerald-400 font-bold">{t('shop_live_sync', 'Live Sync')}</span>
                 </div>
               </div>
@@ -1995,7 +1995,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                 </div>
                 <div className="text-left">
                   <span className="text-gray-400 text-[10px] block uppercase font-bold">{t('shop_selected_beat_audio', 'Selected Beat Audio')}</span>
-                  <span className="text-white font-black">{selectedBeatMetadata.name} ({selectedBeatMetadata.bpm} BPM)</span>
+                  <span className="text-white font-black">{t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)} ({selectedBeatMetadata.bpm} BPM)</span>
                 </div>
               </div>
 
@@ -2065,7 +2065,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   </span>
                 </button>
                 <p className="text-[10px] text-gray-400">
-                  {t('shop_minimum_60_seconds', 'Minimum 60 seconds required. Playing “')}{selectedBeatMetadata.name}&rdquo; at {selectedBeatMetadata.bpm} BPM.
+                  {t('shop_minimum_60_seconds', 'Minimum 60 seconds required. Playing “')}{t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)}&rdquo; at {selectedBeatMetadata.bpm} BPM.
                 </p>
               </div>
             ) : (
@@ -2090,7 +2090,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   </button>
                 </div>
                 <p className="text-[10px] text-gray-400">
-                  Requires 5 Energy. Backing beat &ldquo;{selectedBeatMetadata.name}&rdquo; ({selectedBeatMetadata.bpm} BPM) loops live during recording.
+                  Requires 5 Energy. Backing beat &ldquo;{t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)}&rdquo; ({selectedBeatMetadata.bpm} BPM) loops live during recording.
                 </p>
               </div>
             )}
@@ -2112,7 +2112,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
 
                 <div className="p-2.5 rounded-xl bg-black/60 border border-white/10 text-xs space-y-1">
                   <div className="text-white font-bold flex items-center gap-1.5">
-                    <span>🎵 Beat: {selectedBeatMetadata.name} ({selectedBeatMetadata.bpm} BPM)</span>
+                    <span>🎵 Beat: {t(`shop_beat_${selectedBeat.id}_name`, selectedBeatMetadata.name)} ({selectedBeatMetadata.bpm} BPM)</span>
                   </div>
                   <div className="text-gray-400 text-[10px] font-mono truncate">
                     📁 Track Path: {selectedBeatMetadata.filePath}
@@ -2252,7 +2252,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">{lockedBeatToUpgrade.icon}</span>
                   <div>
-                    <h4 className="text-sm font-black text-white">{lockedBeatToUpgrade.title}</h4>
+                    <h4 className="text-sm font-black text-white">{t(`shop_beat_${lockedBeatToUpgrade.id}_name`, lockedBeatToUpgrade.title)}</h4>
                     <p className="text-[10px] text-purple-300">{lockedBeatToUpgrade.genre} • {lockedBeatToUpgrade.bpm} BPM</p>
                   </div>
                 </div>
@@ -2262,7 +2262,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               </div>
 
               <p className="text-xs text-gray-300 leading-snug">
-                {lockedBeatToUpgrade.description}
+                {t(`shop_beat_${lockedBeatToUpgrade.id}_desc`, lockedBeatToUpgrade.description)}
               </p>
 
               {lockedBeatToUpgrade.badge && (
@@ -2294,7 +2294,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-400">{t('shop_your_current_studio', 'Your Current Studio:')}</span>
                 <span className="font-bold text-gray-200">
-                  Level {playerStudioLevel} ({currentStudioInfo.name})
+                  Level {playerStudioLevel} ({t(`shop_item_${currentStudioInfo.id}_name`, currentStudioInfo.name)})
                 </span>
               </div>
 
