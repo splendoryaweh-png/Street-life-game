@@ -244,62 +244,23 @@ export function WatchScreen({
         </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#1C1C24] via-[#121217] to-[#0A0A0E] border-2 border-[#FFD700]/50 p-6 shadow-[0_0_30px_rgba(255,215,0,0.18)] text-center flex flex-col items-center">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#FFD700]/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 w-full flex flex-col items-center">
-          <span className="text-[11px] font-black uppercase tracking-widest text-[#FFD700] bg-[#FFD700]/10 border border-[#FFD700]/30 px-3 py-1 rounded-full mb-4">
-            REWARDED SPONSOR VIDEO • AD {Math.min(33, adsWatchedToday + 1)}/33
-          </span>
-
-          <button
-            type="button"
-            disabled={isLimitReached || isPlayingAd}
-            onClick={handleStartAd}
-            className={`group relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer select-none touch-manipulation my-2 ${
-              isLimitReached
-                ? 'opacity-40 cursor-not-allowed bg-gray-800 border border-gray-600'
-                : 'bg-gradient-to-tr from-[#E5C100] via-[#FFD700] to-[#FFF385] text-black shadow-[0_0_25px_#FFD700] hover:scale-110 active:scale-95'
-            }`}
-          >
-            {!isLimitReached && (
-              <div className="absolute inset-0 rounded-full border-2 border-[#FFD700] animate-ping opacity-30 pointer-events-none" />
-            )}
-
-            <Play className="w-10 h-10 fill-current ml-1 transition-transform group-hover:scale-110" />
-          </button>
-
-          <h2 className="text-2xl font-black text-white tracking-wide mt-4 flex items-center justify-center gap-2">
-            {t('watch_ad_title', 'Watch Ad')}{' '}
-            <span className="text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.6)]">
-              +10 SC
-            </span>
-          </h2>
-
-          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300 font-mono">
-            <Clock className="w-3.5 h-3.5 text-[#FFD700]" />
-            <span>{t('watch_rewarded_by', 'Rewarded by Adsgram')}</span>
-          </div>
-
-          <button
-            type="button"
-            disabled={isLimitReached || isPlayingAd}
-            onClick={handleStartAd}
-            className={`w-full max-w-xs mt-6 py-3.5 px-6 rounded-2xl font-black text-sm tracking-wider uppercase transition-all duration-200 cursor-pointer select-none touch-manipulation flex items-center justify-center gap-2 ${
-              isLimitReached
-                ? 'bg-gray-800 text-gray-500 border border-white/10 cursor-not-allowed'
-                : 'bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.5)] hover:brightness-110 active:scale-95'
-            }`}
-          >
-            <Play className="w-4 h-4 fill-current" />
-
+      <div className="relative overflow-hidden rounded-3xl border border-[#D6A900] bg-gradient-to-r from-[#3A2A05] via-[#4A3508] to-[#2B2008] p-1 shadow-[0_0_24px_rgba(255,215,0,0.18)]">
+        <button
+          type="button"
+          disabled={isLimitReached || isPlayingAd}
+          onClick={handleStartAd}
+          aria-label={isLimitReached ? t('watch_daily_limit', 'DAILY LIMIT REACHED (33/33)') : t('watch_ad_get_10_sc', 'WATCH AD TO GET 10 SC')}
+          className={`relative z-10 flex min-h-[76px] w-full items-center justify-center gap-3 rounded-[1.35rem] border-2 border-[#C99B00] bg-gradient-to-r from-[#49330A] via-[#3A2A0A] to-[#49330A] px-4 py-4 text-center font-black tracking-[0.12em] text-[#FFD700] transition-all duration-200 touch-manipulation ${isLimitReached || isPlayingAd ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:brightness-125 active:scale-[0.99]'}`}
+        >
+          <Tv className="h-7 w-7 shrink-0 text-[#FFD700]" />
+          <span className="text-base sm:text-lg">
             {isLimitReached
               ? t('watch_daily_limit', 'DAILY LIMIT REACHED (33/33)')
               : isPlayingAd
                 ? t('watch_loading', 'LOADING ADSGRAM...')
-                : `${t('watch_button', 'WATCH AD')} ${Math.min(33, adsWatchedToday + 1)}/33 (+10 SC)`}
-          </button>
-        </div>
+                : t('watch_ad_get_10_sc', 'WATCH AD TO GET 10 SC')}
+          </span>
+        </button>
       </div>
 
       <div className="rounded-2xl bg-[#14141A] border border-[#FFD700]/30 p-4">
