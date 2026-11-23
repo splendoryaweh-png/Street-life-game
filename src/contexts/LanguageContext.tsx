@@ -12,8 +12,9 @@ import ar from '../../locales/ar.json';
 import zh from '../../locales/zh.json';
 import ko from '../../locales/ko.json';
 import he from '../../locales/he.json';
+import fil from '../../locales/fil.json';
 
-export type LanguageCode = 'en' | 'pcm' | 'fr' | 'es' | 'ru' | 'pt' | 'id' | 'ar' | 'zh' | 'ko' | 'he';
+export type LanguageCode = 'en' | 'pcm' | 'fr' | 'es' | 'ru' | 'pt' | 'id' | 'ar' | 'zh' | 'ko' | 'he' | 'fil';
 
 export interface LanguageOption {
   code: LanguageCode;
@@ -35,6 +36,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'zh', label: '中文', flag: '🇨🇳', sublabel: 'Chinese' },
   { code: 'ko', label: '한국어', flag: '🇰🇷', sublabel: 'Korean' },
   { code: 'he', label: 'עברית', flag: '🇮🇱', sublabel: 'Hebrew (right-to-left)' },
+  { code: 'fil', label: 'Filipino', flag: '🇵🇭', sublabel: 'Filipino / Tagalog' },
 ];
 
 const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
@@ -49,6 +51,7 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   zh,
   ko,
   he,
+  fil: { ...en, ...fil },
 };
 
 /**
@@ -135,6 +138,8 @@ export function detectLanguage(): LanguageCode {
     auto = 'ko';
   } else if (tgLang === 'he' || tgLang.startsWith('he-') || /Jerusalem|Tel_Aviv/.test(tz)) {
     auto = 'he';
+  } else if (tgLang === 'fil' || tgLang === 'tl' || /Manila/.test(tz)) {
+    auto = 'fil';
   } else if (
     tz.includes('Lisbon') ||
     tz.includes('Sao_Paulo') ||
