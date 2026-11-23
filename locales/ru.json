@@ -454,5 +454,6 @@
   "profile_no_data_desc": "Мы никогда не продаём, не сдаём в аренду и не передаём личную информацию третьим лицам.",
   "profile_version": "Версия",
   "profile_platform": "Платформа",
-  "profile_support": "Поддержка"
+  "profile_support": "Поддержка",
+  "shop_item_walking_name": "Пешком"
 }
