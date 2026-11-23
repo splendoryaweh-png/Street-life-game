@@ -243,7 +243,7 @@ export function ProfileScreen({
         </div>
 
         <div className="p-4 rounded-3xl bg-[#151515] border border-white/10">
-          <span className="text-[10px] text-gray-400 block uppercase font-bold">Studio Tier</span>
+          <span className="text-[10px] text-gray-400 block uppercase font-bold">{t('studio_tier', 'Studio Tier')}</span>
           <span className="text-sm font-black text-white">
             Level {gameState.studioLevel || 0} ({gameState.studioLevel === 1 ? '7 Beats' : '4 Beats'})
           </span>
@@ -271,7 +271,7 @@ export function ProfileScreen({
             type="submit"
             className="px-4 py-2.5 rounded-xl bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-black text-xs uppercase active:scale-95 transition-all"
           >
-            Save
+            {t('profile_save', 'Save')}
           </button>
         </form>
 
