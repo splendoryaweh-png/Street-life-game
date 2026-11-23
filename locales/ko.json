@@ -298,5 +298,13 @@
   "referral_claim": "520 받기",
   "referral_welcome_claimed": "웰컴 보너스 수령 완료 (+520 코인)",
   "referral_invited_count": "초대한 친구:",
-  "referral_simulate": "초대 1명 시뮬레이션 (+100)"
+  "referral_simulate": "초대 1명 시뮬레이션 (+100)",
+  "shop_inventory_title": "인벤토리 - Street Hustle",
+  "shop_view_character": "캐릭터 보기",
+  "shop_tab": "상점",
+  "shop_craft": "제작",
+  "shop_market": "마켓",
+  "shop_balance": "잔액:",
+  "shop_energy": "에너지:",
+  "shop_renew_rent": "임대 갱신"
 }
