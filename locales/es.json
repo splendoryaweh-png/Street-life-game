@@ -178,5 +178,13 @@
   "studio_beat_voice": "BEAT + VOZ",
   "studio_beat_volume": "VOLUMEN DEL BEAT",
   "studio_voice_volume": "VOLUMEN DE VOZ",
-  "studio_locked": "Bloqueado"
+  "studio_locked": "Bloqueado",
+  "turf_player_down": "ESTÁS FUERA DE COMBATE",
+  "turf_death_description": "Mira un anuncio para continuar esta partida donde la dejaste o vuelve al inicio.",
+  "turf_earned": "GANADO",
+  "turf_ad_playing": "REPRODUCIENDO ANUNCIO...",
+  "turf_watch_continue": "VER ANUNCIO PARA CONTINUAR",
+  "turf_back_home": "VOLVER AL INICIO",
+  "turf_ad_success_note": "La partida solo se reanuda cuando termina el anuncio recompensado.",
+  "turf_hour_victory": "¡VICTORIA! ¡1 HORA!"
 }
