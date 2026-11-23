@@ -172,5 +172,18 @@
   "profile_edition": "Street Life v2.5 版本",
   "profile_local_storage": "本地数据存储",
   "profile_telegram_auth": "Telegram 身份验证",
-  "profile_no_data_selling": "不出售数据"
+  "profile_no_data_selling": "不出售数据",
+  "studio_heading": "自由录音室",
+  "studio_level_desc": "录音室等级 {level}",
+  "studio_rent_status_expired": "录音室租约已到期",
+  "studio_rent_status_active": "录音室租约有效",
+  "studio_ad_count": "广告 {count}/33 - 10 金币",
+  "profile_secret_admin_explain": "已触发长按。输入管理员邮箱以解锁系统控制：",
+  "profile_privacy_intro": "隐私和数据安全是我们系统设计的核心：",
+  "profile_local_data_desc": "游戏存档、声音设置、物品栏和语言选择都安全地保存在本地浏览器中。",
+  "profile_telegram_auth_desc": "Telegram 用户标识仅用于排行榜显示和游戏成就验证。",
+  "profile_no_data_desc": "我们绝不向第三方出售、出租或分发个人信息。",
+  "profile_version": "版本",
+  "profile_platform": "平台",
+  "profile_support": "支持"
 }
