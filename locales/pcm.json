@@ -354,7 +354,7 @@
   "shop_owned": "You get am",
   "shop_buy_eat": "Buy & Chop",
   "shop_eat": "Chop",
-  "shop_studio_view": "Studio View",
+  "shop_studio_view": "Studio",
   "shop_track_payout": "Payout per Track",
   "shop_fan_base": "Fans",
   "shop_beats_library_access": "Beats Library Access:",
@@ -425,5 +425,7 @@
   "watch_coins_label": "10 COIN",
   "watch_watched_suffix": "Don watch",
   "watch_after_five_ads": "After 5 Ads",
-  "watch_unlocked": "DON OPEN"
+  "watch_unlocked": "DON OPEN",
+  "shop_inside_house": "Inside House",
+  "shop_vehicle_view": "Motor"
 }
