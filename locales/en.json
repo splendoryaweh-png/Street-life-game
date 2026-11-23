@@ -128,5 +128,17 @@
   "earn_up_to": "Earn up to 5k SC",
   "video_sponsors": "Video Sponsors",
   "daily_free_vault": "Daily Free Vault",
-  "free_nitro_spins": "Free Nitro & Spins"
+  "free_nitro_spins": "Free Nitro & Spins",
+  "studio_preview_mix": "Preview Mix",
+  "studio_post_mix": "Post Mix",
+  "studio_video_freestyle": "VIDEO FREESTYLE",
+  "studio_camera_recording": "Camera records with mixed beat+voice",
+  "studio_enable_camera_video": "Enable camera for video",
+  "studio_close_camera": "Close Camera",
+  "studio_enable_camera": "Enable Camera",
+  "studio_live_camera": "LIVE CAMERA",
+  "studio_flip": "Flip",
+  "free": "FREE",
+  "studio_record_mix": "Record Mix",
+  "studio_daily_limit": "Daily Limit Reached"
 }
