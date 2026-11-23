@@ -1118,8 +1118,8 @@ export function StudioBeats({
 
           <button onClick={()=>handleTogglePlay(currentBeat)} className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-[#FFD700] to-yellow-500 text-black font-black text-sm uppercase flex items-center gap-2">
             {isPlaying
-              ? <><Pause className="w-5 h-5 fill-black"/><span>PAUSE</span></>
-              : <><Play className="w-5 h-5 fill-black"/><span>PLAY BEAT</span></>
+              ? <><Pause className="w-5 h-5 fill-black"/><span>{t('studio_pause', 'PAUSE')}</span></>
+              : <><Play className="w-5 h-5 fill-black"/><span>{t('studio_play_beat', 'PLAY BEAT')}</span></>
             }
           </button>
 
@@ -1135,8 +1135,8 @@ export function StudioBeats({
         {/* INDEPENDENT BEAT AND VOICE VOLUME CONTROLS */}
         <div className="mb-3.5 bg-black/60 p-4 rounded-2xl border border-[#FFD700]/30">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-black uppercase text-white">MIXER CONTROLS</span>
-            <span className="text-[10px] text-emerald-400 font-bold">BEAT + VOICE</span>
+            <span className="text-xs font-black uppercase text-white">{t('studio_mixer_controls', 'MIXER CONTROLS')}</span>
+            <span className="text-[10px] text-emerald-400 font-bold">{t('studio_beat_voice', 'BEAT + VOICE')}</span>
           </div>
 
           <div className="space-y-4">
@@ -1145,7 +1145,7 @@ export function StudioBeats({
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
                   <Music2 className="w-4 h-4 text-[#FFD700]"/>
-                  <span className="text-xs font-bold text-white">BEAT VOLUME</span>
+                  <span className="text-xs font-bold text-white">{t('studio_beat_volume', 'BEAT VOLUME')}</span>
                 </div>
                 <span className="text-xs font-black text-[#FFD700]">{beatVolume}%</span>
               </div>
@@ -1173,7 +1173,7 @@ export function StudioBeats({
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
                   <Mic className="w-4 h-4 text-cyan-400"/>
-                  <span className="text-xs font-bold text-white">VOICE VOLUME</span>
+                  <span className="text-xs font-bold text-white">{t('studio_voice_volume', 'VOICE VOLUME')}</span>
                 </div>
                 <span className="text-xs font-black text-cyan-400">{voiceVolume}%</span>
               </div>
@@ -1395,7 +1395,7 @@ export function StudioBeats({
                   aria-label={isUnlocked ? `Preview ${beat.name}` : `Unlock ${beat.name} at Studio Level ${beat.requiredStudioLevel}`}
                   className={`py-2 px-1 rounded-xl text-xs font-black uppercase border ${isUnlocked ? 'bg-black/60 text-[#FFD700] border-[#FFD700]/40' : 'bg-neutral-800 text-neutral-400 border-white/10'}`}
                 >
-                  {isUnlocked ? 'Preview' : <><Lock className="inline w-3 h-3 mr-1"/>Locked</>}
+                  {isUnlocked ? t('studio_preview', 'Preview') : <><Lock className="inline w-3 h-3 mr-1"/>{t('studio_locked', 'Locked')}</>}
                 </button>
 
                 <button
@@ -1403,7 +1403,7 @@ export function StudioBeats({
                   aria-label={isUnlocked ? `Record ${beat.name}` : `Unlock ${beat.name} at Studio Level ${beat.requiredStudioLevel}`}
                   className={`py-2 px-1 rounded-xl text-xs font-black uppercase ${isBeatRecordingActive?'bg-red-600 text-white animate-pulse':isUnlocked?'bg-red-500/20 text-red-300':'bg-neutral-800 text-neutral-500'}`}
                 >
-                  {isBeatRecordingActive?`Stop (${formatRecordingTimer(recordingSeconds)})`:isUnlocked?t('studio_record_mix', 'Record Mix'):<><Lock className="inline w-3 h-3 mr-1"/>Locked</>}
+                  {isBeatRecordingActive?`Stop (${formatRecordingTimer(recordingSeconds)})`:isUnlocked?t('studio_record_mix', 'Record Mix'):<><Lock className="inline w-3 h-3 mr-1"/>{t('studio_locked', 'Locked')}</>}
                 </button>
 
                 <button
