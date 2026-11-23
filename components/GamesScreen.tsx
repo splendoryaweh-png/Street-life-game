@@ -35,11 +35,12 @@ interface GamesScreenProps {
   gameState: UserGameState;
   onToast: (msg: string) => void;
   onGameActiveChange?: (isActive: boolean) => void;
+  onBackHome?: () => void;
 }
 
 type ActiveGameType = 'race' | 'rider' | 'turf' | 'crush' | 'dice' | 'slot' | 'flip' | 'gangstar' | null;
 
-export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScreenProps) {
+export function GamesScreen({ gameState, onToast, onGameActiveChange, onBackHome }: GamesScreenProps) {
   const { t } = useLanguage();
   const [activeGame, setActiveGame] = useState<ActiveGameType>(null);
   const [activeTab, setActiveTab] = useState<'action' | 'minigames'>('action');
@@ -71,7 +72,7 @@ export function GamesScreen({ gameState, onToast, onGameActiveChange }: GamesScr
   }
 
   if (activeGame === 'turf') {
-    return <TurfWar2D onBack={handleExitGame} onToast={onToast} currentCoins={gameState.streetCoin} />;
+    return <TurfWar2D onBack={handleExitGame} onBackHome={onBackHome} onToast={onToast} currentCoins={gameState.streetCoin} />;
   }
 
   if (activeGame === 'crush') {
