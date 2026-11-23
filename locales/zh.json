@@ -463,5 +463,6 @@
   "studio_minimum": "最短",
   "studio_maximum": "最长",
   "studio_stop_recording_aria": "停止录音",
-  "studio_start_recording_aria": "开始录音"
+  "studio_start_recording_aria": "开始录音",
+  "shop_item_walking_name": "步行"
 }
