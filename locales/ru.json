@@ -422,5 +422,10 @@
   "shop_item_luxury_gold_phone_name": "Роскошный золотой телефон",
   "shop_item_bedroom_studio_name": "Домашняя студия (Стартовая)",
   "shop_item_street_studio_name": "Уличная студия",
-  "shop_item_pro_studio_name": "Профессиональная студия"
+  "shop_item_pro_studio_name": "Профессиональная студия",
+  "watch_coins_per_ad": "+10 монет за рекламу",
+  "watch_coins_label": "10 МОНЕТ",
+  "watch_watched_suffix": "Просмотрено",
+  "watch_after_five_ads": "После 5 реклам",
+  "watch_unlocked": "ОТКРЫТО"
 }
