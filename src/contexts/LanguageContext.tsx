@@ -9,8 +9,11 @@ import ru from '../../locales/ru.json';
 import pt from '../../locales/pt.json';
 import id from '../../locales/id.json';
 import ar from '../../locales/ar.json';
+import zh from '../../locales/zh.json';
+import ko from '../../locales/ko.json';
+import he from '../../locales/he.json';
 
-export type LanguageCode = 'en' | 'pcm' | 'fr' | 'es' | 'ru' | 'pt' | 'id' | 'ar';
+export type LanguageCode = 'en' | 'pcm' | 'fr' | 'es' | 'ru' | 'pt' | 'id' | 'ar' | 'zh' | 'ko' | 'he';
 
 export interface LanguageOption {
   code: LanguageCode;
@@ -29,6 +32,9 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'pt', label: 'Português', flag: '🇵🇹', sublabel: 'Portuguese' },
   { code: 'id', label: 'Bahasa Indonesia', flag: '🇮🇩', sublabel: 'Indonesian' },
   { code: 'ar', label: 'العربية', flag: '🇸🇦', sublabel: 'Arabic (right-to-left)' },
+  { code: 'zh', label: '中文', flag: '🇨🇳', sublabel: 'Chinese' },
+  { code: 'ko', label: '한국어', flag: '🇰🇷', sublabel: 'Korean' },
+  { code: 'he', label: 'עברית', flag: '🇮🇱', sublabel: 'Hebrew (right-to-left)' },
 ];
 
 const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
@@ -40,6 +46,9 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   pt,
   id,
   ar,
+  zh,
+  ko,
+  he,
 };
 
 /**
@@ -169,7 +178,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof document === 'undefined') return;
     document.documentElement.lang = language;
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dir = language === 'ar' || language === 'he' ? 'rtl' : 'ltr';
     document.documentElement.dataset.language = language;
   }, [language]);
 
