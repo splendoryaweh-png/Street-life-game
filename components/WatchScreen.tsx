@@ -330,7 +330,7 @@ export function WatchScreen({
         <div className="grid grid-cols-2 gap-2.5">
           {([5, 10] as const).map((milestone) => {
             const unlocked = adsWatchedToday >= milestone;
-            const claimed = (gameState.watchMilestonesClaimedToday || []).includes(milestone);
+            const claimed = claimedMilestonesToday.includes(milestone);
             const isFirst = milestone === 5;
             return (
               <button key={milestone} type="button" onClick={() => { playClickSound(); setSelectedMilestone(milestone); }}
