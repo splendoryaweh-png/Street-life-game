@@ -233,5 +233,6 @@
   "turf_toast_valid_room": "Введите действительный код комнаты!",
   "turf_toast_room_created": "Комната отряда создана: {code}",
   "turf_toast_joined_room": "Вы вошли в комнату {code}! Подключение...",
-  "turf_toast_copied_code": "Код комнаты скопирован: {code}"
+  "turf_toast_copied_code": "Код комнаты скопирован: {code}",
+  "turf_toast_player_joined": "{name} присоединился к отряду!"
 }
