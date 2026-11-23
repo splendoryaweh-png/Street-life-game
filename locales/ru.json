@@ -398,5 +398,8 @@
   "shop_duration": "Длительность",
   "shop_locked_studio_beat": "ЗАБЛОКИРОВАННЫЙ БИТ СТУДИИ",
   "shop_level": "Уровень",
-  "watch_ad_get_10_sc": "СМОТРЕТЬ РЕКЛАМУ И ПОЛУЧИТЬ 10 SC"
+  "watch_ad_get_10_sc": "СМОТРЕТЬ РЕКЛАМУ И ПОЛУЧИТЬ 10 SC",
+  "home_total_net_worth": "Общий капитал",
+  "home_coin_transactions_last_10": "Последние 10 операций с монетами",
+  "home_street_novel": "📖 Уличный роман"
 }
