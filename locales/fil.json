@@ -263,5 +263,16 @@
   "watch_after_five_ads": "Pagkatapos ng 5 Ads",
   "watch_unlocked": "NA-UNLOCK",
   "shop_inside_house": "Loob ng Bahay",
-  "shop_vehicle_view": "Sasakyan"
+  "shop_vehicle_view": "Sasakyan",
+  "studio_live_stereo_mixed": "LIVE STEREO • MIXED",
+  "studio_ready_beat_voice_mix": "READY • BEAT+VOICE MIX",
+  "studio_mixer_help": "Isa-isang ayusin ang bawat slider. Ilalapat ang pagbabago sa recording mix.",
+  "studio_recording_mixed_track": "NAGRE-RECORD NG PINAGSAMANG TRACK",
+  "studio_vocal_booth_beat_voice": "VOCAL BOOTH - BEAT + VOICE",
+  "studio_daily_label": "Araw-araw",
+  "studio_recording_label": "Recording",
+  "studio_minimum": "Min",
+  "studio_maximum": "Max",
+  "studio_stop_recording_aria": "Ihinto ang recording",
+  "studio_start_recording_aria": "Simulan ang recording"
 }
