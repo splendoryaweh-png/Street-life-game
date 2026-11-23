@@ -172,5 +172,18 @@
   "profile_edition": "Street Life v2.5 에디션",
   "profile_local_storage": "로컬 데이터 저장",
   "profile_telegram_auth": "Telegram 인증",
-  "profile_no_data_selling": "데이터 판매 안 함"
+  "profile_no_data_selling": "데이터 판매 안 함",
+  "studio_heading": "프리스타일 스튜디오",
+  "studio_level_desc": "스튜디오 레벨 {level}",
+  "studio_rent_status_expired": "스튜디오 임대 만료",
+  "studio_rent_status_active": "השכירות לאולפן פעילה",
+  "studio_ad_count": "광고 {count}/33 - 코인 10개",
+  "profile_secret_admin_explain": "길게 누르기가 감지되었습니다. 시스템 제어를 잠금 해제하려면 관리자 이메일을 입력하세요:",
+  "profile_privacy_intro": "개인정보와 데이터 보안은 시스템 설계의 핵심입니다:",
+  "profile_local_data_desc": "게임 저장 데이터, 사운드 설정, 인벤토리 및 언어 선택은 로컬 브라우저에 안전하게 저장됩니다.",
+  "profile_telegram_auth_desc": "Telegram 사용자 식별자는 순위표 표시와 게임 업적 확인에만 사용됩니다.",
+  "profile_no_data_desc": "개인정보를 제3자에게 판매, 대여 또는 배포하지 않습니다.",
+  "profile_version": "버전",
+  "profile_platform": "플랫폼",
+  "profile_support": "지원"
 }
