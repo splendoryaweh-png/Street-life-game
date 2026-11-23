@@ -445,5 +445,10 @@
   "shop_item_luxury_gold_phone_name": "럭셔리 골드폰",
   "shop_item_bedroom_studio_name": "침실 스튜디오 (스타터)",
   "shop_item_street_studio_name": "스트리트 스튜디오",
-  "shop_item_pro_studio_name": "프로 스튜디오"
+  "shop_item_pro_studio_name": "프로 스튜디오",
+  "watch_coins_per_ad": "+10 코인 / 광고",
+  "watch_coins_label": "10 코인",
+  "watch_watched_suffix": "시청 완료",
+  "watch_after_five_ads": "광고 5개 후",
+  "watch_unlocked": "잠금 해제"
 }
