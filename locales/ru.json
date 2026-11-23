@@ -429,5 +429,16 @@
   "watch_after_five_ads": "После 5 реклам",
   "watch_unlocked": "ОТКРЫТО",
   "shop_inside_house": "Внутри дома",
-  "shop_vehicle_view": "Транспорт"
+  "shop_vehicle_view": "Транспорт",
+  "studio_live_stereo_mixed": "ЖИВОЕ СТЕРЕО • МИКС",
+  "studio_ready_beat_voice_mix": "ГОТОВО • МИКС БИТА И ГОЛОСА",
+  "studio_mixer_help": "Настраивайте каждый ползунок отдельно. Изменения применяются к записи.",
+  "studio_recording_mixed_track": "ЗАПИСЬ СВЕДЁННОГО ТРЕКА",
+  "studio_vocal_booth_beat_voice": "ВОКАЛЬНАЯ КАБИНА — БИТ + ГОЛОС",
+  "studio_daily_label": "Ежедневно",
+  "studio_recording_label": "Запись",
+  "studio_minimum": "Мин.",
+  "studio_maximum": "Макс.",
+  "studio_stop_recording_aria": "Остановить запись",
+  "studio_start_recording_aria": "Начать запись"
 }
