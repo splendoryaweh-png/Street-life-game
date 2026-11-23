@@ -185,5 +185,12 @@
   "profile_no_data_desc": "We no dey sell, rent or share your personal information give another people.",
   "profile_version": "Version",
   "profile_platform": "Platform",
-  "profile_support": "Support"
+  "profile_support": "Support",
+  "studio_pause": "PAUSE",
+  "studio_play_beat": "PLAY BEAT",
+  "studio_mixer_controls": "MIXER CONTROL",
+  "studio_beat_voice": "BEAT + VOICE",
+  "studio_beat_volume": "Beat Volume",
+  "studio_voice_volume": "Voice Volume",
+  "studio_locked": "Lock am"
 }
