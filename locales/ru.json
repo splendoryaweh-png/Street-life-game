@@ -171,5 +171,12 @@
   "profile_edition": "Издание Street Life v2.5",
   "profile_local_storage": "Локальное хранение данных",
   "profile_telegram_auth": "Аутентификация Telegram",
-  "profile_no_data_selling": "Мы не продаём данные"
+  "profile_no_data_selling": "Мы не продаём данные",
+  "studio_pause": "ПАУЗА",
+  "studio_play_beat": "ИГРАТЬ БИТ",
+  "studio_mixer_controls": "НАСТРОЙКИ МИКШЕРА",
+  "studio_beat_voice": "БИТ + ВОКАЛ",
+  "studio_beat_volume": "ГРОМКОСТЬ БИТА",
+  "studio_voice_volume": "ГРОМКОСТЬ ВОКАЛА",
+  "studio_locked": "Заблокировано"
 }
