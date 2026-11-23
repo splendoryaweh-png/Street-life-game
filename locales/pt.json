@@ -233,5 +233,6 @@
   "turf_toast_valid_room": "Digite um código de sala válido!",
   "turf_toast_room_created": "Sala de equipe criada: {code}",
   "turf_toast_joined_room": "Entrou na sala {code}! Conectando...",
-  "turf_toast_copied_code": "Código da sala copiado: {code}"
+  "turf_toast_copied_code": "Código da sala copiado: {code}",
+  "turf_toast_player_joined": "{name} entrou na equipe!"
 }
