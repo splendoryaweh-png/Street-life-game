@@ -233,5 +233,6 @@
   "turf_toast_valid_room": "¡Introduce un código de sala válido!",
   "turf_toast_room_created": "Sala de escuadrón creada: {code}",
   "turf_toast_joined_room": "Te uniste a la sala {code}. Conectando...",
-  "turf_toast_copied_code": "Código de sala copiado: {code}"
+  "turf_toast_copied_code": "Código de sala copiado: {code}",
+  "turf_toast_player_joined": "¡{name} se unió al escuadrón!"
 }
