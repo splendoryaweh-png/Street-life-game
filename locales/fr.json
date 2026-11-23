@@ -454,5 +454,6 @@
   "profile_no_data_desc": "Nous ne vendons, ne louons et ne partageons jamais vos données personnelles avec des tiers.",
   "profile_version": "Version",
   "profile_platform": "Plateforme",
-  "profile_support": "Assistance"
+  "profile_support": "Assistance",
+  "shop_item_walking_name": "À pied"
 }
