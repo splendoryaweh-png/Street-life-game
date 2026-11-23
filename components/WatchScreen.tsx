@@ -256,7 +256,7 @@ export function WatchScreen({
           <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#FFD700]/10 blur-2xl" />
           <div className="relative z-10 flex w-full flex-col items-center">
             <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl border-2 border-[#FFD700]/70 bg-black/35 shadow-[0_0_25px_rgba(255,215,0,0.22)] sm:h-24 sm:w-24">
-              <Tv className="h-11 w-11 text-[#FFD700] sm:h-14 sm:w-14" />
+              <Play className="h-12 w-12 translate-x-0.5 text-[#FFD700] fill-[#FFD700]/20 sm:h-16 sm:w-16" strokeWidth={2.8} />
             </div>
             <span className="text-xs font-black uppercase tracking-[0.28em] text-[#FFE58A] sm:text-sm">
               {t('watch_screen_title', 'WATCH & EARN')}
