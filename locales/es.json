@@ -454,5 +454,6 @@
   "profile_no_data_desc": "Nunca vendemos, alquilamos ni distribuimos información personal a terceros.",
   "profile_version": "Versión",
   "profile_platform": "Plataforma",
-  "profile_support": "Soporte"
+  "profile_support": "Soporte",
+  "shop_item_walking_name": "Caminando"
 }
