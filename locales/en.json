@@ -247,5 +247,6 @@
   "turf_toast_valid_room": "Enter a valid room code!",
   "turf_toast_room_created": "Squad Room Created: {code}",
   "turf_toast_joined_room": "Joined room {code}! Connecting...",
-  "turf_toast_copied_code": "Copied room code: {code}"
+  "turf_toast_copied_code": "Copied room code: {code}",
+  "turf_toast_player_joined": "{name} joined the squad!"
 }
