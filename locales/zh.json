@@ -247,5 +247,6 @@
   "turf_toast_valid_room": "请输入有效的房间代码！",
   "turf_toast_room_created": "小队房间已创建：{code}",
   "turf_toast_joined_room": "已加入房间 {code}！正在连接...",
-  "turf_toast_copied_code": "已复制房间代码：{code}"
+  "turf_toast_copied_code": "已复制房间代码：{code}",
+  "turf_toast_player_joined": "{name} 已加入小队！"
 }
