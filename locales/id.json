@@ -464,8 +464,8 @@
   "watch_milestone_bonus_label": "Hadiah bonus pencapaian",
   "watch_milestone_claimed_short": "DIKLAIM",
   "watch_milestone_ready": "SIAP DIKLAIM",
-  "watch_tap_for_details": "LIHAT DETAIL",
-  "watch_milestone_details": "Tonton jumlah iklan biasa yang diperlukan untuk membuka pencapaian ini. Lalu tonton satu iklan berhadiah lagi untuk mengklaim bonus.",
+  "watch_tap_for_details": "KETUK UNTUK DETAIL",
+  "watch_milestone_details": "Tonton jumlah iklan biasa yang diperlukan untuk membuka pencapaian ini. Lalu tonton satu video berhadiah lagi untuk mengklaim bonus.",
   "watch_milestone_progress": "Progres",
   "watch_milestone_bonus": "Bonus pencapaian: +10 SC",
   "watch_milestone_ad_note": "Video klaim juga memberi hadiah iklan normal +10 SC dan dihitung dalam batas iklan harian.",
@@ -474,5 +474,6 @@
   "watch_milestone_need_ads": "Tonton lebih banyak iklan biasa untuk membuka hadiah ini.",
   "watch_milestone_already_claimed": "Kamu sudah mengklaim pencapaian ini hari ini.",
   "watch_milestone_locked": "Tonton iklan yang diperlukan untuk membuka pencapaian ini.",
-  "watch_ad_incomplete": "Iklan tidak selesai. Tidak ada hadiah yang diberikan."
+  "watch_ad_incomplete": "Iklan tidak selesai. Tidak ada hadiah yang diberikan.",
+  "watch_ad_number": "Iklan"
 }
