@@ -17,7 +17,7 @@ export const WEAPONS: Record<WeaponType, WeaponDef> = {
   sniper_laser: { id: 'sniper_laser', nameKey: 'weapon_sniper', damage: 65, maxAmmo: 5, fireRateMs: 900, laserColor: '#22C55E', price: 200, bulletSpeed: 58, spread: 5 },
 };
 export interface LaserBeam { id: string; x1: number; y1: number; x2: number; y2: number; color: string; life: number; maxLife: number; isPlayer: boolean; damage: number; }
-export interface CityCar { id: string; x: number; y: number; vx: number; vy: number; speed: number; direction: 'horizontal' | 'vertical'; width: number; height: number; color: string; isOccupied: boolean; hasDriver: boolean; driverType: 'civilian' | 'player' | 'gangster' | null; health: number; maxHealth: number; lastTurnAt?: number; }
+export interface CityCar { id: string; x: number; y: number; vx: number; vy: number; speed: number; direction: 'horizontal' | 'vertical'; width: number; height: number; angle?: number; targetAngle?: number; color: string; isOccupied: boolean; hasDriver: boolean; driverType: 'civilian' | 'player' | 'gangster' | null; health: number; maxHealth: number; lastTurnAt?: number; }
 export interface Civilian { id: string; x: number; y: number; vx: number; vy: number; speed: number; facingAngle: number; state: 'walking' | 'scared' | 'saved'; color: string; hitCount?: number; }
 export interface Gangster { id: string; type: 'fighter_motor' | 'fighter_bus'; x: number; y: number; vx: number; vy: number; health: number; maxHealth: number; speed: number; facingAngle: number; gun: WeaponType; lastShootTime: number; vehicleType: 'motorcycle' | 'bus' | 'tank'; }
 export interface SparkParticle { x: number; y: number; vx: number; vy: number; color: string; life: number; }
