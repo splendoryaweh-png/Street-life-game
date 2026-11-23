@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { playCoinSound, playClickSound, playSuccessSound } from '@/lib/sound';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '@/src/contexts/LanguageContext';
 import { showAdsgramRewardedAd } from '@/lib/adsgram';
 
 interface DailyRewardStripProps {
@@ -48,6 +49,7 @@ export function DailyRewardStrip({
   onSimulatePlayGame,
   onResetTestLock,
 }: DailyRewardStripProps) {
+  const { t } = useLanguage();
   const [claimCelebration, setClaimCelebration] = useState<{ coins: number; perk: string } | null>(null);
   const [isClaiming, setIsClaiming] = useState(false);
 
@@ -226,7 +228,7 @@ export function DailyRewardStrip({
             className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-white/5 text-[#9CA3AF] border border-white/5 cursor-not-allowed flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            Claimed Today ✓ (Come Back Tomorrow)
+            {t('daily_free_claimed_today', 'Claimed Today ✓ (Come Back Tomorrow)')}
           </button>
         ) : !hasPlayedToday ? (
           <button
@@ -234,7 +236,7 @@ export function DailyRewardStrip({
             className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-[#222228] text-[#9CA3AF] border border-white/5 cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
           >
             <Lock className="w-4 h-4 text-[#9CA3AF]" />
-            Play 1 Game to Unlock 🔒
+            {t('daily_free_play_to_unlock', 'Play 1 Game to Unlock 🔒')}
           </button>
         ) : (
           <button
