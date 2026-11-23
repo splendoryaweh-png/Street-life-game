@@ -349,5 +349,8 @@
   "shop_duration": "Duration",
   "shop_locked_studio_beat": "LOCKED STUDIO BEAT",
   "shop_level": "Level",
-  "watch_ad_get_10_sc": "WATCH AD TO GET 10 SC"
+  "watch_ad_get_10_sc": "WATCH AD TO GET 10 SC",
+  "home_total_net_worth": "Total Net Worth",
+  "home_coin_transactions_last_10": "Coin Transactions (Last 10)",
+  "home_street_novel": "📖 Street Novel"
 }
