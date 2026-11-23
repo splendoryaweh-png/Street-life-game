@@ -237,10 +237,10 @@ export function WatchScreen({
       <div className="rounded-2xl bg-gradient-to-br from-[#16161C] to-[#0D0D10] border border-[#FFD700]/30 p-4 shadow-lg">
         <div className="flex items-center justify-between text-xs mb-2">
           <div className="flex items-center gap-2">
-            <Tv className="w-4 h-4 text-[#FFD700]" />
+            <Play className="w-4 h-4 text-[#FFD700]" />
 
             <span className="font-extrabold text-white text-sm">
-              Ad {Math.min(33, adsWatchedToday + 1)}/33 ({adsWatchedToday}/{maxDailyAds} Watched)
+              {t('watch_ad_number', 'Ad')} {Math.min(33, adsWatchedToday + 1)}/33 ({adsWatchedToday}/{maxDailyAds} {t('watch_watched_suffix', 'Watched')})
             </span>
           </div>
 
@@ -410,7 +410,7 @@ export function WatchScreen({
                   </span>
                 ) : (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-400">
-                    After 5 Ads
+                    {t('watch_after_five_ads', 'After 5 Ads')}
                   </span>
                 )}
               </div>
@@ -424,7 +424,7 @@ export function WatchScreen({
           <div className="text-right">
             <span className="text-xs font-mono font-bold text-amber-400">
               {adsWatchedToday >= 5
-                ? 'UNLOCKED'
+                ? t('watch_unlocked', 'UNLOCKED')
                 : `${adsWatchedToday}/5`}
             </span>
           </div>
@@ -434,7 +434,7 @@ export function WatchScreen({
       {selectedMilestone !== null && (() => {
         const milestone = selectedMilestone;
         const unlocked = adsWatchedToday >= milestone;
-        const claimed = (gameState.watchMilestonesClaimedToday || []).includes(milestone);
+        const claimed = claimedMilestonesToday.includes(milestone);
         return (
           <div className="fixed inset-0 z-[260] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
             <div className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-[#1C1C24] to-[#0E0E12] border border-[#FFD700]/60 p-6 text-center shadow-[0_0_35px_rgba(255,215,0,0.2)]">
