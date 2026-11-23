@@ -172,5 +172,18 @@
   "profile_edition": "Street Life v2.5 Edition",
   "profile_local_storage": "Local Data Storage",
   "profile_telegram_auth": "Telegram Authentication",
-  "profile_no_data_selling": "No Data Selling"
+  "profile_no_data_selling": "No Data Selling",
+  "studio_heading": "FREESTYLE STUDIO",
+  "studio_level_desc": "Level {level} Studio",
+  "studio_rent_status_expired": "STUDIO RENT EXPIRED",
+  "studio_rent_status_active": "STUDIO RENT ACTIVE",
+  "studio_ad_count": "Ad {count}/33 - 10 coins",
+  "profile_secret_admin_explain": "Long-press triggered. Enter the administrator email to unlock system controls:",
+  "profile_privacy_intro": "Your privacy and data safety are fundamental to our architecture:",
+  "profile_local_data_desc": "Game save data, sound settings, inventory, and language selections are safely stored in your local browser sandbox.",
+  "profile_telegram_auth_desc": "Telegram user identifiers are used solely for leaderboard display and verification of game achievements.",
+  "profile_no_data_desc": "We never sell, rent, or distribute personal information to third parties.",
+  "profile_version": "Version",
+  "profile_platform": "Platform",
+  "profile_support": "Support"
 }
