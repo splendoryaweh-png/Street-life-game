@@ -275,5 +275,10 @@
   "studio_maximum": "Max",
   "studio_stop_recording_aria": "Ihinto ang recording",
   "studio_start_recording_aria": "Simulan ang recording",
-  "shop_item_walking_name": "Paglalakad"
+  "shop_item_walking_name": "Paglalakad",
+  "studio_filter_normal": "Normal",
+  "studio_filter_warm": "Warm",
+  "studio_filter_bw": "Black and White",
+  "studio_filter_cool": "Cool",
+  "studio_filter_vintage": "Vintage"
 }
