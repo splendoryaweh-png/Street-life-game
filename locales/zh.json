@@ -200,5 +200,10 @@
   "turf_watch_continue": "观看广告继续",
   "turf_back_home": "返回主页",
   "turf_ad_success_note": "只有完整观看奖励广告后，比赛才会恢复。",
-  "turf_hour_victory": "胜利！一小时！"
+  "turf_hour_victory": "胜利！一小时！",
+  "studio_off": "关闭",
+  "studio_balanced": "均衡",
+  "studio_max": "最大",
+  "studio_beat_volume_aria": "节拍音量",
+  "studio_voice_volume_aria": "人声音量"
 }
