@@ -145,5 +145,15 @@
   "studio_flip": "تبديل",
   "studio_daily_limit": "تم بلوغ الحد اليومي",
   "free": "مجاني",
-  "tasks_count_label": "١٠ مهام"
+  "tasks_count_label": "١٠ مهام",
+  "hub_tasks": "المهام",
+  "hub_bank": "البنك",
+  "hub_daily_free": "هدية يومية",
+  "studio_tier": "مستوى الاستوديو",
+  "studio_long_beats": "١٤ إيقاعًا طويلًا",
+  "studio_vocal_booth": "كابينة الصوت والإيجار",
+  "studio_level_0": "المستوى ٠ • مجاني",
+  "studio_level_1": "المستوى ١ • احترافي",
+  "profile_save": "حفظ",
+  "profile_beats": "إيقاعات"
 }
