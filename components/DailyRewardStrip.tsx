@@ -137,7 +137,7 @@ export function DailyRewardStrip({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-[#FFD700]" />
-          <h2 className="text-sm font-bold text-white tracking-wide">Daily Free System</h2>
+          <h2 className="text-sm font-bold text-white tracking-wide">{t('daily_free_title', 'Daily Free System')}</h2>
           <span className="text-[11px] font-mono text-[#9CA3AF]">Day {((dailyStreak - 1) % 7) + 1}/7</span>
         </div>
 
@@ -149,10 +149,10 @@ export function DailyRewardStrip({
             className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg bg-[#FFD700]/15 hover:bg-[#FFD700]/25 border border-[#FFD700]/40 text-[#FFD700] flex items-center gap-1 active:scale-95 transition-all"
           >
             <Gift className="w-3 h-3" />
-            <span>All Daily Free</span>
+            <span>{t('daily_free_all', 'All Daily Free')}</span>
           </Link>
           <div className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[#9CA3AF]">
-            {isAlreadyClaimedToday ? 'Completed' : hasPlayedToday ? 'Unlocked' : 'Locked'}
+            {isAlreadyClaimedToday ? t('daily_free_completed', 'Completed') : hasPlayedToday ? t('daily_free_unlocked', 'Unlocked') : t('daily_free_locked', 'Locked')}
           </div>
         </div>
       </div>
@@ -228,7 +228,7 @@ export function DailyRewardStrip({
             className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-white/5 text-[#9CA3AF] border border-white/5 cursor-not-allowed flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            {t('daily_free_claimed_today', 'Claimed Today ✓ (Come Back Tomorrow)')}
+            {t('daily_free_claimed_today', '{t('daily_free_claimed_today', 'Claimed Today ✓ (Come Back Tomorrow)')}')}
           </button>
         ) : !hasPlayedToday ? (
           <button
@@ -236,7 +236,7 @@ export function DailyRewardStrip({
             className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-[#222228] text-[#9CA3AF] border border-white/5 cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
           >
             <Lock className="w-4 h-4 text-[#9CA3AF]" />
-            {t('daily_free_play_to_unlock', 'Play 1 Game to Unlock 🔒')}
+            {t('daily_free_play_to_unlock', '{t('daily_free_play_to_unlock', 'Play 1 Game to Unlock 🔒')}')}
           </button>
         ) : (
           <button
@@ -244,7 +244,7 @@ export function DailyRewardStrip({
             className="w-full py-3.5 px-4 rounded-xl font-black text-xs uppercase tracking-wider bg-gradient-to-r from-[#FFD700] via-[#FFC300] to-[#FFD700] text-black shadow-lg shadow-[#FFD700]/30 hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <Gift className="w-4 h-4 text-black" />
-            {isClaiming ? 'Verifying Reward...' : `Claim Day ${currentRewardItem.day}: ${currentRewardItem.coins} SC ${currentRewardItem.perk}`}
+            {isClaiming ? t('daily_free_verifying', 'Verifying Reward...') : `${t('daily_free_claim_day', 'Claim Day')} ${currentRewardItem.day}: ${currentRewardItem.coins} SC ${currentRewardItem.perk}`}
           </button>
         )}
       </div>
@@ -256,10 +256,10 @@ export function DailyRewardStrip({
           <div>
             <div className="flex items-center gap-1.5 font-bold text-cyan-400">
               <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>Free Nitro Daily</span>
+              <span>{t('daily_free_nitro', 'Free Nitro Daily')}</span>
             </div>
             <p className="text-[10px] text-gray-400 mt-0.5">
-              {freeNitroRemaining} free daily charges left
+              {freeNitroRemaining} {t('daily_free_charges_left', 'free daily charges left')}
             </p>
           </div>
 
@@ -281,13 +281,13 @@ export function DailyRewardStrip({
           <div>
             <div className="flex items-center gap-1.5 font-bold text-[#FFD700]">
               <Coins className="w-3.5 h-3.5 fill-current" />
-              <span>Racing Coins 2X</span>
+              <span>{t('daily_free_racing_coins', 'Racing Coins 2X')}</span>
             </div>
-            <p className="text-[10px] text-gray-400 mt-0.5">First 5 road coins daily give 2x reward!</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{t('daily_free_racing_desc', 'First 5 road coins daily give 2x reward!')}</p>
           </div>
 
           <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
-            <span className="text-[9px] text-emerald-400 font-bold">ACTIVE TODAY</span>
+            <span className="text-[9px] text-emerald-400 font-bold">{t('daily_free_active_today', 'ACTIVE TODAY')}</span>
             <span className="text-[9px] font-mono text-gray-400">5/5 Left</span>
           </div>
         </div>
@@ -314,7 +314,7 @@ export function DailyRewardStrip({
               className="px-2.5 py-1 rounded-md bg-[#FFD700]/15 hover:bg-[#FFD700]/25 text-[#FFD700] font-bold text-[10px] tracking-wide border border-[#FFD700]/30 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
             >
               <Play className="w-2.5 h-2.5 fill-current" />
-              Simulate Play
+              {t('daily_free_simulate', 'Simulate Play')}
             </button>
           ) : (
             <button
@@ -325,7 +325,7 @@ export function DailyRewardStrip({
               type="button"
               className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-[#9CA3AF] text-[10px] border border-white/10 transition-colors cursor-pointer"
             >
-              Re-Lock Test
+              {t('daily_free_relock', 'Re-Lock Test')}
             </button>
           )}
         </div>
