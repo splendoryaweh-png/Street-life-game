@@ -444,5 +444,16 @@
   "watch_after_five_ads": "بعد 5 إعلانات",
   "watch_unlocked": "مفتوح",
   "shop_inside_house": "داخل المنزل",
-  "shop_vehicle_view": "المركبة"
+  "shop_vehicle_view": "المركبة",
+  "studio_live_stereo_mixed": "ستيريو مباشر • مدمج",
+  "studio_ready_beat_voice_mix": "جاهز • مزيج الإيقاع والصوت",
+  "studio_mixer_help": "اضبط كل شريط بشكل مستقل. تُطبّق التغييرات على المزيج المسجّل.",
+  "studio_recording_mixed_track": "تسجيل المسار المدمج",
+  "studio_vocal_booth_beat_voice": "كابينة الصوت - الإيقاع + الصوت",
+  "studio_daily_label": "يوميًا",
+  "studio_recording_label": "التسجيل",
+  "studio_minimum": "الحد الأدنى",
+  "studio_maximum": "الحد الأقصى",
+  "studio_stop_recording_aria": "إيقاف التسجيل",
+  "studio_start_recording_aria": "بدء التسجيل"
 }
