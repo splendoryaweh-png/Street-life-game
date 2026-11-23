@@ -322,5 +322,19 @@
   "daily_free_racing_desc": "每天前 5 枚道路金币可获得双倍奖励！",
   "daily_free_active_today": "今日已激活",
   "daily_free_simulate": "模拟游戏",
-  "daily_free_relock": "重新锁定测试"
+  "daily_free_relock": "重新锁定测试",
+  "shop_cat_clothes": "服装",
+  "shop_cat_houses": "房屋",
+  "shop_cat_vehicles": "车辆",
+  "shop_cat_phones": "手机",
+  "shop_cat_design": "设计",
+  "shop_cat_studio": "录音室",
+  "shop_cat_filters": "滤镜",
+  "shop_cat_food": "食物",
+  "shop_freestyle_booth": "Freestyle 录音室（15 个节拍）",
+  "shop_beats_unlocked": "已解锁节拍 • 录制和试听",
+  "shop_enter_booth": "进入录音室",
+  "shop_equipped": "已装备",
+  "shop_wear": "穿戴",
+  "shop_buy_for": "购买"
 }
