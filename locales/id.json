@@ -233,5 +233,6 @@
   "turf_toast_valid_room": "Masukkan kode ruang yang valid!",
   "turf_toast_room_created": "Ruang regu dibuat: {code}",
   "turf_toast_joined_room": "Bergabung ke ruang {code}! Menghubungkan...",
-  "turf_toast_copied_code": "Kode ruang disalin: {code}"
+  "turf_toast_copied_code": "Kode ruang disalin: {code}",
+  "turf_toast_player_joined": "{name} bergabung ke regu!"
 }
