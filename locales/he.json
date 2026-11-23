@@ -200,5 +200,10 @@
   "turf_watch_continue": "צפה בפרסומת כדי להמשיך",
   "turf_back_home": "חזרה לדף הבית",
   "turf_ad_success_note": "המשחק יתחדש רק לאחר השלמת הפרסומת המזכה.",
-  "turf_hour_victory": "ניצחון! שעה אחת!"
+  "turf_hour_victory": "ניצחון! שעה אחת!",
+  "studio_off": "כבוי",
+  "studio_balanced": "מאוזן",
+  "studio_max": "מקסימום",
+  "studio_beat_volume_aria": "עוצמת המקצב",
+  "studio_voice_volume_aria": "עוצמת הקול"
 }
