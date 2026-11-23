@@ -91,5 +91,15 @@
   "syndicate_territories": "ТЕРРИТОРИИ СИНДИКАТА",
   "reward": "Награда",
   "hard": "Сложно",
-  "attack": "АТАКА"
+  "attack": "АТАКА",
+  "hub_tasks": "Задания",
+  "hub_bank": "Банк",
+  "hub_daily_free": "Ежедневный подарок",
+  "studio_tier": "Уровень студии",
+  "studio_long_beats": "14 длинных битов",
+  "studio_vocal_booth": "Вокальная кабина и аренда",
+  "studio_level_0": "УРОВЕНЬ 0 • БЕСПЛАТНО",
+  "studio_level_1": "УРОВЕНЬ 1 • ПРО",
+  "profile_save": "Сохранить",
+  "profile_beats": "Биты"
 }
