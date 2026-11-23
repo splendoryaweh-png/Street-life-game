@@ -214,10 +214,10 @@ export function ProfileScreen({
           </div>
           <div>
             <span className="text-[10px] text-gray-400 block font-bold uppercase tracking-wider">
-              Studio Rent Status
+              {t('profile_studio_rent_status', 'Studio Rent Status')}
             </span>
             <span className="text-sm font-black text-[#FFD700]">
-              {isRentExpired ? 'Rent Expired 🔒' : `Rent expires in ${daysRemaining} days`}
+              {isRentExpired ? '{t('profile_rent_expired', 'Rent Expired 🔒')}' : `Rent expires in ${daysRemaining} days`}
             </span>
           </div>
         </div>
@@ -236,7 +236,7 @@ export function ProfileScreen({
       {/* BALANCE & STATS CARDS */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="p-4 rounded-3xl bg-[#151515] border border-white/10">
-          <span className="text-[10px] text-gray-400 block uppercase font-bold">Street Coins</span>
+          <span className="text-[10px] text-gray-400 block uppercase font-bold">{t('profile_street_coins', 'Street Coins')}</span>
           <span className="text-lg font-black text-[#FFD700] font-mono tabular-nums">
             {gameState.streetCoin.toLocaleString()} SC
           </span>
@@ -461,7 +461,7 @@ export function ProfileScreen({
             </div>
             <div className="text-left">
               <span className="block text-xs font-black text-white">{t('how_to_play')}</span>
-              <span className="text-[10px] text-gray-400 font-mono">Game rules &amp; rewards</span>
+              <span className="text-[10px] text-gray-400 font-mono">{t('profile_game_rules_rewards', 'Game rules & rewards')}</span>
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -482,7 +482,7 @@ export function ProfileScreen({
             </div>
             <div className="text-left">
               <span className="block text-xs font-black text-white">{t('terms')}</span>
-              <span className="text-[10px] text-gray-400 font-mono">Fair play &amp; community</span>
+              <span className="text-[10px] text-gray-400 font-mono">{t('profile_fair_play_community', 'Fair play & community')}</span>
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -503,7 +503,7 @@ export function ProfileScreen({
             </div>
             <div className="text-left">
               <span className="block text-xs font-black text-white">{t('privacy')}</span>
-              <span className="text-[10px] text-gray-400 font-mono">Player data protection</span>
+              <span className="text-[10px] text-gray-400 font-mono">{t('profile_data_protection', 'Player data protection')}</span>
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -524,7 +524,7 @@ export function ProfileScreen({
             </div>
             <div className="text-left">
               <span className="block text-xs font-black text-white">{t('about')}</span>
-              <span className="text-[10px] text-gray-400 font-mono">Street Life v2.5 Edition</span>
+              <span className="text-[10px] text-gray-400 font-mono">{t('profile_edition', 'Street Life v2.5 Edition')}</span>
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -537,7 +537,7 @@ export function ProfileScreen({
           <div className="w-full max-w-sm rounded-3xl bg-[#181818] border-2 border-[#FFD700] p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-2.5 text-[#FFD700]">
               <KeyRound className="w-6 h-6" />
-              <h3 className="text-base font-black uppercase text-white">SECRET ADMIN LOGIN</h3>
+              <h3 className="text-base font-black uppercase text-white">{t('profile_secret_admin_login', 'SECRET ADMIN LOGIN')}</h3>
             </div>
 
             <p className="text-xs text-gray-300 leading-relaxed">
@@ -549,7 +549,7 @@ export function ProfileScreen({
                 type="email"
                 value={adminLoginInput}
                 onChange={(e) => setAdminLoginInput(e.target.value)}
-                placeholder="Enter admin email..."
+                placeholder="{t('profile_admin_email_placeholder', 'Enter admin email...')}"
                 autoFocus
                 className="w-full px-3.5 py-3 rounded-xl bg-black border border-white/20 text-sm text-white focus:outline-none focus:border-[#FFD700]"
               />
@@ -689,7 +689,7 @@ export function ProfileScreen({
               </div>
 
               <div>
-                <h4 className="text-sm font-black text-white">Direct Telegram Support</h4>
+                <h4 className="text-sm font-black text-white">{t('profile_direct_telegram_support', 'Direct Telegram Support')}</h4>
                 <p className="text-[11px] text-gray-300 mt-0.5">
                   Reach our dedicated administrator directly on Telegram.
                 </p>
@@ -763,7 +763,7 @@ export function ProfileScreen({
               <div className="p-3 rounded-2xl bg-black/50 border border-white/10">
                 <h5 className="font-black text-[#FFD700] uppercase text-[11px] mb-1">1. Play Street Games</h5>
                 <p className="text-[11px] text-gray-400">
-                  Compete in 3D Street Racing, Okada Courier delivery, Arcade Galaxy Shooter, Turf War Brawler, and mini-games to win Street Coins.
+                  Compete in 3D Street Racing, Okada Courier delivery, Arcade Galaxy Shooter, Turf War Brawler, and mini-games to win {t('profile_street_coins', 'Street Coins')}.
                 </p>
               </div>
 
@@ -833,7 +833,7 @@ export function ProfileScreen({
               <div className="p-3 rounded-2xl bg-black/50 border border-white/10 space-y-1.5">
                 <h5 className="font-black text-white uppercase text-[10px]">2. In-Game Economy &amp; Coins</h5>
                 <p className="text-gray-400">
-                  Street Coins (SC) are virtual in-game points used for progression, studio upgrades, car garages, and leaderboards. They do not constitute securities.
+                  {t('profile_street_coins', 'Street Coins')} (SC) are virtual in-game points used for progression, studio upgrades, car garages, and leaderboards. They do not constitute securities.
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-black/50 border border-white/10 space-y-1.5">
@@ -880,19 +880,19 @@ export function ProfileScreen({
                 Your privacy and data safety are fundamental to our architecture:
               </p>
               <div className="p-3 rounded-2xl bg-black/50 border border-white/10 space-y-1.5">
-                <h5 className="font-black text-white uppercase text-[10px]">Local Data Storage</h5>
+                <h5 className="font-black text-white uppercase text-[10px]">{t('profile_local_storage', 'Local Data Storage')}</h5>
                 <p className="text-gray-400">
                   Game save data, sound settings, inventory, and language selections are safely stored in your local browser sandbox.
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-black/50 border border-white/10 space-y-1.5">
-                <h5 className="font-black text-white uppercase text-[10px]">Telegram Authentication</h5>
+                <h5 className="font-black text-white uppercase text-[10px]">{t('profile_telegram_auth', 'Telegram Authentication')}</h5>
                 <p className="text-gray-400">
                   Telegram user identifiers are used solely for leaderboard display and verification of game achievements.
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-black/50 border border-white/10 space-y-1.5">
-                <h5 className="font-black text-white uppercase text-[10px]">No Data Selling</h5>
+                <h5 className="font-black text-white uppercase text-[10px]">{t('profile_no_data_selling', 'No Data Selling')}</h5>
                 <p className="text-gray-400">
                   We never sell, rent, or distribute personal information to third parties.
                 </p>
