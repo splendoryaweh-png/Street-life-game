@@ -201,5 +201,10 @@
   "turf_watch_continue": "شاهد إعلانًا للمتابعة",
   "turf_back_home": "العودة إلى الرئيسية",
   "turf_ad_success_note": "لن تُستأنف المباراة إلا بعد اكتمال الإعلان المكافئ.",
-  "turf_hour_victory": "فوز! ساعة واحدة!"
+  "turf_hour_victory": "فوز! ساعة واحدة!",
+  "studio_off": "إيقاف",
+  "studio_balanced": "متوازن",
+  "studio_max": "الحد الأقصى",
+  "studio_beat_volume_aria": "مستوى صوت الإيقاع",
+  "studio_voice_volume_aria": "مستوى صوت الصوت"
 }
