@@ -192,5 +192,13 @@
   "studio_beat_voice": "BEAT + VOICE",
   "studio_beat_volume": "Beat Volume",
   "studio_voice_volume": "Voice Volume",
-  "studio_locked": "Lock am"
+  "studio_locked": "Lock am",
+  "turf_player_down": "YOU DON FALL",
+  "turf_death_description": "Watch ad make you continue this same match from where you stop, or go home.",
+  "turf_earned": "YOU DON EARN",
+  "turf_ad_playing": "AD DEY PLAY...",
+  "turf_watch_continue": "WATCH AD MAKE YOU CONTINUE",
+  "turf_back_home": "GO BACK HOME",
+  "turf_ad_success_note": "Match go continue only after you finish the rewarded ad.",
+  "turf_hour_victory": "YOU WIN! ONE HOUR!"
 }
