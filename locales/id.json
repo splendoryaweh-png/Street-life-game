@@ -171,5 +171,12 @@
   "profile_edition": "Edisi Street Life v2.5",
   "profile_local_storage": "Penyimpanan data lokal",
   "profile_telegram_auth": "Autentikasi Telegram",
-  "profile_no_data_selling": "Tidak menjual data"
+  "profile_no_data_selling": "Tidak menjual data",
+  "studio_pause": "JEDA",
+  "studio_play_beat": "PUTAR BEAT",
+  "studio_mixer_controls": "KONTROL MIXER",
+  "studio_beat_voice": "BEAT + VOKAL",
+  "studio_beat_volume": "VOLUME BEAT",
+  "studio_voice_volume": "VOLUME VOKAL",
+  "studio_locked": "Terkunci"
 }
