@@ -455,5 +455,10 @@
   "shop_item_luxury_gold_phone_name": "Gold Luxury Phone",
   "shop_item_bedroom_studio_name": "Bedroom Studio (Starter)",
   "shop_item_street_studio_name": "Street Studio",
-  "shop_item_pro_studio_name": "Pro Studio"
+  "shop_item_pro_studio_name": "Pro Studio",
+  "studio_filter_normal": "Normal",
+  "studio_filter_warm": "Warm",
+  "studio_filter_bw": "Black and White",
+  "studio_filter_cool": "Cool",
+  "studio_filter_vintage": "Vintage"
 }
