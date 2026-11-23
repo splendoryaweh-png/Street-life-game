@@ -299,5 +299,19 @@
   "daily_free_racing_desc": "As primeiras 5 moedas de estrada do dia dão recompensa 2x!",
   "daily_free_active_today": "ATIVO HOJE",
   "daily_free_simulate": "Simular partida",
-  "daily_free_relock": "Bloquear teste novamente"
+  "daily_free_relock": "Bloquear teste novamente",
+  "shop_cat_clothes": "Roupas",
+  "shop_cat_houses": "Casas",
+  "shop_cat_vehicles": "Veículos",
+  "shop_cat_phones": "Telefones",
+  "shop_cat_design": "Design",
+  "shop_cat_studio": "Estúdio",
+  "shop_cat_filters": "Filtros",
+  "shop_cat_food": "Comida",
+  "shop_freestyle_booth": "Cabine Freestyle (15 batidas)",
+  "shop_beats_unlocked": "Batidas desbloqueadas • Grave e teste",
+  "shop_enter_booth": "Entrar na cabine",
+  "shop_equipped": "Equipado",
+  "shop_wear": "Vestir",
+  "shop_buy_for": "Comprar"
 }
