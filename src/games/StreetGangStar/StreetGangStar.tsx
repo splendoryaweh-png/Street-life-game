@@ -19,7 +19,7 @@ export const WEAPONS: Record<WeaponType, WeaponDef> = {
 export interface LaserBeam { id: string; x1: number; y1: number; x2: number; y2: number; color: string; life: number; maxLife: number; isPlayer: boolean; damage: number; }
 export interface CityCar { id: string; x: number; y: number; vx: number; vy: number; speed: number; direction: 'horizontal' | 'vertical'; width: number; height: number; color: string; isOccupied: boolean; hasDriver: boolean; driverType: 'civilian' | 'player' | 'gangster' | null; health: number; maxHealth: number; lastTurnAt?: number; }
 export interface Civilian { id: string; x: number; y: number; vx: number; vy: number; speed: number; facingAngle: number; state: 'walking' | 'scared' | 'saved'; color: string; hitCount?: number; }
-export interface Gangster { id: string; type: 'fighter_motor' | 'fighter_bus'; x: number; y: number; vx: number; vy: number; health: number; maxHealth: number; speed: number; facingAngle: number; gun: WeaponType; lastShootTime: number; vehicleType: 'motorcycle' | 'bus'; }
+export interface Gangster { id: string; type: 'fighter_motor' | 'fighter_bus'; x: number; y: number; vx: number; vy: number; health: number; maxHealth: number; speed: number; facingAngle: number; gun: WeaponType; lastShootTime: number; vehicleType: 'motorcycle' | 'bus' | 'tank'; }
 export interface SparkParticle { x: number; y: number; vx: number; vy: number; color: string; life: number; }
 interface StreetGangStarProps { onBack: () => void; onToast: (msg: string) => void; language?: string; initialCountry?: string; }
 export function StreetGangStar({ onBack, onToast, language = 'en', initialCountry = 'NG' }: StreetGangStarProps) {
@@ -124,14 +124,14 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       if (!s.isRunning) { animId = requestAnimationFrame(loop); return; }
       if (s.keys.mouseLeft) { shootPlayerLaser(); }
       if (now - s.lastSpawnTime >= 5000) {
-        s.lastSpawnTime = now; const edge = cityData.gangsterSpawnEdges[Math.floor(Math.random() * cityData.gangsterSpawnEdges.length)]; const isBus = Math.random() > 0.5;
-        s.gangsters.push({ id: `gangster_${Date.now()}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: 6, maxHealth: 6, speed: isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isBus ? 'bus' : 'motorcycle' });
+        s.lastSpawnTime = now; const edge = cityData.gangsterSpawnEdges[Math.floor(Math.random() * cityData.gangsterSpawnEdges.length)]; const roll = Math.random(); const isBus = roll > 0.72; const isTank = roll > 0.42 && !isBus;
+        s.gangsters.push({ id: `gangster_${Date.now()}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: 6, maxHealth: 6, speed: isTank ? 1.5 : isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isTank ? 'tank' : isBus ? 'bus' : 'motorcycle' });
       }
       if (p.isJumping) { p.jumpOffset += p.jumpVy; p.jumpVy -= 0.65; if (p.jumpOffset <= 0) { p.jumpOffset = 0; p.jumpVy = 0; p.isJumping = false; } }
       let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
       const isSprinting = s.keys.shift || s.isRunActive;
       if (p.inCarId) {
-        const car = s.cars.find((c) => c.id === p.inCarId); if (car) { const driveSpeed = isSprinting ? 7.5 : 5.0; if (s.joystickMovement.isMoving) { car.x += s.joystickMovement.dx * driveSpeed; car.y += s.joystickMovement.dy * driveSpeed; } else { if (s.keys.w) car.y -= driveSpeed; if (s.keys.s) car.y += driveSpeed; if (s.keys.a) car.x -= driveSpeed; if (s.keys.d) car.x += driveSpeed; } car.x = Math.max(80, Math.min(cityData.mapWidth - 80, car.x)); car.y = Math.max(80, Math.min(cityData.mapHeight - 80, car.y)); p.x = car.x; p.y = car.y; }
+        const car = s.cars.find((c) => c.id === p.inCarId); if (car) { const driveSpeed = isSprinting ? 7.5 : 5.0; let driveX = 0; let driveY = 0; if (s.joystickMovement.isMoving) { driveX = s.joystickMovement.dx; driveY = s.joystickMovement.dy; } else { if (s.keys.w) driveY -= 1; if (s.keys.s) driveY += 1; if (s.keys.a) driveX -= 1; if (s.keys.d) driveX += 1; } const magnitude = Math.hypot(driveX, driveY); if (magnitude > 0.08) { driveX /= Math.max(1, magnitude); driveY /= Math.max(1, magnitude); car.targetAngle = Math.atan2(driveY, driveX); let turnDelta = ((car.targetAngle - (car.angle || 0) + Math.PI * 3) % (Math.PI * 2)) - Math.PI; car.angle = (car.angle || 0) + turnDelta * 0.22; car.x += driveX * driveSpeed; car.y += driveY * driveSpeed; } car.x = Math.max(80, Math.min(cityData.mapWidth - 80, car.x)); car.y = Math.max(80, Math.min(cityData.mapHeight - 80, car.y)); p.x = car.x; p.y = car.y; }
       } else {
         const moveSpeed = isSprinting ? p.speed * 1.65 : p.speed; let dx = 0; let dy = 0; if (s.joystickMovement.isMoving) { dx = s.joystickMovement.dx; dy = s.joystickMovement.dy; if (!s.isMouseActive) { p.facingAngle = Math.atan2(dy, dx); } } else { if (s.keys.w) dy -= 1; if (s.keys.s) dy += 1; if (s.keys.a) dx -= 1; if (s.keys.d) dx += 1; if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; } }
         const nextX = p.x + dx * moveSpeed; const nextY = p.y + dy * moveSpeed; const hit = isPointInsideBuilding(nextX, nextY, cityData.buildings, 12); if (!hit.inside || hit.nearDoor || p.jumpOffset > 15) { p.x = Math.max(40, Math.min(cityData.mapWidth - 40, nextX)); p.y = Math.max(40, Math.min(cityData.mapHeight - 40, nextY)); }
@@ -241,7 +241,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
           }
           if (civilianHit) continue;
           if (Math.hypot(p.x - l.x2, p.y - l.y2) < 42 || distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 30) {
-            const isDriver = !!p.inCarId; let dmg = 10; if (p.isCover) dmg = 1; else if (isDriver) dmg = 3;
+            const dmg = 10;
             p.health = Math.max(0, p.health - dmg); setHudHealth(p.health); s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 4; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, color: '#38BDF8', life: 12 }); }
             if (p.health <= 0) { playSfx('siren'); onToast(t('player_down')); s.isRunning = false; setHudHealth(0); setShowDeathAdPrompt(true); }
@@ -275,19 +275,19 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
         if (isScared) { ctx.fillStyle = '#EF4444'; ctx.font = 'bold 18px sans-serif'; ctx.fillText('!', civ.x - 4, civ.y - 26); }
       });
       s.gangsters.forEach((g) => {
-        if (g.vehicleType === 'bus') {
+        if (g.vehicleType === 'bus' || g.vehicleType === 'tank') {
           ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.facingAngle);
-          ctx.fillStyle = '#7F1D1D'; ctx.beginPath(); ctx.roundRect(-34, -20, 68, 40, 8); ctx.fill();
-          ctx.fillStyle = '#1F2937'; ctx.fillRect(-26, -14, 12, 8); ctx.fillRect(-8, -14, 12, 8); ctx.fillRect(10, -14, 12, 8);
-          ctx.fillStyle = '#FEF08A'; ctx.fillRect(32, -8, 4, 4); ctx.fillRect(32, 6, 4, 4); ctx.restore();
-          drawHuman(ctx, g.x - 10, g.y, g.facingAngle, '#991B1B', 'gangster', true, false);
-          drawHuman(ctx, g.x + 14, g.y, g.facingAngle, '#DC2626', 'gangster', true, false);
+          if (g.vehicleType === 'tank') { ctx.fillStyle = '#475569'; ctx.beginPath(); ctx.roundRect(-38, -23, 76, 46, 9); ctx.fill(); ctx.strokeStyle = '#CBD5E1'; ctx.lineWidth = 3; ctx.strokeRect(-32, -18, 64, 36); ctx.fillStyle = '#1E293B'; for (let wheel = -27; wheel <= 27; wheel += 18) { ctx.beginPath(); ctx.arc(wheel, -21, 6, 0, Math.PI * 2); ctx.arc(wheel, 21, 6, 0, Math.PI * 2); ctx.fill(); } ctx.fillStyle = '#64748B'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#94A3B8'; ctx.fillRect(5, -4, 37, 8); ctx.fillStyle = '#FACC15'; ctx.fillRect(34, -7, 5, 3); }
+          else { ctx.fillStyle = '#7F1D1D'; ctx.beginPath(); ctx.roundRect(-34, -20, 68, 40, 8); ctx.fill(); ctx.fillStyle = '#1F2937'; ctx.fillRect(-26, -14, 12, 8); ctx.fillRect(-8, -14, 12, 8); ctx.fillRect(10, -14, 12, 8); ctx.fillStyle = '#FEF08A'; ctx.fillRect(32, -8, 4, 4); ctx.fillRect(32, 6, 4, 4); }
+          ctx.restore();
+          if (g.vehicleType === 'bus') { drawHuman(ctx, g.x - 10, g.y, g.facingAngle, '#991B1B', 'gangster', true, false); drawHuman(ctx, g.x + 14, g.y, g.facingAngle, '#DC2626', 'gangster', true, false); }
         } else {
           ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.facingAngle); ctx.fillStyle = '#18181B'; ctx.beginPath(); ctx.roundRect(-16, -5, 32, 10, 4); ctx.fill(); ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.arc(-10, 0, 5, 0, Math.PI*2); ctx.arc(10, 0, 5, 0, Math.PI*2); ctx.fill(); ctx.restore();
           drawHuman(ctx, g.x, g.y - 4, g.facingAngle, '#DC2626', 'gangster', true, false);
         }
         ctx.fillStyle = '#000'; ctx.fillRect(g.x - 16, g.y - 34, 32, 5); ctx.fillStyle = g.vehicleType === 'bus' ? '#FACC15' : '#EF4444'; ctx.fillRect(g.x - 16, g.y - 34, 32 * (g.health / g.maxHealth), 5);
       });
+      s.ejectedDrivers.forEach((driver) => { const fallProgress = driver.state === 'falling' ? Math.min(1, (now - driver.stateAt) / 520) : 1; ctx.save(); ctx.globalAlpha = driver.state === 'falling' ? 1 - fallProgress * 0.15 : 1; drawHuman(ctx, driver.x, driver.y + (driver.state === 'falling' ? 10 * (1 - fallProgress) : 0), driver.facingAngle, '#A3A3A3', 'gangster', true, false); ctx.restore(); });
       s.sparks.forEach((sp) => { ctx.fillStyle = sp.color; ctx.beginPath(); ctx.arc(sp.x, sp.y, 2.8, 0, Math.PI * 2); ctx.fill(); });
       s.lasers.forEach((l) => { ctx.save(); ctx.strokeStyle = l.color; ctx.shadowColor = l.color; ctx.shadowBlur = 14; ctx.lineWidth = l.isPlayer ? 3.8 : 2.8; ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke(); ctx.restore(); });
       if (!p.inCarId) {
