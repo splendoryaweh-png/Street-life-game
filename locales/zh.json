@@ -469,5 +469,19 @@
   "studio_filter_warm": "暖色",
   "studio_filter_bw": "黑白",
   "studio_filter_cool": "冷色",
-  "studio_filter_vintage": "复古"
+  "studio_filter_vintage": "复古",
+  "watch_milestone_bonus_label": "额外里程碑奖励",
+  "watch_milestone_claimed_short": "已领取",
+  "watch_milestone_ready": "可领取",
+  "watch_tap_for_details": "查看详情",
+  "watch_milestone_details": "先观看所需数量的普通广告以解锁此里程碑，然后再观看一条奖励广告领取奖励。",
+  "watch_milestone_progress": "进度",
+  "watch_milestone_bonus": "里程碑奖励：+10 SC",
+  "watch_milestone_ad_note": "领取奖励的视频也会获得常规的 +10 SC，并计入每日广告上限。",
+  "watch_milestone_claimed": "里程碑奖励已领取！",
+  "watch_milestone_watch_claim": "观看广告并领取 +10 SC",
+  "watch_milestone_need_ads": "继续观看普通广告以解锁此奖励。",
+  "watch_milestone_already_claimed": "你今天已经领取过此里程碑。",
+  "watch_milestone_locked": "观看所需广告以解锁此里程碑。",
+  "watch_ad_incomplete": "广告未完整播放，未发放奖励。"
 }
