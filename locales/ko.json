@@ -421,5 +421,8 @@
   "shop_duration": "길이",
   "shop_locked_studio_beat": "잠긴 스튜디오 비트",
   "shop_level": "레벨",
-  "watch_ad_get_10_sc": "광고를 보고 10 SC 받기"
+  "watch_ad_get_10_sc": "광고를 보고 10 SC 받기",
+  "home_total_net_worth": "총 순자산",
+  "home_coin_transactions_last_10": "코인 거래 내역 (최근 10개)",
+  "home_street_novel": "📖 스트리트 소설"
 }
