@@ -831,24 +831,19 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
   // GENERATE DYNAMIC PROMPT TEMPLATES (EXACT TEMPLATES FROM PROMPT 6)
   // ---------------------------------------------------------------------------
   const equippedClothesName =
-    CLOTHES_CATALOG.find((c) => c.id === playerState.equipped.clothes)?.name ||
-    'Basic T-shirt';
+    t(`shop_item_${playerState.equipped.clothes || 'basic_tshirt'}_name`, CLOTHES_CATALOG.find((c) => c.id === playerState.equipped.clothes)?.name || 'Basic T-shirt');
 
   const equippedHouseName =
-    HOUSES_CATALOG.find((h) => h.id === playerState.equipped.house)?.name ||
-    'Street Corner';
+    t(`shop_item_${playerState.equipped.house || 'shared_room_rent'}_name`, HOUSES_CATALOG.find((h) => h.id === playerState.equipped.house)?.name || 'Street Corner');
 
   const equippedVehicleName =
-    VEHICLES_CATALOG.find((v) => v.id === playerState.equipped.vehicle)?.name ||
-    'Walking';
+    t(`shop_item_${playerState.equipped.vehicle || 'walking'}_name`, VEHICLES_CATALOG.find((v) => v.id === playerState.equipped.vehicle)?.name || 'Walking');
 
   const equippedPhoneName =
-    PHONES_CATALOG.find((p) => p.id === playerState.equipped.phone)?.name ||
-    'Basic Phone';
+    t(`shop_item_${playerState.equipped.phone || 'basic_phone'}_name`, PHONES_CATALOG.find((p) => p.id === playerState.equipped.phone)?.name || 'Basic Phone');
 
   const equippedStudioName =
-    STUDIO_LEVELS_CATALOG.find((s) => s.id === playerState.equipped.studio)?.name ||
-    'Bedroom Studio (Starter)';
+    t(`shop_item_${playerState.equipped.studio || 'bedroom_studio'}_name`, STUDIO_LEVELS_CATALOG.find((s) => s.id === playerState.equipped.studio)?.name || 'Bedroom Studio (Starter)');
 
   const ownedDesignNames =
     playerState.equipped.installedHouseDesign.length > 0
