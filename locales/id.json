@@ -429,5 +429,16 @@
   "watch_after_five_ads": "Setelah 5 iklan",
   "watch_unlocked": "TERBUKA",
   "shop_inside_house": "Dalam Rumah",
-  "shop_vehicle_view": "Kendaraan"
+  "shop_vehicle_view": "Kendaraan",
+  "studio_live_stereo_mixed": "STEREO LANGSUNG • MIX",
+  "studio_ready_beat_voice_mix": "SIAP • MIX BEAT + SUARA",
+  "studio_mixer_help": "Atur setiap penggeser secara terpisah. Perubahan diterapkan ke hasil rekaman.",
+  "studio_recording_mixed_track": "MEREKAM TRACK CAMPURAN",
+  "studio_vocal_booth_beat_voice": "BOOTH VOKAL - BEAT + SUARA",
+  "studio_daily_label": "Harian",
+  "studio_recording_label": "Rekaman",
+  "studio_minimum": "Min",
+  "studio_maximum": "Maks",
+  "studio_stop_recording_aria": "Hentikan rekaman",
+  "studio_start_recording_aria": "Mulai rekaman"
 }
