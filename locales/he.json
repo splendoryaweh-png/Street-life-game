@@ -185,5 +185,12 @@
   "profile_no_data_desc": "איננו מוכרים, משכירים או מעבירים מידע אישי לצדדים שלישיים.",
   "profile_version": "גרסה",
   "profile_platform": "פלטפורמה",
-  "profile_support": "תמיכה"
+  "profile_support": "תמיכה",
+  "studio_pause": "השהה",
+  "studio_play_beat": "נגן מקצב",
+  "studio_mixer_controls": "בקרות מיקסר",
+  "studio_beat_voice": "מקצב + קול",
+  "studio_beat_volume": "עוצמת המקצב",
+  "studio_voice_volume": "עוצמת הקול",
+  "studio_locked": "נעול"
 }
