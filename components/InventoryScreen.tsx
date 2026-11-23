@@ -305,7 +305,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
     }
 
     // Deduct coins
-    addGameCoins(-cost, `-${cost} SC - Bought ${item.name}`, 'task_reward');
+    addGameCoins(-cost, `-${cost} SC - Bought ${t(`shop_item_${item.id}_name`, item.name)}`, 'task_reward');
     playCoinSound();
 
     const currentOwned = { ...playerState.owned };
@@ -316,7 +316,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
         currentOwned.clothes.push(item.id);
       }
       currentEquipped.clothes = item.id;
-      onToast(`👕 Bought & Equipped ${item.name}!`);
+      onToast(`👕 Bought & Equipped ${t(`shop_item_${item.id}_name`, item.name)}!`);
     } else if (item.category === 'HOUSES') {
       if (isRent) {
         // Rent: 30 days expiration (30 * 24 * 60 * 60 * 1000)
@@ -325,27 +325,27 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
         currentEquipped.house = item.id;
         currentEquipped.houseType = 'rent';
         currentEquipped.rentExpiresTimestamp = expires;
-        onToast(`🏠 Rented ${item.name} for 30 days!`);
+        onToast(`🏠 Rented ${t(`shop_item_${item.id}_name`, item.name)} for 30 days!`);
       } else {
         // Buy permanent
         currentOwned.houses[item.id] = { type: 'buy' };
         currentEquipped.house = item.id;
         currentEquipped.houseType = 'buy';
         currentEquipped.rentExpiresTimestamp = null;
-        onToast(`🏡 Purchased ${item.name} permanently!`);
+        onToast(`🏡 Purchased ${t(`shop_item_${item.id}_name`, item.name)} permanently!`);
       }
     } else if (item.category === 'VEHICLES') {
       if (!currentOwned.vehicles.includes(item.id)) {
         currentOwned.vehicles.push(item.id);
       }
       currentEquipped.vehicle = item.id;
-      onToast(`🚗 Bought & Equipped ${item.name}!`);
+      onToast(`🚗 Bought & Equipped ${t(`shop_item_${item.id}_name`, item.name)}!`);
     } else if (item.category === 'PHONES') {
       if (!currentOwned.phones.includes(item.id)) {
         currentOwned.phones.push(item.id);
       }
       currentEquipped.phone = item.id;
-      onToast(`📱 Bought & Holding ${item.name}!`);
+      onToast(`📱 Bought & Holding ${t(`shop_item_${item.id}_name`, item.name)}!`);
     } else if (item.category === 'HOUSE_DESIGN') {
       if (!currentOwned.houseDesign.includes(item.id)) {
         currentOwned.houseDesign.push(item.id);
@@ -353,13 +353,13 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
       if (!currentEquipped.installedHouseDesign.includes(item.id)) {
         currentEquipped.installedHouseDesign.push(item.id);
       }
-      onToast(`✨ Installed ${item.name} in your home!`);
+      onToast(`✨ Installed ${t(`shop_item_${item.id}_name`, item.name)} in your home!`);
     } else if (item.category === 'STUDIO_LEVELS') {
       if (!currentOwned.studioLevels.includes(item.id)) {
         currentOwned.studioLevels.push(item.id);
       }
       currentEquipped.studio = item.id;
-      onToast(`🎙️ Upgraded to ${item.name}! Studio Tab is now unlocked.`);
+      onToast(`🎙️ Upgraded to ${t(`shop_item_${item.id}_name`, item.name)}! Studio Tab is now unlocked.`);
     } else if (item.category === 'STUDIO_FILTERS') {
       if (!currentOwned.studioFilters.includes(item.id)) {
         currentOwned.studioFilters.push(item.id);
@@ -367,7 +367,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
       if (!currentEquipped.studioFilters.includes(item.id)) {
         currentEquipped.studioFilters.push(item.id);
       }
-      onToast(`🎛️ Equipped ${item.name} in your studio!`);
+      onToast(`🎛️ Equipped ${t(`shop_item_${item.id}_name`, item.name)} in your studio!`);
     } else if (item.category === 'FOOD_DRINKS') {
       const bonus = item.energyBonus || 15;
       if (playerState.energy >= 100) {
@@ -380,7 +380,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
         });
         setPlayerState(updated);
         playPickupSound();
-        onToast(`🍔 Stocked 1x ${item.name}! (Energy is full 100/100). Owned: ${prevStock + 1}`);
+        onToast(`🍔 Stocked 1x ${t(`shop_item_${item.id}_name`, item.name)}! (Energy is full 100/100). Owned: ${prevStock + 1}`);
         return;
       }
       // Eat/Drink immediately
@@ -393,7 +393,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
       });
       setPlayerState(updated);
       playPickupSound();
-      onToast(`🍔 Consumed ${item.name}! Energy +${bonus} (Current: ${newEnergy}/100)`);
+      onToast(`🍔 Consumed ${t(`shop_item_${item.id}_name`, item.name)}! Energy +${bonus} (Current: ${newEnergy}/100)`);
       return;
     }
 
@@ -411,41 +411,41 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
 
     if (item.category === 'CLOTHES') {
       currentEquipped.clothes = item.id;
-      onToast(`👕 Wearing ${item.name}`);
+      onToast(`👕 Wearing ${t(`shop_item_${item.id}_name`, item.name)}`);
     } else if (item.category === 'HOUSES') {
       const houseRecord = playerState.owned.houses[item.id];
       currentEquipped.house = item.id;
       currentEquipped.houseType = houseRecord?.type || 'homeless';
       currentEquipped.rentExpiresTimestamp = houseRecord?.rentExpires || null;
-      onToast(`🏠 Moved into ${item.name}`);
+      onToast(`🏠 Moved into ${t(`shop_item_${item.id}_name`, item.name)}`);
     } else if (item.category === 'VEHICLES') {
       if (playerState.energy <= 0 && item.id !== 'walking') {
         onToast("⚡ Energy is 0! Can't drive vehicle. Eat food or drink in Shop to restore energy.");
         return;
       }
       currentEquipped.vehicle = item.id;
-      onToast(`🚗 Driving ${item.name}`);
+      onToast(`🚗 Driving ${t(`shop_item_${item.id}_name`, item.name)}`);
     } else if (item.category === 'PHONES') {
       currentEquipped.phone = item.id;
-      onToast(`📱 Holding ${item.name}`);
+      onToast(`📱 Holding ${t(`shop_item_${item.id}_name`, item.name)}`);
     } else if (item.category === 'HOUSE_DESIGN') {
       if (currentEquipped.installedHouseDesign.includes(item.id)) {
         currentEquipped.installedHouseDesign = currentEquipped.installedHouseDesign.filter((id) => id !== item.id);
-        onToast(`✨ Uninstalled ${item.name} from home`);
+        onToast(`✨ Uninstalled ${t(`shop_item_${item.id}_name`, item.name)} from home`);
       } else {
         currentEquipped.installedHouseDesign.push(item.id);
-        onToast(`✨ Installed ${item.name} in home`);
+        onToast(`✨ Installed ${t(`shop_item_${item.id}_name`, item.name)} in home`);
       }
     } else if (item.category === 'STUDIO_LEVELS') {
       currentEquipped.studio = item.id;
-      onToast(`🎙️ Switched to ${item.name}`);
+      onToast(`🎙️ Switched to ${t(`shop_item_${item.id}_name`, item.name)}`);
     } else if (item.category === 'STUDIO_FILTERS') {
       if (currentEquipped.studioFilters.includes(item.id)) {
         currentEquipped.studioFilters = currentEquipped.studioFilters.filter((f) => f !== item.id);
-        onToast(`🎛️ Unequipped ${item.name}`);
+        onToast(`🎛️ Unequipped ${t(`shop_item_${item.id}_name`, item.name)}`);
       } else {
         currentEquipped.studioFilters.push(item.id);
-        onToast(`🎛️ Equipped ${item.name}`);
+        onToast(`🎛️ Equipped ${t(`shop_item_${item.id}_name`, item.name)}`);
       }
     }
 
@@ -458,7 +458,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
     playClickSound();
     const stock = playerState.owned.foodStock[item.id] || 0;
     if (stock <= 0) {
-      onToast(`Out of ${item.name}! Purchase more in Shop.`);
+      onToast(`Out of ${t(`shop_item_${item.id}_name`, item.name)}! Purchase more in Shop.`);
       return;
     }
 
@@ -474,7 +474,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
     });
     setPlayerState(updated);
     playPickupSound();
-    onToast(`🍔 Ate ${item.name}! Energy +${bonus} (Current: ${newEnergy}/100)`);
+    onToast(`🍔 Ate ${t(`shop_item_${item.id}_name`, item.name)}! Energy +${bonus} (Current: ${newEnergy}/100)`);
   };
 
   // ---------------------------------------------------------------------------
@@ -1010,7 +1010,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-400/40 text-[10px] text-amber-300 font-bold flex items-center justify-between">
               <span className="flex items-center gap-1">
                 <span>⚠️</span>
-                <span>Low Balance (&lt; 10 SC). Watch ad to replenish funds!</span>
+                <span>{t('shop_low_balance', 'Low Balance (&lt; 10 SC). Watch ad to replenish funds!')}</span>
               </span>
               <span className="font-mono text-yellow-400 font-black">+10 SC</span>
             </div>
@@ -1035,8 +1035,8 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
       {/* ------------------------------------------------------------- */}
       <div className="p-3 rounded-2xl bg-black/80 border border-white/10 text-[11px] text-gray-300 space-y-1">
         <div className="flex items-center justify-between text-[10px] font-black uppercase text-gray-400">
-          <span>Active Equipped Loadout (1 per category)</span>
-          <span className="text-[#FFD700]">Profile Showcase</span>
+          <span>{t('shop_active_loadout', 'Active Equipped Loadout (1 per category)')}</span>
+          <span className="text-[#FFD700]">{t('shop_profile_showcase', 'Profile Showcase')}</span>
         </div>
         <p className="font-mono text-xs text-white leading-relaxed">
           {formatEquippedProfileSummary(playerState)}
@@ -1130,8 +1130,8 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           {item.price.toLocaleString()} SC
                         </span>
                       </div>
-                      <h4 className="text-sm font-black text-white mt-1">{item.name}</h4>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{item.desc}</p>
+                      <h4 className="text-sm font-black text-white mt-1">{t(`shop_item_${item.id}_name`, item.name)}</h4>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{t(`shop_item_${item.id}_desc`, item.desc || '')}</p>
                     </div>
 
                     <div className="flex items-center gap-2 pt-1">
@@ -1196,11 +1196,11 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                               : 'bg-amber-500/20 text-amber-300 border border-amber-400/40'
                           }`}
                         >
-                          {isRent ? 'RENT (30 DAYS)' : 'BUY (PERMANENT)'}
+                          {isRent ? t('shop_rent_30_days', 'RENT (30 DAYS)') : t('shop_buy_permanent', 'BUY (PERMANENT)')}
                         </span>
                       </div>
-                      <h4 className="text-sm font-black text-white mt-1">{item.name}</h4>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{item.desc}</p>
+                      <h4 className="text-sm font-black text-white mt-1">{t(`shop_item_${item.id}_name`, item.name)}</h4>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{t(`shop_item_${item.id}_desc`, item.desc || '')}</p>
                     </div>
 
                     <div className="pt-1">
@@ -1214,7 +1214,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                               : 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40'
                           }`}
                         >
-                          {isEquipped ? 'Current Home' : 'Move In'}
+                          {isEquipped ? t('shop_current_home', 'Current Home') : t('shop_move_in', 'Move In')}
                         </button>
                       ) : (
                         <button
@@ -1229,8 +1229,8 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           {isRentExpired
                             ? `{t('shop_renew_rent', 'Renew Rent')} (${item.price.toLocaleString()} SC)`
                             : isRent
-                            ? `Rent (${item.price.toLocaleString()} SC)`
-                            : `Buy (${item.price.toLocaleString()} SC)`}
+                            ? `${t('shop_rent', 'Rent')} (${item.price.toLocaleString()} SC)`
+                            : `${t('shop_buy_for', 'Buy')} (${item.price.toLocaleString()} SC)`}
                         </button>
                       )}
                     </div>
@@ -1256,8 +1256,8 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           {item.price === 0 ? 'FREE' : `${item.price.toLocaleString()} SC`}
                         </span>
                       </div>
-                      <h4 className="text-sm font-black text-white mt-1">{item.name}</h4>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{item.desc}</p>
+                      <h4 className="text-sm font-black text-white mt-1">{t(`shop_item_${item.id}_name`, item.name)}</h4>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{t(`shop_item_${item.id}_desc`, item.desc || '')}</p>
                     </div>
 
                     <div className="pt-1">
@@ -1271,7 +1271,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                               : 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/40'
                           }`}
                         >
-                          {isEquipped ? 'Currently Driving' : 'Drive'}
+                          {isEquipped ? t('shop_currently_driving', 'Currently Driving') : t('shop_drive', 'Drive')}
                         </button>
                       ) : (
                         <button
@@ -1305,8 +1305,8 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           {item.price === 0 ? 'FREE' : `${item.price.toLocaleString()} SC`}
                         </span>
                       </div>
-                      <h4 className="text-sm font-black text-white mt-1">{item.name}</h4>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{item.desc}</p>
+                      <h4 className="text-sm font-black text-white mt-1">{t(`shop_item_${item.id}_name`, item.name)}</h4>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{t(`shop_item_${item.id}_desc`, item.desc || '')}</p>
                     </div>
 
                     <div className="pt-1">
@@ -1320,7 +1320,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                               : 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/40'
                           }`}
                         >
-                          {isEquipped ? 'Holding' : 'Hold'}
+                          {isEquipped ? t('shop_holding', 'Holding') : t('shop_hold', 'Hold')}
                         </button>
                       ) : (
                         <button
@@ -1354,8 +1354,8 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           {item.price.toLocaleString()} SC
                         </span>
                       </div>
-                      <h4 className="text-sm font-black text-white mt-1">{item.name}</h4>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{item.desc}</p>
+                      <h4 className="text-sm font-black text-white mt-1">{t(`shop_item_${item.id}_name`, item.name)}</h4>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{t(`shop_item_${item.id}_desc`, item.desc || '')}</p>
                     </div>
 
                     <div className="pt-1">
@@ -1372,10 +1372,10 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           {isInstalled ? (
                             <>
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Installed (Tap to Remove)</span>
+                              <span>{t('shop_installed_remove', 'Installed (Tap to Remove)')}</span>
                             </>
                           ) : (
-                            <span>Install in Home</span>
+                            <span>{t('shop_install_home', 'Install in Home')}</span>
                           )}
                         </button>
                       ) : (
@@ -1384,7 +1384,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           type="button"
                           className="w-full py-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-black uppercase tracking-wider shadow-[0_0_10px_rgba(168,85,247,0.3)] active:scale-95 transition-all cursor-pointer"
                         >
-                          Buy & Install ({item.price.toLocaleString()} SC)
+                          {t('shop_buy_install', 'Buy & Install')} ({item.price.toLocaleString()} SC)
                         </button>
                       )}
                     </div>
@@ -1407,13 +1407,13 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                       <div className="flex items-center justify-between">
                         <span className="text-2xl">{item.icon}</span>
                         <span className="px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-400/40 text-[9px] font-black uppercase tracking-wider">
-                          Sound {item.soundQuality}%
+                          {t('shop_sound_quality', 'Sound')} {item.soundQuality}%
                         </span>
                       </div>
-                      <h4 className="text-sm font-black text-white mt-1">{item.name}</h4>
-                      <p className="text-[11px] text-gray-300 mt-0.5">{item.desc}</p>
+                      <h4 className="text-sm font-black text-white mt-1">{t(`shop_item_${item.id}_name`, item.name)}</h4>
+                      <p className="text-[11px] text-gray-300 mt-0.5">{t(`shop_item_${item.id}_desc`, item.desc || '')}</p>
                       <p className="text-[10px] text-emerald-400 font-bold mt-1">
-                        Payout: +{item.payoutPerSong?.toLocaleString()} SC per track
+                        {t('shop_payout', 'Payout')}: +{item.payoutPerSong?.toLocaleString()} SC {t('shop_per_track', 'per track')}
                       </p>
                     </div>
 
@@ -1428,7 +1428,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                               : 'bg-purple-500/20 text-purple-300 border border-purple-400/40'
                           }`}
                         >
-                          {isEquipped ? 'Active Studio' : 'Switch Studio'}
+                          {isEquipped ? t('shop_active_studio', 'Active Studio') : t('shop_switch_studio', 'Switch Studio')}
                         </button>
                       ) : (
                         <button
@@ -1436,7 +1436,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           type="button"
                           className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-black uppercase tracking-wider shadow-[0_0_15px_rgba(236,72,153,0.4)] active:scale-95 transition-all cursor-pointer"
                         >
-                          Upgrade ({item.price.toLocaleString()} SC)
+                          {t('shop_upgrade', 'Upgrade')} ({item.price.toLocaleString()} SC)
                         </button>
                       )}
                     </div>
@@ -1462,8 +1462,8 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           {item.price.toLocaleString()} SC
                         </span>
                       </div>
-                      <h4 className="text-sm font-black text-white mt-1">{item.name}</h4>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{item.desc}</p>
+                      <h4 className="text-sm font-black text-white mt-1">{t(`shop_item_${item.id}_name`, item.name)}</h4>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{t(`shop_item_${item.id}_desc`, item.desc || '')}</p>
                     </div>
 
                     <div className="pt-1">
@@ -1477,7 +1477,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                               : 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40'
                           }`}
                         >
-                          {isEquipped ? 'Equipped' : 'Equip Filter'}
+                          {isEquipped ? t('shop_equipped', 'Equipped') : t('shop_equip_filter', 'Equip Filter')}
                         </button>
                       ) : (
                         <button
@@ -1507,12 +1507,12 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                       <div className="flex items-center justify-between">
                         <span className="text-2xl">{item.icon}</span>
                         <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-black">
-                          {item.desc}
+                          {t(`shop_item_${item.id}_desc`, item.desc || '')}
                         </span>
                       </div>
-                      <h4 className="text-sm font-black text-white mt-1">{item.name}</h4>
+                      <h4 className="text-sm font-black text-white mt-1">{t(`shop_item_${item.id}_name`, item.name)}</h4>
                       <p className="text-[11px] text-gray-400 mt-0.5 font-mono">
-                        Cost: {item.price.toLocaleString()} SC • Owned: {stock}
+                        {t('shop_cost', 'Cost')}: {item.price.toLocaleString()} SC • {t('shop_owned', 'Owned')}: {stock}
                       </p>
                     </div>
 
@@ -1522,7 +1522,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                         type="button"
                         className="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black text-xs font-black uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.3)] active:scale-95 transition-all cursor-pointer"
                       >
-                        Buy & Eat
+                        {t('shop_buy_eat', 'Buy & Eat')}
                       </button>
 
                       {stock > 0 && (
@@ -1531,7 +1531,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           type="button"
                           className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold uppercase transition-all cursor-pointer"
                         >
-                          Eat ({stock})
+                          {t('shop_eat', 'Eat')} ({stock})
                         </button>
                       )}
                     </div>
@@ -1571,7 +1571,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                 className="px-2.5 py-1.5 rounded-xl bg-purple-500/30 hover:bg-purple-500/40 border border-purple-400/50 text-purple-200 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all"
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Studio View</span>
+                <span>{t('shop_studio_view', 'Studio View')}</span>
               </button>
             </div>
           </div>
@@ -1579,19 +1579,19 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
           {/* Studio Stats & Upgrade Banner */}
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="p-2.5 rounded-2xl bg-black/60 border border-white/10">
-              <span className="text-[10px] text-gray-400 block">Sound Quality</span>
+              <span className="text-[10px] text-gray-400 block">{t('shop_sound_quality', 'Sound Quality')}</span>
               <span className="text-sm font-black text-purple-300 font-mono">
                 {currentStudioInfo.soundQuality || 40}%
               </span>
             </div>
             <div className="p-2.5 rounded-2xl bg-black/60 border border-white/10">
-              <span className="text-[10px] text-gray-400 block">Track Payout</span>
+              <span className="text-[10px] text-gray-400 block">{t('shop_track_payout', 'Track Payout')}</span>
               <span className="text-sm font-black text-[#FFD700] font-mono">
                 +{currentStudioInfo.payoutPerSong?.toLocaleString() || 100} SC
               </span>
             </div>
             <div className="p-2.5 rounded-2xl bg-black/60 border border-white/10">
-              <span className="text-[10px] text-gray-400 block">Fan Base</span>
+              <span className="text-[10px] text-gray-400 block">{t('shop_fan_base', 'Fan Base')}</span>
               <span className="text-sm font-black text-pink-300 font-mono">
                 {playerState.fansCount.toLocaleString()} Fans
               </span>
@@ -1604,10 +1604,10 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
               <div className="flex items-center justify-between text-xs font-bold">
                 <span className="text-gray-300 flex items-center gap-1">
                   <Music className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Beats Library Access:</span>
+                  <span>{t('shop_beats_library_access', 'Beats Library Access:')}</span>
                 </span>
                 <span className="text-purple-300 font-mono">
-                  {unlockedBeatsCount} / {BEAT_LIBRARY.length} Unlocked
+                  {unlockedBeatsCount} / {BEAT_LIBRARY.length} {t('shop_unlocked', 'Unlocked')}
                 </span>
               </div>
               <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -1630,7 +1630,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                 type="button"
                 className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[11px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md active:scale-95 cursor-pointer whitespace-nowrap"
               >
-                <span>Upgrade Studio</span>
+                <span>{t('shop_upgrade_studio', 'Upgrade Studio')}</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
             )}
@@ -1639,7 +1639,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
           {/* SCREEN 1 - CHOOSE FREESTYLE TYPE */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-black uppercase tracking-wider text-gray-300 flex items-center justify-between">
-              <span>Step 1: Choose Freestyle Type</span>
+              <span>{t('shop_step1_freestyle', 'Step 1: Choose Freestyle Type')}</span>
               <span className="text-[10px] text-purple-400 font-bold">
                 Mode: {freestyleMode === 'audio' ? 'Audio Only 🎤' : 'Video + Audio 📹'}
               </span>
@@ -1658,7 +1658,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                 }`}
               >
                 <Mic className="w-4 h-4" />
-                <span>🎤 AUDIO FREESTYLE</span>
+                <span>🎤 {t('shop_audio_freestyle', 'AUDIO FREESTYLE')}</span>
               </button>
 
               <button
@@ -1674,7 +1674,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                 }`}
               >
                 <Video className="w-4 h-4" />
-                <span>📹 VIDEO FREESTYLE</span>
+                <span>📹 {t('shop_video_freestyle', 'VIDEO FREESTYLE')}</span>
               </button>
             </div>
           </div>
@@ -1684,7 +1684,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <span>🎵 Step 2: Beat Library</span>
+                  <span>🎵 {t('shop_step2_beat_library', 'Step 2: Beat Library')}</span>
                   <span className="text-[10px] font-normal text-gray-400">
                     ({BEAT_LIBRARY.length} Beats Available)
                   </span>
@@ -1722,12 +1722,12 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                     {isPlayingBeat ? (
                       <>
                         <Square className="w-3 h-3 fill-black text-black" />
-                        <span>Stop Loop</span>
+                        <span>{t('shop_stop_loop', 'Stop Loop')}</span>
                       </>
                     ) : (
                       <>
                         <Play className="w-3 h-3 fill-black text-black" />
-                        <span>Play Loop</span>
+                        <span>{t('shop_play_loop', 'Play Loop')}</span>
                       </>
                     )}
                   </button>
@@ -1739,20 +1739,20 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-xs">
                 <div className="p-2.5 rounded-xl bg-black/60 border border-white/10">
-                  <span className="text-[10px] text-gray-400 block uppercase font-bold">Beat Name</span>
+                  <span className="text-[10px] text-gray-400 block uppercase font-bold">{t('shop_beat_name', 'Beat Name')}</span>
                   <span className="font-black text-white flex items-center gap-1.5 mt-0.5 text-sm">
                     <span>{selectedBeatMetadata.icon}</span>
                     <span className="truncate">{selectedBeatMetadata.name} ({selectedBeatMetadata.title})</span>
                   </span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-black/60 border border-white/10">
-                  <span className="text-[10px] text-gray-400 block uppercase font-bold">Tempo & Genre</span>
+                  <span className="text-[10px] text-gray-400 block uppercase font-bold">{t('shop_tempo_genre', 'Tempo & Genre')}</span>
                   <span className="font-mono font-black text-[#FFD700] mt-0.5 block text-sm">
                     ⚡ {selectedBeatMetadata.bpm} BPM • {selectedBeatMetadata.genre}
                   </span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-black/60 border border-white/10">
-                  <span className="text-[10px] text-gray-400 block uppercase font-bold">Audio File Path</span>
+                  <span className="text-[10px] text-gray-400 block uppercase font-bold">{t('shop_audio_file_path', 'Audio File Path')}</span>
                   <span className="font-mono text-xs text-purple-300 truncate mt-0.5 block font-bold" title={selectedBeatMetadata.filePath}>
                     📁 {selectedBeatMetadata.filePath}
                   </span>
@@ -1763,10 +1763,10 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             {/* Filter Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
               {[
-                { id: 'all', label: `All (${BEAT_LIBRARY.length})` },
-                { id: 'unlocked', label: `Unlocked (${unlockedBeatsCount})` },
-                { id: 'locked', label: `Locked (${BEAT_LIBRARY.length - unlockedBeatsCount})` },
-                { id: 0, label: 'Free (3)' },
+                { id: 'all', label: `${t('shop_all', 'All')} (${BEAT_LIBRARY.length})` },
+                { id: 'unlocked', label: `${t('shop_unlocked', 'Unlocked')} (${unlockedBeatsCount})` },
+                { id: 'locked', label: `${t('shop_locked', 'Locked')} (${BEAT_LIBRARY.length - unlockedBeatsCount})` },
+                { id: 0, label: `${t('shop_free', 'Free')} (3)` },
                 { id: 1, label: 'Lvl 1 (50k)' },
                 { id: 2, label: 'Lvl 2 (100k)' },
                 { id: 3, label: 'Lvl 3 (200k)' },
@@ -1859,7 +1859,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                             <button
                               onClick={(e) => handleToggleBeatPreview(e, beat)}
                               type="button"
-                              title={isPlayingThis ? 'Stop Beat Preview' : 'Play Beat Preview'}
+                              title={isPlayingThis ? t('shop_stop_beat_preview', 'Stop Beat Preview') : t('shop_play_beat_preview', 'Play Beat Preview')}
                               className={`p-2 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
                                 isPlayingThis
                                   ? 'bg-[#FFD700] text-black border-yellow-300 shadow-[0_0_15px_rgba(255,215,0,0.6)]'
@@ -1932,17 +1932,17 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                         isSelected ? (
                           <div className="w-full py-2 px-2.5 rounded-xl bg-gradient-to-r from-[#FFD700] to-[#F59E0B] text-black text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(255,215,0,0.45)]">
                             <CheckCircle2 className="w-3.5 h-3.5 fill-black text-[#FFD700]" />
-                            <span>Selected for Freestyle ✓</span>
+                            <span>{t('shop_selected_freestyle', 'Selected for Freestyle ✓')}</span>
                           </div>
                         ) : (
                           <div className="w-full py-2 px-2.5 rounded-xl bg-white/5 group-hover:bg-[#FFD700]/15 border border-white/10 group-hover:border-[#FFD700]/50 text-gray-300 group-hover:text-[#FFD700] text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all">
-                            <span>Select Beat 🎵</span>
+                            <span>{t('shop_select_beat', 'Select Beat 🎵')}</span>
                           </div>
                         )
                       ) : (
                         <div className="w-full py-2 px-2.5 rounded-xl bg-amber-500/15 group-hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-sm">
                           <Lock className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Upgrade Studio to Unlock</span>
+                          <span>{t('shop_upgrade_to_unlock', 'Upgrade Studio to Unlock')}</span>
                         </div>
                       )}
                     </div>
@@ -1982,7 +1982,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                 </div>
                 <div className="absolute bottom-3 left-3 right-3 p-2 rounded-xl bg-black/80 backdrop-blur-sm border border-white/10 text-left text-[11px] text-[#FFD700] font-mono flex items-center justify-between">
                   <span>🎵 {selectedBeatMetadata.name} ({selectedBeatMetadata.bpm} BPM)</span>
-                  <span className="text-emerald-400 font-bold">Live Sync</span>
+                  <span className="text-emerald-400 font-bold">{t('shop_live_sync', 'Live Sync')}</span>
                 </div>
               </div>
             )}
@@ -1994,7 +1994,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   <Music className="w-4 h-4" />
                 </div>
                 <div className="text-left">
-                  <span className="text-gray-400 text-[10px] block uppercase font-bold">Selected Beat Audio</span>
+                  <span className="text-gray-400 text-[10px] block uppercase font-bold">{t('shop_selected_beat_audio', 'Selected Beat Audio')}</span>
                   <span className="text-white font-black">{selectedBeatMetadata.name} ({selectedBeatMetadata.bpm} BPM)</span>
                 </div>
               </div>
@@ -2008,12 +2008,12 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   {isPlayingBeat ? (
                     <>
                       <Square className="w-3.5 h-3.5 text-rose-400 fill-rose-400" />
-                      <span>Stop Beat</span>
+                      <span>{t('shop_stop_beat', 'Stop Beat')}</span>
                     </>
                   ) : (
                     <>
                       <Play className="w-3.5 h-3.5 text-[#FFD700] fill-[#FFD700]" />
-                      <span>Test Beat Audio</span>
+                      <span>{t('shop_test_beat_audio', 'Test Beat Audio')}</span>
                     </>
                   )}
                 </button>
@@ -2065,7 +2065,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   </span>
                 </button>
                 <p className="text-[10px] text-gray-400">
-                  Minimum 60 seconds required. Playing &ldquo;{selectedBeatMetadata.name}&rdquo; at {selectedBeatMetadata.bpm} BPM.
+                  {t('shop_minimum_60_seconds', 'Minimum 60 seconds required. Playing “')}{selectedBeatMetadata.name}&rdquo; at {selectedBeatMetadata.bpm} BPM.
                 </p>
               </div>
             ) : (
@@ -2077,7 +2077,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                     className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all shadow-[0_0_25px_rgba(168,85,247,0.5)] cursor-pointer"
                   >
                     <Mic className="w-4 h-4" />
-                    <span>Record Freestyle Now (-5 Energy)</span>
+                    <span>{t('shop_record_freestyle', 'Record Freestyle Now (-5 Energy)')}</span>
                   </button>
                   <button
                     onClick={() => setShowAdsgramChain(true)}
@@ -2175,7 +2175,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                     {isPlayingVocalWithBeat ? (
                       <>
                         <Square className="w-3.5 h-3.5 fill-white text-white" />
-                        <span>Stop Vocal + Beat Playback</span>
+                        <span>{t('shop_stop_vocal_beat', 'Stop Vocal + Beat Playback')}</span>
                       </>
                     ) : (
                       <>
@@ -2278,28 +2278,28 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             {/* Studio Requirements Breakdown */}
             <div className="p-3.5 rounded-2xl bg-[#0F0C16] border border-amber-500/30 space-y-2.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">Required Studio:</span>
+                <span className="text-gray-400">{t('shop_required_studio', 'Required Studio:')}</span>
                 <span className="font-black text-amber-300">
                   Level {lockedBeatToUpgrade.requiredStudioLevel} ({STUDIO_LEVEL_NAMES[lockedBeatToUpgrade.requiredStudioLevel] || 'Upgraded Studio'})
                 </span>
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">Upgrade Cost:</span>
+                <span className="text-gray-400">{t('shop_upgrade_cost', 'Upgrade Cost:')}</span>
                 <span className="font-black text-[#FFD700] font-mono">
                   {lockedBeatToUpgrade.requiredCoins.toLocaleString()} SC
                 </span>
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">Your Current Studio:</span>
+                <span className="text-gray-400">{t('shop_your_current_studio', 'Your Current Studio:')}</span>
                 <span className="font-bold text-gray-200">
                   Level {playerStudioLevel} ({currentStudioInfo.name})
                 </span>
               </div>
 
               <div className="flex items-center justify-between text-xs pt-1 border-t border-white/10">
-                <span className="text-gray-400">Your Street Coins:</span>
+                <span className="text-gray-400">{t('shop_your_street_coins', 'Your Street Coins:')}</span>
                 <span className="font-black text-white font-mono">
                   {gameState.streetCoin.toLocaleString()} SC
                 </span>
@@ -2320,7 +2320,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                   />
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono">
-                  <span>Balance Coverage</span>
+                  <span>{t('shop_balance_coverage', 'Balance Coverage')}</span>
                   <span>
                     {Math.min(100, Math.round((gameState.streetCoin / lockedBeatToUpgrade.requiredCoins) * 100))}%
                   </span>
@@ -2351,7 +2351,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                       className="py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1 shadow-md active:scale-95 transition-all cursor-pointer"
                     >
                       <ShoppingBag className="w-3.5 h-3.5" />
-                      <span>Shop Studios</span>
+                      <span>{t('shop_shop_studios', 'Shop Studios')}</span>
                     </button>
                     <button
                       onClick={() => {
@@ -2361,7 +2361,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                       className="py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1 shadow-md active:scale-95 transition-all cursor-pointer"
                     >
                       <Tv className="w-3.5 h-3.5" />
-                      <span>+10 SC Ad</span>
+                      <span>{t('shop_10_sc_ad', '+10 SC Ad')}</span>
                     </button>
                   </div>
                 </>
