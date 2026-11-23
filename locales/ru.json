@@ -299,5 +299,19 @@
   "daily_free_racing_desc": "Первые 5 дорожных монет за день дают награду x2!",
   "daily_free_active_today": "АКТИВНО СЕГОДНЯ",
   "daily_free_simulate": "Сымитировать игру",
-  "daily_free_relock": "Заблокировать тест снова"
+  "daily_free_relock": "Заблокировать тест снова",
+  "shop_cat_clothes": "Одежда",
+  "shop_cat_houses": "Дома",
+  "shop_cat_vehicles": "Транспорт",
+  "shop_cat_phones": "Телефоны",
+  "shop_cat_design": "Дизайн",
+  "shop_cat_studio": "Студия",
+  "shop_cat_filters": "Фильтры",
+  "shop_cat_food": "Еда",
+  "shop_freestyle_booth": "Фристайл-студия (15 битов)",
+  "shop_beats_unlocked": "Битов открыто • Запись и прослушивание",
+  "shop_enter_booth": "Войти в студию",
+  "shop_equipped": "Надето",
+  "shop_wear": "Надеть",
+  "shop_buy_for": "Купить"
 }
