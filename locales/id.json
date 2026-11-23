@@ -340,7 +340,7 @@
   "shop_owned": "Dimiliki",
   "shop_buy_eat": "Beli & makan",
   "shop_eat": "Makan",
-  "shop_studio_view": "Tampilan Studio",
+  "shop_studio_view": "Studio",
   "shop_track_payout": "Pembayaran per lagu",
   "shop_fan_base": "Jumlah penggemar",
   "shop_beats_library_access": "Akses pustaka beat:",
@@ -427,5 +427,7 @@
   "watch_coins_label": "10 KOIN",
   "watch_watched_suffix": "Ditonton",
   "watch_after_five_ads": "Setelah 5 iklan",
-  "watch_unlocked": "TERBUKA"
+  "watch_unlocked": "TERBUKA",
+  "shop_inside_house": "Dalam Rumah",
+  "shop_vehicle_view": "Kendaraan"
 }
