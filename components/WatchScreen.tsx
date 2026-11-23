@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { UserGameState, NavTab } from '@/types/game';
-import { claimWatchAdReward } from '@/lib/storage';
+import { claimWatchAdReward, claimWatchMilestoneReward } from '@/lib/storage';
 import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import { playClickSound, playCoinSound } from '@/lib/sound';
 import confetti from 'canvas-confetti';
@@ -36,6 +36,7 @@ export function WatchScreen({
   const { t } = useLanguage();
 
   const [isPlayingAd, setIsPlayingAd] = useState(false);
+  const [selectedMilestone, setSelectedMilestone] = useState<5 | 10 | null>(null);
   const adRequestInProgress = useRef(false);
 
   const [rewardModal, setRewardModal] = useState<{
@@ -150,6 +151,34 @@ export function WatchScreen({
     } catch (error) {
       console.error('Adsgram rewarded ad error:', error);
       onToast('The ad was not completed or is unavailable. No coins were added.');
+    } finally {
+      adRequestInProgress.current = false;
+      setIsPlayingAd(false);
+    }
+  };
+
+  const handleClaimMilestone = async (milestone: 5 | 10) => {
+    if (adRequestInProgress.current || isPlayingAd) return;
+    if (adsWatchedToday < milestone) return;
+    if ((gameState.watchMilestonesClaimedToday || []).includes(milestone)) return;
+    if (isLimitReached) { onToast(t('watch_daily_limit', 'Daily ad limit reached.')); return; }
+    adRequestInProgress.current = true;
+    setIsPlayingAd(true);
+    try {
+      await showAdsgramRewardedAd();
+      const result = claimWatchMilestoneReward(milestone);
+      if (!result.success) {
+        const message = result.reason === 'claimed' ? t('watch_milestone_already_claimed', 'You already claimed this milestone today.') : result.reason === 'locked' ? t('watch_milestone_locked', 'Watch the required ads to unlock this milestone.') : t('watch_daily_limit', 'Daily ad limit reached.');
+        onToast(message); return;
+      }
+      playCoinSound();
+      setSelectedMilestone(null);
+      setRewardModal({ isOpen: true, amount: result.reward, multiplier: 1 });
+      onToast(t('watch_milestone_claimed', 'Milestone reward claimed!'));
+      try { confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 }, colors: ['#FFD700', '#A855F7', '#FFFFFF'] }); } catch {}
+    } catch (error) {
+      console.error('Watch milestone rewarded ad error:', error);
+      onToast(t('watch_ad_incomplete', 'The ad was not completed. No reward was added.'));
     } finally {
       adRequestInProgress.current = false;
       setIsPlayingAd(false);
@@ -297,71 +326,23 @@ export function WatchScreen({
         </h3>
 
         <div className="grid grid-cols-2 gap-2.5">
-          <div
-            className={`p-3 rounded-xl border flex flex-col justify-between transition-all ${
-              adsWatchedToday >= 5
-                ? 'bg-amber-950/40 border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
-                : 'bg-black/40 border-white/10'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-gray-400">
-                {t('watch_milestone_one', 'MILESTONE 1 (5 ADS)')}
-              </span>
-
-              {adsWatchedToday >= 5 && (
-                <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-              )}
-            </div>
-
-            <div className="my-1.5">
-              <div className="text-xl font-black text-amber-400">
-                10 COINS
-              </div>
-              <p className="text-[10px] text-gray-300">
-                {t('watch_fixed_reward', 'Fixed reward per completed ad')}
-              </p>
-            </div>
-
-            <span className="text-[9px] font-mono text-gray-400">
-              {adsWatchedToday >= 5
-                ? t('watch_active_now', 'ACTIVE NOW')
-                : `${adsWatchedToday}/5 ${t('watch_watched_suffix', 'Watched')}`}
-            </span>
-          </div>
-
-          <div
-            className={`p-3 rounded-xl border flex flex-col justify-between transition-all ${
-              adsWatchedToday >= 10
-                ? 'bg-purple-950/40 border-purple-500/60 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
-                : 'bg-black/40 border-white/10'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-gray-400">
-                {t('watch_milestone_two', 'MILESTONE 2 (10 ADS)')}
-              </span>
-
-              {adsWatchedToday >= 10 && (
-                <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" />
-              )}
-            </div>
-
-            <div className="my-1.5">
-              <div className="text-xl font-black text-purple-400">
-                10 COINS
-              </div>
-              <p className="text-[10px] text-gray-300">
-                {t('watch_no_multiplier', 'No extra coin multiplier')}
-              </p>
-            </div>
-
-            <span className="text-[9px] font-mono text-gray-400">
-              {adsWatchedToday >= 10
-                ? t('watch_active_now', 'ACTIVE NOW')
-                : `${adsWatchedToday}/10 ${t('watch_watched_suffix', 'Watched')}`}
-            </span>
-          </div>
+          {([5, 10] as const).map((milestone) => {
+            const unlocked = adsWatchedToday >= milestone;
+            const claimed = (gameState.watchMilestonesClaimedToday || []).includes(milestone);
+            const isFirst = milestone === 5;
+            return (
+              <button key={milestone} type="button" onClick={() => { playClickSound(); setSelectedMilestone(milestone); }}
+                className={`p-3 rounded-xl border flex flex-col justify-between text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#FFD700] ${unlocked ? (isFirst ? 'bg-amber-950/40 border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'bg-purple-950/40 border-purple-500/60 shadow-[0_0_10px_rgba(168,85,247,0.2)]') : 'bg-black/40 border-white/10'}`}>
+                <div className="flex w-full items-center justify-between">
+                  <span className="text-[10px] font-bold text-gray-300">{isFirst ? t('watch_milestone_one', 'MILESTONE 1 (5 ADS)') : t('watch_milestone_two', 'MILESTONE 2 (10 ADS)')}</span>
+                  {claimed ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> : unlocked ? <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> : null}
+                </div>
+                <div className="my-1.5"><div className={`text-xl font-black ${isFirst ? 'text-amber-400' : 'text-purple-400'}`}>+10 SC</div><p className="text-[10px] text-gray-300">{t('watch_milestone_bonus_label', 'Extra milestone reward')}</p></div>
+                <span className="text-[9px] font-mono text-gray-300">{claimed ? t('watch_milestone_claimed_short', 'CLAIMED') : unlocked ? t('watch_milestone_ready', 'READY TO CLAIM') : `${adsWatchedToday}/${milestone} ${t('watch_watched_suffix', 'Watched')}`}</span>
+                <span className="mt-2 text-[9px] font-bold text-[#FFD700]">{t('watch_tap_for_details', 'TAP FOR DETAILS')}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -448,6 +429,28 @@ export function WatchScreen({
         </div>
       </div>
 
+      {selectedMilestone !== null && (() => {
+        const milestone = selectedMilestone;
+        const unlocked = adsWatchedToday >= milestone;
+        const claimed = (gameState.watchMilestonesClaimedToday || []).includes(milestone);
+        return (
+          <div className="fixed inset-0 z-[260] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-[#1C1C24] to-[#0E0E12] border border-[#FFD700]/60 p-6 text-center shadow-[0_0_35px_rgba(255,215,0,0.2)]">
+              <button type="button" onClick={() => setSelectedMilestone(null)} className="absolute top-3 right-3 p-2 rounded-full bg-white/10 text-gray-300" aria-label={t('studio_close_camera', 'Close')}><X className="w-4 h-4" /></button>
+              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#FFD700]/15 text-[#FFD700]"><Gift className="h-8 w-8" /></div>
+              <h3 className="text-lg font-black text-white">{milestone === 5 ? t('watch_milestone_one', 'MILESTONE 1 (5 ADS)') : t('watch_milestone_two', 'MILESTONE 2 (10 ADS)')}</h3>
+              <p className="mt-2 text-sm text-gray-300">{t('watch_milestone_details', 'Watch the required number of regular ads to unlock this milestone. Then watch one more rewarded video to claim the bonus.')}</p>
+              <div className="mt-4 rounded-xl bg-black/40 border border-white/10 p-3">
+                <div className="flex justify-between text-xs text-gray-300"><span>{t('watch_milestone_progress', 'Progress')}</span><strong className="text-white">{Math.min(adsWatchedToday, milestone)}/{milestone}</strong></div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#FFD700]" style={{ width: `${Math.min(100, adsWatchedToday / milestone * 100)}%` }} /></div>
+                <p className="mt-3 text-sm font-bold text-[#FFD700]">{t('watch_milestone_bonus', 'Milestone bonus: +10 SC')}</p>
+                <p className="mt-1 text-[11px] text-gray-400">{t('watch_milestone_ad_note', 'The claim video also earns its regular +10 SC ad reward and counts toward your daily ad limit.')}</p>
+              </div>
+              {claimed ? <div className="mt-4 rounded-xl bg-green-500/15 border border-green-500/30 p-3 text-sm font-bold text-green-300">{t('watch_milestone_claimed', 'Milestone reward claimed!')}</div> : unlocked ? <button type="button" disabled={isPlayingAd || isLimitReached} onClick={() => handleClaimMilestone(milestone)} className="mt-4 w-full rounded-xl bg-gradient-to-r from-amber-400 to-yellow-300 px-4 py-3 text-sm font-black text-black disabled:opacity-50">{isPlayingAd ? t('watch_ad_loading', 'Loading ad...') : t('watch_milestone_watch_claim', 'WATCH AD & CLAIM +10 SC')}</button> : <div className="mt-4 rounded-xl bg-white/5 border border-white/10 p-3 text-sm font-semibold text-gray-300">{t('watch_milestone_need_ads', 'Watch more regular ads to unlock this reward.')}</div>}
+            </div>
+          </div>
+        );
+      })()}
       {rewardModal.isOpen && (
         <div className="fixed inset-0 z-[250] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
           <div className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-[#1C1C24] to-[#0E0E12] border-2 border-[#FFD700] p-6 text-center shadow-[0_0_35px_rgba(255,215,0,0.35)]">
