@@ -322,5 +322,19 @@
   "daily_free_racing_desc": "매일 처음 5개의 도로 코인은 2배 보상!",
   "daily_free_active_today": "오늘 활성화",
   "daily_free_simulate": "플레이 시뮬레이션",
-  "daily_free_relock": "테스트 다시 잠그기"
+  "daily_free_relock": "테스트 다시 잠그기",
+  "shop_cat_clothes": "의류",
+  "shop_cat_houses": "주택",
+  "shop_cat_vehicles": "차량",
+  "shop_cat_phones": "휴대폰",
+  "shop_cat_design": "디자인",
+  "shop_cat_studio": "스튜디오",
+  "shop_cat_filters": "필터",
+  "shop_cat_food": "음식",
+  "shop_freestyle_booth": "프리스타일 부스 (비트 15개)",
+  "shop_beats_unlocked": "잠금 해제된 비트 • 녹음 및 테스트",
+  "shop_enter_booth": "부스 입장",
+  "shop_equipped": "장착됨",
+  "shop_wear": "착용",
+  "shop_buy_for": "구매"
 }
