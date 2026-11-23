@@ -440,5 +440,19 @@
   "studio_minimum": "Мин.",
   "studio_maximum": "Макс.",
   "studio_stop_recording_aria": "Остановить запись",
-  "studio_start_recording_aria": "Начать запись"
+  "studio_start_recording_aria": "Начать запись",
+  "studio_ad_earn_help": "Получайте +10 Street Coins за рекламу (не более 5 в день для каждого объявления • доступно 33 объявления)",
+  "studio_heading": "СТУДИЯ ФРИСТАЙЛА",
+  "studio_level_desc": "Студия уровня {level}",
+  "studio_rent_status_expired": "АРЕНДА СТУДИИ ИСТЕКЛА",
+  "studio_rent_status_active": "АРЕНДА СТУДИИ АКТИВНА",
+  "studio_ad_count": "Реклама {count}/33 — 10 монет",
+  "profile_secret_admin_explain": "Активируется долгим нажатием. Введите электронную почту администратора, чтобы открыть системные настройки:",
+  "profile_privacy_intro": "Конфиденциальность и безопасность ваших данных — основа нашей архитектуры:",
+  "profile_local_data_desc": "Игровые данные, настройки звука, инвентарь и выбранный язык безопасно хранятся в браузере вашего устройства.",
+  "profile_telegram_auth_desc": "Идентификаторы Telegram используются только для таблицы лидеров и проверки игровых достижений.",
+  "profile_no_data_desc": "Мы никогда не продаём, не сдаём в аренду и не передаём личную информацию третьим лицам.",
+  "profile_version": "Версия",
+  "profile_platform": "Платформа",
+  "profile_support": "Поддержка"
 }
