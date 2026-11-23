@@ -427,5 +427,16 @@
   "watch_after_five_ads": "After 5 Ads",
   "watch_unlocked": "DON OPEN",
   "shop_inside_house": "Inside House",
-  "shop_vehicle_view": "Motor"
+  "shop_vehicle_view": "Motor",
+  "studio_live_stereo_mixed": "LIVE STEREO • MIXED",
+  "studio_ready_beat_voice_mix": "READY • BEAT+VOICE MIX",
+  "studio_mixer_help": "Adjust each slider one by one. E change go enter recording mix.",
+  "studio_recording_mixed_track": "DEY RECORD BEAT AND VOICE",
+  "studio_vocal_booth_beat_voice": "VOCAL BOOTH - BEAT + VOICE",
+  "studio_daily_label": "Daily",
+  "studio_recording_label": "Recording",
+  "studio_minimum": "Min",
+  "studio_maximum": "Max",
+  "studio_stop_recording_aria": "Stop recording",
+  "studio_start_recording_aria": "Start recording"
 }
