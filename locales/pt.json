@@ -186,5 +186,10 @@
   "turf_watch_continue": "ASSISTIR ANÚNCIO PARA CONTINUAR",
   "turf_back_home": "VOLTAR AO INÍCIO",
   "turf_ad_success_note": "A partida só continua depois que o anúncio recompensado terminar.",
-  "turf_hour_victory": "VITÓRIA! 1 HORA!"
+  "turf_hour_victory": "VITÓRIA! 1 HORA!",
+  "studio_off": "DESLIGADO",
+  "studio_balanced": "EQUILIBRADO",
+  "studio_max": "MÁX.",
+  "studio_beat_volume_aria": "Volume do beat",
+  "studio_voice_volume_aria": "Volume da voz"
 }
