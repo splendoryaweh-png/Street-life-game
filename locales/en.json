@@ -313,5 +313,19 @@
   "daily_free_racing_desc": "First 5 road coins daily give 2x reward!",
   "daily_free_active_today": "ACTIVE TODAY",
   "daily_free_simulate": "Simulate Play",
-  "daily_free_relock": "Re-Lock Test"
+  "daily_free_relock": "Re-Lock Test",
+  "shop_cat_clothes": "Clothes",
+  "shop_cat_houses": "Houses",
+  "shop_cat_vehicles": "Vehicles",
+  "shop_cat_phones": "Phones",
+  "shop_cat_design": "Design",
+  "shop_cat_studio": "Studio",
+  "shop_cat_filters": "Filters",
+  "shop_cat_food": "Food",
+  "shop_freestyle_booth": "Freestyle Booth (15 Beats)",
+  "shop_beats_unlocked": "Beats Unlocked • Record & test beats",
+  "shop_enter_booth": "Enter Booth",
+  "shop_equipped": "Equipped",
+  "shop_wear": "Wear",
+  "shop_buy_for": "Buy"
 }
