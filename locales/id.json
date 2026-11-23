@@ -275,5 +275,13 @@
   "referral_claim": "Klaim 520",
   "referral_welcome_claimed": "Bonus sambutan diklaim (+520 koin)",
   "referral_invited_count": "Teman Diundang:",
-  "referral_simulate": "Simulasikan 1 Undangan (+100)"
+  "referral_simulate": "Simulasikan 1 Undangan (+100)",
+  "shop_inventory_title": "INVENTARIS - Street Hustle",
+  "shop_view_character": "Lihat Karakter",
+  "shop_tab": "Toko",
+  "shop_craft": "Kerajinan",
+  "shop_market": "Pasar",
+  "shop_balance": "Saldo:",
+  "shop_energy": "Energi:",
+  "shop_renew_rent": "Perpanjang Sewa"
 }
