@@ -236,7 +236,7 @@ export function DailyRewardStrip({
             className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-[#222228] text-[#9CA3AF] border border-white/5 cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
           >
             <Lock className="w-4 h-4 text-[#9CA3AF]" />
-            {t('daily_free_play_to_unlock', '{t('daily_free_play_to_unlock', 'Play 1 Game to Unlock 🔒')}')}
+            {t('daily_free_play_to_unlock', 'Play 1 Game to Unlock 🔒')}
           </button>
         ) : (
           <button
