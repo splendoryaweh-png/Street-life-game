@@ -455,5 +455,10 @@
   "profile_version": "Versi",
   "profile_platform": "Platform",
   "profile_support": "Dukungan",
-  "shop_item_walking_name": "Berjalan kaki"
+  "shop_item_walking_name": "Berjalan kaki",
+  "studio_filter_normal": "Normal",
+  "studio_filter_warm": "Hangat",
+  "studio_filter_bw": "Hitam Putih",
+  "studio_filter_cool": "Sejuk",
+  "studio_filter_vintage": "Vintage"
 }
