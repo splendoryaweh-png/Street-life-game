@@ -283,5 +283,21 @@
   "shop_market": "Рынок",
   "shop_balance": "Баланс:",
   "shop_energy": "Энергия:",
-  "shop_renew_rent": "Продлить аренду"
+  "shop_renew_rent": "Продлить аренду",
+  "daily_free_title": "Ежедневные бесплатные награды",
+  "daily_free_all": "Все ежедневные награды",
+  "daily_free_completed": "Завершено",
+  "daily_free_unlocked": "Открыто",
+  "daily_free_locked": "Заблокировано",
+  "daily_free_claimed_today": "Сегодня уже получено ✓ (возвращайтесь завтра)",
+  "daily_free_play_to_unlock": "Сыграйте 1 игру, чтобы открыть 🔒",
+  "daily_free_verifying": "Проверка награды...",
+  "daily_free_claim_day": "Получить за день",
+  "daily_free_nitro": "Бесплатный Nitro ежедневно",
+  "daily_free_charges_left": "бесплатных зарядов на сегодня осталось",
+  "daily_free_racing_coins": "Гоночные монеты x2",
+  "daily_free_racing_desc": "Первые 5 дорожных монет за день дают награду x2!",
+  "daily_free_active_today": "АКТИВНО СЕГОДНЯ",
+  "daily_free_simulate": "Сымитировать игру",
+  "daily_free_relock": "Заблокировать тест снова"
 }
