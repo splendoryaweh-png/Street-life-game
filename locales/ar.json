@@ -413,5 +413,8 @@
   "shop_duration": "المدة",
   "shop_locked_studio_beat": "إيقاع الاستوديو مقفل",
   "shop_level": "المستوى",
-  "watch_ad_get_10_sc": "شاهد إعلانًا لتحصل على 10 SC"
+  "watch_ad_get_10_sc": "شاهد إعلانًا لتحصل على 10 SC",
+  "home_total_net_worth": "إجمالي صافي الثروة",
+  "home_coin_transactions_last_10": "آخر 10 معاملات للعملات",
+  "home_street_novel": "📖 رواية الشارع"
 }
