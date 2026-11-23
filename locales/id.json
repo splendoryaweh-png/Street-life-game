@@ -283,5 +283,21 @@
   "shop_market": "Pasar",
   "shop_balance": "Saldo:",
   "shop_energy": "Energi:",
-  "shop_renew_rent": "Perpanjang Sewa"
+  "shop_renew_rent": "Perpanjang Sewa",
+  "daily_free_title": "Sistem Gratis Harian",
+  "daily_free_all": "Semua Hadiah Harian",
+  "daily_free_completed": "Selesai",
+  "daily_free_unlocked": "Terbuka",
+  "daily_free_locked": "Terkunci",
+  "daily_free_claimed_today": "Sudah diklaim hari ini ✓ (Kembali besok)",
+  "daily_free_play_to_unlock": "Mainkan 1 game untuk membuka 🔒",
+  "daily_free_verifying": "Memverifikasi hadiah...",
+  "daily_free_claim_day": "Klaim Hari",
+  "daily_free_nitro": "Nitro Gratis Harian",
+  "daily_free_charges_left": "isi ulang gratis harian tersisa",
+  "daily_free_racing_coins": "Koin Balap 2X",
+  "daily_free_racing_desc": "5 koin jalan pertama setiap hari memberi hadiah 2x!",
+  "daily_free_active_today": "AKTIF HARI INI",
+  "daily_free_simulate": "Simulasikan Bermain",
+  "daily_free_relock": "Kunci Ulang Tes"
 }
