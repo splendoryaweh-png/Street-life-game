@@ -189,6 +189,21 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Re-check the device/Telegram locale when a player returns to the Mini App.
+    const refreshDetectedLanguage = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        setLanguageState(detectLanguage());
+      }
+    };
+    window.addEventListener('focus', refreshDetectedLanguage);
+    document.addEventListener('visibilitychange', refreshDetectedLanguage);
+    return () => {
+      window.removeEventListener('focus', refreshDetectedLanguage);
+      document.removeEventListener('visibilitychange', refreshDetectedLanguage);
+    };
+  }, []);
+
+  useEffect(() => {
     if (typeof document === 'undefined') return;
     document.documentElement.lang = language;
     document.documentElement.dir = language === 'ar' || language === 'he' ? 'rtl' : 'ltr';
