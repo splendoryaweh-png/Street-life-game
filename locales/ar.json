@@ -469,5 +469,6 @@
   "profile_no_data_desc": "لا نبيع المعلومات الشخصية أو نؤجرها أو نوزعها على أطراف ثالثة مطلقًا.",
   "profile_version": "الإصدار",
   "profile_platform": "المنصة",
-  "profile_support": "الدعم"
+  "profile_support": "الدعم",
+  "shop_item_walking_name": "المشي"
 }
