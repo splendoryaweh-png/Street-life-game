@@ -171,5 +171,12 @@
   "profile_edition": "Edição Street Life v2.5",
   "profile_local_storage": "Armazenamento local de dados",
   "profile_telegram_auth": "Autenticação do Telegram",
-  "profile_no_data_selling": "Não vendemos dados"
+  "profile_no_data_selling": "Não vendemos dados",
+  "studio_pause": "PAUSAR",
+  "studio_play_beat": "TOCAR BEAT",
+  "studio_mixer_controls": "CONTROLES DO MIXER",
+  "studio_beat_voice": "BEAT + VOZ",
+  "studio_beat_volume": "VOLUME DO BEAT",
+  "studio_voice_volume": "VOLUME DA VOZ",
+  "studio_locked": "Bloqueado"
 }
