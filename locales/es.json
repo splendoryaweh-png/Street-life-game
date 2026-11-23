@@ -299,5 +299,19 @@
   "daily_free_racing_desc": "¡Las primeras 5 monedas de carretera del día dan recompensa x2!",
   "daily_free_active_today": "ACTIVO HOY",
   "daily_free_simulate": "Simular partida",
-  "daily_free_relock": "Volver a bloquear prueba"
+  "daily_free_relock": "Volver a bloquear prueba",
+  "shop_cat_clothes": "Ropa",
+  "shop_cat_houses": "Casas",
+  "shop_cat_vehicles": "Vehículos",
+  "shop_cat_phones": "Teléfonos",
+  "shop_cat_design": "Diseño",
+  "shop_cat_studio": "Estudio",
+  "shop_cat_filters": "Filtros",
+  "shop_cat_food": "Comida",
+  "shop_freestyle_booth": "Cabina Freestyle (15 ritmos)",
+  "shop_beats_unlocked": "Ritmos desbloqueados • Graba y prueba",
+  "shop_enter_booth": "Entrar a la cabina",
+  "shop_equipped": "Equipado",
+  "shop_wear": "Usar",
+  "shop_buy_for": "Comprar"
 }
