@@ -128,5 +128,17 @@
   "earn_up_to": "Заработайте до 5k SC",
   "video_sponsors": "Видеоспонсоры",
   "daily_free_vault": "Ежедневное хранилище",
-  "free_nitro_spins": "Бесплатные Nitro и вращения"
+  "free_nitro_spins": "Бесплатные Nitro и вращения",
+  "studio_preview_mix": "Прослушать микс",
+  "studio_post_mix": "Опубликовать микс",
+  "studio_video_freestyle": "ВИДЕО-ФРИСТАЙЛ",
+  "studio_camera_recording": "Камера записывает бит и голос вместе",
+  "studio_enable_camera_video": "Включить камеру для видео",
+  "studio_close_camera": "Закрыть камеру",
+  "studio_enable_camera": "Включить камеру",
+  "studio_live_camera": "КАМЕРА В РЕАЛЬНОМ ВРЕМЕНИ",
+  "studio_flip": "Переключить",
+  "free": "БЕСПЛАТНО",
+  "studio_record_mix": "Записать микс",
+  "studio_daily_limit": "Дневной лимит исчерпан"
 }
