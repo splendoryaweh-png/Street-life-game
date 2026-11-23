@@ -192,5 +192,13 @@
   "studio_beat_voice": "מקצב + קול",
   "studio_beat_volume": "עוצמת המקצב",
   "studio_voice_volume": "עוצמת הקול",
-  "studio_locked": "נעול"
+  "studio_locked": "נעול",
+  "turf_player_down": "הובסת",
+  "turf_death_description": "צפה בפרסומת כדי להמשיך במשחק מהמקום שבו עצרת, או חזור לדף הבית.",
+  "turf_earned": "הרווחת",
+  "turf_ad_playing": "הפרסומת מופעלת...",
+  "turf_watch_continue": "צפה בפרסומת כדי להמשיך",
+  "turf_back_home": "חזרה לדף הבית",
+  "turf_ad_success_note": "המשחק יתחדש רק לאחר השלמת הפרסומת המזכה.",
+  "turf_hour_victory": "ניצחון! שעה אחת!"
 }
