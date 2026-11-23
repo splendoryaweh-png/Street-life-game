@@ -133,5 +133,19 @@
   "shop_market": "Market",
   "shop_balance": "Balanse:",
   "shop_energy": "Enerhiya:",
-  "shop_renew_rent": "I-renew ang Renta"
+  "shop_renew_rent": "I-renew ang Renta",
+  "shop_cat_clothes": "Damit",
+  "shop_cat_houses": "Mga Bahay",
+  "shop_cat_vehicles": "Mga Sasakyan",
+  "shop_cat_phones": "Mga Telepono",
+  "shop_cat_design": "Disenyo",
+  "shop_cat_studio": "Studio",
+  "shop_cat_filters": "Mga Filter",
+  "shop_cat_food": "Pagkain",
+  "shop_freestyle_booth": "Freestyle Booth (15 Beats)",
+  "shop_beats_unlocked": "Mga na-unlock na Beat • Mag-record at mag-test",
+  "shop_enter_booth": "Pumasok sa Booth",
+  "shop_equipped": "Naka-equip",
+  "shop_wear": "Isuot",
+  "shop_buy_for": "Bumili"
 }
