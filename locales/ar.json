@@ -355,7 +355,7 @@
   "shop_owned": "مملوك",
   "shop_buy_eat": "شراء وتناول",
   "shop_eat": "تناول",
-  "shop_studio_view": "عرض الاستوديو",
+  "shop_studio_view": "الاستوديو",
   "shop_track_payout": "العائد لكل مقطع",
   "shop_fan_base": "قاعدة المعجبين",
   "shop_beats_library_access": "الوصول إلى مكتبة الإيقاعات:",
@@ -442,5 +442,7 @@
   "watch_coins_label": "10 عملات",
   "watch_watched_suffix": "تمت مشاهدته",
   "watch_after_five_ads": "بعد 5 إعلانات",
-  "watch_unlocked": "مفتوح"
+  "watch_unlocked": "مفتوح",
+  "shop_inside_house": "داخل المنزل",
+  "shop_vehicle_view": "المركبة"
 }
