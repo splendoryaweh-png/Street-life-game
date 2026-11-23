@@ -541,7 +541,7 @@ export function ProfileScreen({
             </div>
 
             <p className="text-xs text-gray-300 leading-relaxed">
-              Long-press triggered. Enter the administrator email to unlock system controls:
+              {t('profile_secret_admin_explain', 'Long-press triggered. Enter the administrator email to unlock system controls:')}
             </p>
 
             <form onSubmit={handleAdminLoginSubmit} className="space-y-3">
@@ -877,24 +877,24 @@ export function ProfileScreen({
 
             <div className="space-y-2.5 text-[11px] text-gray-300 leading-relaxed">
               <p>
-                Your privacy and data safety are fundamental to our architecture:
+                {t('profile_privacy_intro', 'Your privacy and data safety are fundamental to our architecture:')}
               </p>
               <div className="p-3 rounded-2xl bg-black/50 border border-white/10 space-y-1.5">
                 <h5 className="font-black text-white uppercase text-[10px]">{t('profile_local_storage', 'Local Data Storage')}</h5>
                 <p className="text-gray-400">
-                  Game save data, sound settings, inventory, and language selections are safely stored in your local browser sandbox.
+                  {t('profile_local_data_desc', 'Game save data, sound settings, inventory, and language selections are safely stored in your local browser sandbox.')}
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-black/50 border border-white/10 space-y-1.5">
                 <h5 className="font-black text-white uppercase text-[10px]">{t('profile_telegram_auth', 'Telegram Authentication')}</h5>
                 <p className="text-gray-400">
-                  Telegram user identifiers are used solely for leaderboard display and verification of game achievements.
+                  {t('profile_telegram_auth_desc', 'Telegram user identifiers are used solely for leaderboard display and verification of game achievements.')}
                 </p>
               </div>
               <div className="p-3 rounded-2xl bg-black/50 border border-white/10 space-y-1.5">
                 <h5 className="font-black text-white uppercase text-[10px]">{t('profile_no_data_selling', 'No Data Selling')}</h5>
                 <p className="text-gray-400">
-                  We never sell, rent, or distribute personal information to third parties.
+                  {t('profile_no_data_desc', 'We never sell, rent, or distribute personal information to third parties.')}
                 </p>
               </div>
             </div>
@@ -932,9 +932,9 @@ export function ProfileScreen({
             </p>
 
             <div className="p-3 rounded-2xl bg-black/60 border border-white/10 text-[10px] font-mono text-gray-400 text-left space-y-1">
-              <div>Version: <span className="text-white font-bold">2.5.0</span></div>
-              <div>Platform: <span className="text-white font-bold">Web &amp; Telegram Mini App</span></div>
-              <div>Support: <span className="text-cyan-300 font-bold">@Gammyadmin</span></div>
+              <div>{t('profile_version', 'Version')}: <span className="text-white font-bold">2.5.0</span></div>
+              <div>{t('profile_platform', 'Platform')}: <span className="text-white font-bold">Web &amp; Telegram Mini App</span></div>
+              <div>{t('profile_support', 'Support')}: <span className="text-cyan-300 font-bold">@Gammyadmin</span></div>
             </div>
 
             <button
