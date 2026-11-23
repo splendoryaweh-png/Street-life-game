@@ -393,5 +393,10 @@
   "studio_maximum": "Max",
   "studio_stop_recording_aria": "Stop recording",
   "studio_start_recording_aria": "Start recording",
-  "shop_item_walking_name": "Walking"
+  "shop_item_walking_name": "Walking",
+  "studio_filter_normal": "Normal",
+  "studio_filter_warm": "Warm",
+  "studio_filter_bw": "B&W",
+  "studio_filter_cool": "Cool",
+  "studio_filter_vintage": "Vintage"
 }
