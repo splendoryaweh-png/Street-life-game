@@ -247,5 +247,6 @@
   "turf_toast_valid_room": "הזן קוד חדר תקין!",
   "turf_toast_room_created": "חדר הצוות נוצר: {code}",
   "turf_toast_joined_room": "הצטרפת לחדר {code}! מתחבר...",
-  "turf_toast_copied_code": "קוד החדר הועתק: {code}"
+  "turf_toast_copied_code": "קוד החדר הועתק: {code}",
+  "turf_toast_player_joined": "{name} הצטרף לצוות!"
 }
