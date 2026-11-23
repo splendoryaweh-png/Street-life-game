@@ -247,5 +247,6 @@
   "turf_toast_valid_room": "PUT CORRECT ROOM CODE!",
   "turf_toast_room_created": "SQUAD ROOM DON CREATE: {code}",
   "turf_toast_joined_room": "YOU DON JOIN ROOM {code}! DEY CONNECT...",
-  "turf_toast_copied_code": "ROOM CODE DON COPY: {code}"
+  "turf_toast_copied_code": "ROOM CODE DON COPY: {code}",
+  "turf_toast_player_joined": "{name} don join the squad!"
 }
