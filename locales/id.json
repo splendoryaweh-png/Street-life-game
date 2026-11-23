@@ -178,5 +178,13 @@
   "studio_beat_voice": "BEAT + VOKAL",
   "studio_beat_volume": "VOLUME BEAT",
   "studio_voice_volume": "VOLUME VOKAL",
-  "studio_locked": "Terkunci"
+  "studio_locked": "Terkunci",
+  "turf_player_down": "KAMU TUMBANG",
+  "turf_death_description": "Tonton iklan untuk melanjutkan pertandingan ini dari tempat kamu berhenti, atau kembali ke beranda.",
+  "turf_earned": "DIPEROLEH",
+  "turf_ad_playing": "IKLAN SEDANG DIPUTAR...",
+  "turf_watch_continue": "TONTON IKLAN UNTUK LANJUT",
+  "turf_back_home": "KEMBALI KE BERANDA",
+  "turf_ad_success_note": "Pertandingan dilanjutkan hanya setelah iklan hadiah selesai.",
+  "turf_hour_victory": "MENANG! 1 JAM!"
 }
