@@ -398,5 +398,8 @@
   "shop_duration": "Duración",
   "shop_locked_studio_beat": "BEAT DE ESTUDIO BLOQUEADO",
   "shop_level": "Nivel",
-  "watch_ad_get_10_sc": "VER ANUNCIO PARA OBTENER 10 SC"
+  "watch_ad_get_10_sc": "VER ANUNCIO PARA OBTENER 10 SC",
+  "home_total_net_worth": "Patrimonio neto total",
+  "home_coin_transactions_last_10": "Transacciones de monedas (últimas 10)",
+  "home_street_novel": "📖 Novela callejera"
 }
