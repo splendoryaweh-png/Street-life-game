@@ -247,5 +247,6 @@
   "turf_toast_valid_room": "유효한 방 코드를 입력하세요!",
   "turf_toast_room_created": "분대 방 생성됨: {code}",
   "turf_toast_joined_room": "{code} 방 참가 완료! 연결 중...",
-  "turf_toast_copied_code": "방 코드 복사됨: {code}"
+  "turf_toast_copied_code": "방 코드 복사됨: {code}",
+  "turf_toast_player_joined": "{name} 님이 분대에 참가했습니다!"
 }
