@@ -555,7 +555,7 @@ export default function StreetLifeApp() {
                     <CheckSquare className="w-4 h-4" />
                   </div>
                   <span className="text-[9.5px] font-black text-white group-hover:text-cyan-400 truncate w-full">
-                    Tasks
+                    {t('hub_tasks', 'Tasks')}
                   </span>
                 </button>
 
@@ -572,7 +572,7 @@ export default function StreetLifeApp() {
                     <Wallet className="w-4 h-4" />
                   </div>
                   <span className="text-[9.5px] font-black text-white group-hover:text-[#FFD700] truncate w-full">
-                    Bank
+                    {t('hub_bank', 'Bank')}
                   </span>
                 </button>
 
@@ -602,7 +602,7 @@ export default function StreetLifeApp() {
                     <Gift className="w-4 h-4" />
                   </div>
                   <span className="text-[9.5px] font-black text-white group-hover:text-emerald-400 truncate w-full">
-                    Daily Free
+                    {t('hub_daily_free', 'Daily Free')}
                   </span>
                 </Link>
 
