@@ -340,7 +340,7 @@
   "shop_owned": "В собственности",
   "shop_buy_eat": "Купить и съесть",
   "shop_eat": "Съесть",
-  "shop_studio_view": "Вид студии",
+  "shop_studio_view": "Студия",
   "shop_track_payout": "Выплата за трек",
   "shop_fan_base": "Фан-база",
   "shop_beats_library_access": "Доступ к библиотеке битов:",
@@ -427,5 +427,7 @@
   "watch_coins_label": "10 МОНЕТ",
   "watch_watched_suffix": "Просмотрено",
   "watch_after_five_ads": "После 5 реклам",
-  "watch_unlocked": "ОТКРЫТО"
+  "watch_unlocked": "ОТКРЫТО",
+  "shop_inside_house": "Внутри дома",
+  "shop_vehicle_view": "Транспорт"
 }
