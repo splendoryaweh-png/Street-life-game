@@ -174,7 +174,7 @@
   "shop_owned": "Pag-aari",
   "shop_buy_eat": "Bumili at Kumain",
   "shop_eat": "Kumain",
-  "shop_studio_view": "View ng Studio",
+  "shop_studio_view": "Studio",
   "shop_track_payout": "Bayad bawat Track",
   "shop_fan_base": "Bilang ng Fans",
   "shop_beats_library_access": "Access sa Beat Library:",
@@ -261,5 +261,7 @@
   "watch_coins_label": "10 COIN",
   "watch_watched_suffix": "Napanood",
   "watch_after_five_ads": "Pagkatapos ng 5 Ads",
-  "watch_unlocked": "NA-UNLOCK"
+  "watch_unlocked": "NA-UNLOCK",
+  "shop_inside_house": "Loob ng Bahay",
+  "shop_vehicle_view": "Sasakyan"
 }
