@@ -440,5 +440,19 @@
   "studio_minimum": "Min",
   "studio_maximum": "Maks",
   "studio_stop_recording_aria": "Hentikan rekaman",
-  "studio_start_recording_aria": "Mulai rekaman"
+  "studio_start_recording_aria": "Mulai rekaman",
+  "studio_ad_earn_help": "Dapatkan +10 Street Coins per iklan (maksimal 5 per hari per iklan • tersedia 33 iklan)",
+  "studio_heading": "STUDIO FREESTYLE",
+  "studio_level_desc": "Studio level {level}",
+  "studio_rent_status_expired": "SEWA STUDIO KEDALUWARSA",
+  "studio_rent_status_active": "SEWA STUDIO AKTIF",
+  "studio_ad_count": "Iklan {count}/33 - 10 koin",
+  "profile_secret_admin_explain": "Diaktifkan dengan menekan lama. Masukkan email administrator untuk membuka kontrol sistem:",
+  "profile_privacy_intro": "Privasi dan keamanan data Anda merupakan dasar arsitektur kami:",
+  "profile_local_data_desc": "Data simpanan, pengaturan suara, inventaris, dan pilihan bahasa disimpan dengan aman di browser perangkat Anda.",
+  "profile_telegram_auth_desc": "ID Telegram hanya digunakan untuk tampilan papan peringkat dan verifikasi pencapaian game.",
+  "profile_no_data_desc": "Kami tidak pernah menjual, menyewakan, atau membagikan informasi pribadi kepada pihak ketiga.",
+  "profile_version": "Versi",
+  "profile_platform": "Platform",
+  "profile_support": "Dukungan"
 }
