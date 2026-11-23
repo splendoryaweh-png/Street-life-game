@@ -381,5 +381,16 @@
   "watch_unlocked": "UNLOCKED",
   "shop_inside_house": "Inside House",
   "shop_studio_view": "Studio",
-  "shop_vehicle_view": "Vehicle"
+  "shop_vehicle_view": "Vehicle",
+  "studio_live_stereo_mixed": "LIVE STEREO • MIXED",
+  "studio_ready_beat_voice_mix": "READY • BEAT+VOICE MIX",
+  "studio_mixer_help": "Adjust each slider independently. Changes apply to the recording mix.",
+  "studio_recording_mixed_track": "RECORDING MIXED TRACK",
+  "studio_vocal_booth_beat_voice": "VOCAL BOOTH - BEAT + VOICE",
+  "studio_daily_label": "Daily",
+  "studio_recording_label": "Recording",
+  "studio_minimum": "Min",
+  "studio_maximum": "Max",
+  "studio_stop_recording_aria": "Stop recording",
+  "studio_start_recording_aria": "Start recording"
 }
