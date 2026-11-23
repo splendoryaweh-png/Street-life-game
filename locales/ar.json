@@ -248,5 +248,6 @@
   "turf_toast_valid_room": "أدخل رمز غرفة صالحًا!",
   "turf_toast_room_created": "تم إنشاء غرفة الفريق: {code}",
   "turf_toast_joined_room": "انضممت إلى الغرفة {code}! جارٍ الاتصال...",
-  "turf_toast_copied_code": "تم نسخ رمز الغرفة: {code}"
+  "turf_toast_copied_code": "تم نسخ رمز الغرفة: {code}",
+  "turf_toast_player_joined": "انضم {name} إلى الفريق!"
 }
