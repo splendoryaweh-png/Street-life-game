@@ -178,5 +178,13 @@
   "studio_beat_voice": "BEAT + VOIX",
   "studio_beat_volume": "VOLUME DU BEAT",
   "studio_voice_volume": "VOLUME DE LA VOIX",
-  "studio_locked": "Verrouillé"
+  "studio_locked": "Verrouillé",
+  "turf_player_down": "VOUS ÊTES À TERRE",
+  "turf_death_description": "Regardez une publicité pour reprendre ce match là où vous vous êtes arrêté, ou retournez à l’accueil.",
+  "turf_earned": "GAGNÉ",
+  "turf_ad_playing": "PUBLICITÉ EN COURS...",
+  "turf_watch_continue": "REGARDER UNE PUB POUR CONTINUER",
+  "turf_back_home": "RETOUR À L’ACCUEIL",
+  "turf_ad_success_note": "Le match reprend uniquement après la fin de la publicité récompensée.",
+  "turf_hour_victory": "VICTOIRE ! 1 HEURE !"
 }
