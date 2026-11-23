@@ -373,5 +373,10 @@
   "shop_item_luxury_gold_phone_name": "Luxury Gold Phone",
   "shop_item_bedroom_studio_name": "Bedroom Studio (Starter)",
   "shop_item_street_studio_name": "Street Studio",
-  "shop_item_pro_studio_name": "Pro Studio"
+  "shop_item_pro_studio_name": "Pro Studio",
+  "watch_coins_per_ad": "+10 Coins / ad",
+  "watch_coins_label": "10 COINS",
+  "watch_watched_suffix": "Watched",
+  "watch_after_five_ads": "After 5 Ads",
+  "watch_unlocked": "UNLOCKED"
 }
