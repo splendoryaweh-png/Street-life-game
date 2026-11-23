@@ -91,5 +91,15 @@
   "syndicate_territories": "TERRITOIRES DU SYNDICAT",
   "reward": "Récompense",
   "hard": "Difficile",
-  "attack": "ATTAQUER"
+  "attack": "ATTAQUER",
+  "hub_tasks": "Tâches",
+  "hub_bank": "Banque",
+  "hub_daily_free": "Cadeau du jour",
+  "studio_tier": "Niveau du studio",
+  "studio_long_beats": "14 longs morceaux",
+  "studio_vocal_booth": "Cabine vocale et location",
+  "studio_level_0": "NIVEAU 0 • GRATUIT",
+  "studio_level_1": "NIVEAU 1 • PRO",
+  "profile_save": "Enregistrer",
+  "profile_beats": "Morceaux"
 }
