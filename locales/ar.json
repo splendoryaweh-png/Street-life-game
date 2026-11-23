@@ -314,5 +314,19 @@
   "daily_free_racing_desc": "أول 5 عملات طريق يوميًا تمنح مكافأة مضاعفة!",
   "daily_free_active_today": "نشط اليوم",
   "daily_free_simulate": "محاكاة اللعب",
-  "daily_free_relock": "إعادة قفل الاختبار"
+  "daily_free_relock": "إعادة قفل الاختبار",
+  "shop_cat_clothes": "ملابس",
+  "shop_cat_houses": "منازل",
+  "shop_cat_vehicles": "مركبات",
+  "shop_cat_phones": "هواتف",
+  "shop_cat_design": "تصميم",
+  "shop_cat_studio": "الاستوديو",
+  "shop_cat_filters": "فلاتر",
+  "shop_cat_food": "طعام",
+  "shop_freestyle_booth": "استوديو فريستايل (15 إيقاعًا)",
+  "shop_beats_unlocked": "إيقاعات مفتوحة • سجّل واختبر",
+  "shop_enter_booth": "دخول الاستوديو",
+  "shop_equipped": "مجهّز",
+  "shop_wear": "ارتدِ",
+  "shop_buy_for": "شراء"
 }
