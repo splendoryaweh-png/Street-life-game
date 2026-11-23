@@ -299,5 +299,19 @@
   "daily_free_racing_desc": "5 koin jalan pertama setiap hari memberi hadiah 2x!",
   "daily_free_active_today": "AKTIF HARI INI",
   "daily_free_simulate": "Simulasikan Bermain",
-  "daily_free_relock": "Kunci Ulang Tes"
+  "daily_free_relock": "Kunci Ulang Tes",
+  "shop_cat_clothes": "Pakaian",
+  "shop_cat_houses": "Rumah",
+  "shop_cat_vehicles": "Kendaraan",
+  "shop_cat_phones": "Ponsel",
+  "shop_cat_design": "Desain",
+  "shop_cat_studio": "Studio",
+  "shop_cat_filters": "Filter",
+  "shop_cat_food": "Makanan",
+  "shop_freestyle_booth": "Booth Freestyle (15 Beat)",
+  "shop_beats_unlocked": "Beat terbuka • Rekam & uji",
+  "shop_enter_booth": "Masuk Booth",
+  "shop_equipped": "Dipakai",
+  "shop_wear": "Pakai",
+  "shop_buy_for": "Beli"
 }
