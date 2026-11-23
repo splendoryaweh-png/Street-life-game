@@ -91,5 +91,15 @@
   "syndicate_territories": "SYNDICATE AREAS",
   "reward": "Reward",
   "hard": "Hard",
-  "attack": "ATTACK"
+  "attack": "ATTACK",
+  "hub_tasks": "Tasks",
+  "hub_bank": "Bank",
+  "hub_daily_free": "Free Gift Today",
+  "studio_tier": "Studio Level",
+  "studio_long_beats": "14 Long Beats",
+  "studio_vocal_booth": "Vocal Booth & Rent",
+  "studio_level_0": "LEVEL 0 • FREE",
+  "studio_level_1": "LEVEL 1 • PRO",
+  "profile_save": "Save",
+  "profile_beats": "Beats"
 }
