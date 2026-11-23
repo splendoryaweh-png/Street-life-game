@@ -455,5 +455,19 @@
   "studio_minimum": "الحد الأدنى",
   "studio_maximum": "الحد الأقصى",
   "studio_stop_recording_aria": "إيقاف التسجيل",
-  "studio_start_recording_aria": "بدء التسجيل"
+  "studio_start_recording_aria": "بدء التسجيل",
+  "studio_ad_earn_help": "اربح +10 من Street Coins لكل إعلان (بحد أقصى 5 يوميًا لكل إعلان • يتوفر 33 إعلانًا)",
+  "studio_heading": "استوديو الأداء الحر",
+  "studio_level_desc": "استوديو المستوى {level}",
+  "studio_rent_status_expired": "انتهى إيجار الاستوديو",
+  "studio_rent_status_active": "إيجار الاستوديو نشط",
+  "studio_ad_count": "إعلان {count}/33 - 10 عملات",
+  "profile_secret_admin_explain": "يتم التفعيل بالضغط المطوّل. أدخل بريد المسؤول لفتح عناصر التحكم بالنظام:",
+  "profile_privacy_intro": "خصوصيتك وأمان بياناتك من الأسس الرئيسية لبنيتنا:",
+  "profile_local_data_desc": "تُخزّن بيانات اللعبة وإعدادات الصوت والمخزون واللغة المختارة بأمان في متصفح جهازك.",
+  "profile_telegram_auth_desc": "تُستخدم معرّفات تيليجرام فقط لعرض لوحة المتصدرين والتحقق من إنجازات اللعبة.",
+  "profile_no_data_desc": "لا نبيع المعلومات الشخصية أو نؤجرها أو نوزعها على أطراف ثالثة مطلقًا.",
+  "profile_version": "الإصدار",
+  "profile_platform": "المنصة",
+  "profile_support": "الدعم"
 }
