@@ -185,5 +185,12 @@
   "profile_no_data_desc": "我们绝不向第三方出售、出租或分发个人信息。",
   "profile_version": "版本",
   "profile_platform": "平台",
-  "profile_support": "支持"
+  "profile_support": "支持",
+  "studio_pause": "暂停",
+  "studio_play_beat": "播放节拍",
+  "studio_mixer_controls": "混音控制",
+  "studio_beat_voice": "节拍 + 人声",
+  "studio_beat_volume": "节拍音量",
+  "studio_voice_volume": "人声音量",
+  "studio_locked": "已锁定"
 }
