@@ -412,5 +412,6 @@
   "watch_milestone_need_ads": "Watch more regular ads to unlock this reward.",
   "watch_milestone_already_claimed": "You already claimed this milestone today.",
   "watch_milestone_locked": "Watch the required ads to unlock this milestone.",
-  "watch_ad_incomplete": "The ad was not completed. No reward was added."
+  "watch_ad_incomplete": "The ad was not completed. No reward was added.",
+  "watch_ad_number": "Ad"
 }
