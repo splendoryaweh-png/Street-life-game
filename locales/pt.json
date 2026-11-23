@@ -429,5 +429,16 @@
   "watch_after_five_ads": "Após 5 anúncios",
   "watch_unlocked": "DESBLOQUEADO",
   "shop_inside_house": "Dentro de casa",
-  "shop_vehicle_view": "Veículo"
+  "shop_vehicle_view": "Veículo",
+  "studio_live_stereo_mixed": "ESTÉREO AO VIVO • MIXADO",
+  "studio_ready_beat_voice_mix": "PRONTO • MIX DE BATIDA + VOZ",
+  "studio_mixer_help": "Ajuste cada controle separadamente. As alterações são aplicadas à mixagem gravada.",
+  "studio_recording_mixed_track": "GRAVANDO FAIXA MIXADA",
+  "studio_vocal_booth_beat_voice": "CABINE VOCAL - BATIDA + VOZ",
+  "studio_daily_label": "Diário",
+  "studio_recording_label": "Gravação",
+  "studio_minimum": "Mín.",
+  "studio_maximum": "Máx.",
+  "studio_stop_recording_aria": "Parar gravação",
+  "studio_start_recording_aria": "Iniciar gravação"
 }
