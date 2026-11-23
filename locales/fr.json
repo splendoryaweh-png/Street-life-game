@@ -275,5 +275,13 @@
   "referral_claim": "Réclamer 520",
   "referral_welcome_claimed": "Bonus de bienvenue réclamé (+520 pièces)",
   "referral_invited_count": "Amis invités :",
-  "referral_simulate": "Simuler 1 invitation (+100)"
+  "referral_simulate": "Simuler 1 invitation (+100)",
+  "shop_inventory_title": "INVENTAIRE - Street Hustle",
+  "shop_view_character": "Voir le personnage",
+  "shop_tab": "Boutique",
+  "shop_craft": "Fabriquer",
+  "shop_market": "Marché",
+  "shop_balance": "Solde :",
+  "shop_energy": "Énergie :",
+  "shop_renew_rent": "Renouveler la location"
 }
