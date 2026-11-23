@@ -464,15 +464,16 @@
   "watch_milestone_bonus_label": "Recompensa extra del hito",
   "watch_milestone_claimed_short": "RECLAMADO",
   "watch_milestone_ready": "LISTO PARA RECLAMAR",
-  "watch_tap_for_details": "VER DETALLES",
-  "watch_milestone_details": "Mira la cantidad necesaria de anuncios normales para desbloquear este hito. Después, mira otro anuncio recompensado para reclamar el bono.",
+  "watch_tap_for_details": "TOCA PARA VER LOS DETALLES",
+  "watch_milestone_details": "Mira la cantidad requerida de anuncios normales para desbloquear este hito. Después mira un vídeo recompensado más para reclamar la bonificación.",
   "watch_milestone_progress": "Progreso",
-  "watch_milestone_bonus": "Bono del hito: +10 SC",
-  "watch_milestone_ad_note": "El video de reclamación también otorga los +10 SC habituales y cuenta para el límite diario.",
+  "watch_milestone_bonus": "Bonificación del hito: +10 SC",
+  "watch_milestone_ad_note": "El vídeo de reclamación también otorga los +10 SC habituales y cuenta para tu límite diario de anuncios.",
   "watch_milestone_claimed": "¡Recompensa del hito reclamada!",
   "watch_milestone_watch_claim": "VER ANUNCIO Y RECLAMAR +10 SC",
   "watch_milestone_need_ads": "Mira más anuncios normales para desbloquear esta recompensa.",
   "watch_milestone_already_claimed": "Ya reclamaste este hito hoy.",
   "watch_milestone_locked": "Mira los anuncios necesarios para desbloquear este hito.",
-  "watch_ad_incomplete": "El anuncio no se completó. No se añadió ninguna recompensa."
+  "watch_ad_incomplete": "El anuncio no se completó. No se añadió ninguna recompensa.",
+  "watch_ad_number": "Anuncio"
 }
