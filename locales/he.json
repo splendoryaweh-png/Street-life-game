@@ -172,5 +172,18 @@
   "profile_edition": "מהדורת Street Life v2.5",
   "profile_local_storage": "אחסון נתונים מקומי",
   "profile_telegram_auth": "אימות Telegram",
-  "profile_no_data_selling": "אין מכירת נתונים"
+  "profile_no_data_selling": "אין מכירת נתונים",
+  "studio_heading": "אולפן פריסטייל",
+  "studio_level_desc": "אולפן רמה {level}",
+  "studio_rent_status_expired": "השכירות לאולפן הסתיימה",
+  "studio_rent_status_active": "השכירות לאולפן פעילה",
+  "studio_ad_count": "פרסומת {count}/33 - 10 מטבעות",
+  "profile_secret_admin_explain": "לחיצה ממושכת הופעלה. הזן את כתובת מנהל המערכת כדי לפתוח את הבקרות:",
+  "profile_privacy_intro": "הפרטיות ואבטחת הנתונים שלך הן יסוד במערכת שלנו:",
+  "profile_local_data_desc": "נתוני שמירה, הגדרות צליל, מלאי ובחירת שפה נשמרים באופן מאובטח בדפדפן המקומי שלך.",
+  "profile_telegram_auth_desc": "מזהי משתמש Telegram משמשים רק להצגת טבלת המובילים ולאימות הישגים במשחק.",
+  "profile_no_data_desc": "איננו מוכרים, משכירים או מעבירים מידע אישי לצדדים שלישיים.",
+  "profile_version": "גרסה",
+  "profile_platform": "פלטפורמה",
+  "profile_support": "תמיכה"
 }
