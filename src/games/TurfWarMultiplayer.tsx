@@ -487,7 +487,7 @@ export const TurfWarMultiplayer: React.FC<TurfWarMultiplayerProps> = ({ onBack, 
             <h2 className="text-2xl font-black mb-2 text-white">{t('turf_player_down', 'YOU ARE DOWN')}</h2>
             <p className="text-xs text-slate-300 mb-4">{t('turf_death_description', 'Watch an ad to continue this match from where you stopped, or return home.')}</p>
             <div className="bg-amber-500/20 border border-amber-500/40 rounded-xl p-3 mb-4"><span className="text-xs text-amber-300">{t('turf_earned', 'EARNED')}</span><div className="text-2xl font-black text-amber-400">{earnedCoins} SC</div></div>
-            <button onClick={handleWatchAdContinue} disabled={isReviving} className="w-full py-4 bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black rounded-xl disabled:opacity-60">{isReviving ? '{t('turf_ad_playing', 'PLAYING REWARDED AD...')}' : '📺 {t('turf_watch_continue', 'WATCH ADS TO CONTINUE')}'}</button>
+            <button onClick={handleWatchAdContinue} disabled={isReviving} className="w-full py-4 bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black rounded-xl disabled:opacity-60">{isReviving ? t('turf_ad_playing', 'PLAYING REWARDED AD...') : `📺 ${t('turf_watch_continue', 'WATCH ADS TO CONTINUE')}`}</button>
             <button onClick={handleBackHomeAfterDeath} disabled={isReviving} className="w-full mt-3 py-3 bg-white/10 border border-white/15 text-white font-black rounded-xl disabled:opacity-50">{t('turf_back_home', 'BACK TO HOME')}</button>
             <p className="text-[10px] text-slate-500 mt-3">{t('turf_ad_success_note', 'Your match resumes only after the rewarded ad finishes successfully.')}</p>
           </div>
