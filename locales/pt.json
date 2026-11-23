@@ -283,5 +283,21 @@
   "shop_market": "Mercado",
   "shop_balance": "Saldo:",
   "shop_energy": "Energia:",
-  "shop_renew_rent": "Renovar aluguel"
+  "shop_renew_rent": "Renovar aluguel",
+  "daily_free_title": "Sistema diário gratuito",
+  "daily_free_all": "Todas as recompensas diárias",
+  "daily_free_completed": "Concluído",
+  "daily_free_unlocked": "Desbloqueado",
+  "daily_free_locked": "Bloqueado",
+  "daily_free_claimed_today": "Resgatado hoje ✓ (volte amanhã)",
+  "daily_free_play_to_unlock": "Jogue 1 partida para desbloquear 🔒",
+  "daily_free_verifying": "Verificando recompensa...",
+  "daily_free_claim_day": "Resgatar dia",
+  "daily_free_nitro": "Nitro diário grátis",
+  "daily_free_charges_left": "cargas diárias grátis restantes",
+  "daily_free_racing_coins": "Moedas de corrida 2X",
+  "daily_free_racing_desc": "As primeiras 5 moedas de estrada do dia dão recompensa 2x!",
+  "daily_free_active_today": "ATIVO HOJE",
+  "daily_free_simulate": "Simular partida",
+  "daily_free_relock": "Bloquear teste novamente"
 }
