@@ -223,6 +223,23 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
           }
           if (hit) continue;
         } else {
+          // Hostile gangster lasers can hit civilians too; three confirmed hits remove a civilian.
+          let civilianHit = false;
+          for (let civIdx = s.civilians.length - 1; civIdx >= 0; civIdx--) {
+            const civ = s.civilians[civIdx];
+            if (distToSegment(civ.x, civ.y, l.x1, l.y1, l.x2, l.y2) < 30) {
+              civ.hitCount = (civ.hitCount || 0) + 1;
+              s.lasers.splice(lIdx, 1);
+              civilianHit = true;
+              for (let sp = 0; sp < 7; sp++) s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 18 });
+              if (civ.hitCount >= 3) {
+                for (let sp = 0; sp < 14; sp++) s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.5) * 9, color: sp % 2 ? '#991B1B' : '#DC2626', life: 24 });
+                s.civilians.splice(civIdx, 1);
+              }
+              break;
+            }
+          }
+          if (civilianHit) continue;
           if (Math.hypot(p.x - l.x2, p.y - l.y2) < 42 || distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 30) {
             const isDriver = !!p.inCarId; let dmg = 10; if (p.isCover) dmg = 1; else if (isDriver) dmg = 3;
             p.health = Math.max(0, p.health - dmg); setHudHealth(p.health); s.lasers.splice(lIdx, 1);
