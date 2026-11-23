@@ -464,5 +464,10 @@
   "studio_maximum": "最长",
   "studio_stop_recording_aria": "停止录音",
   "studio_start_recording_aria": "开始录音",
-  "shop_item_walking_name": "步行"
+  "shop_item_walking_name": "步行",
+  "studio_filter_normal": "普通",
+  "studio_filter_warm": "暖色",
+  "studio_filter_bw": "黑白",
+  "studio_filter_cool": "冷色",
+  "studio_filter_vintage": "复古"
 }
