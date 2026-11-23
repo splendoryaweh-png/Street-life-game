@@ -792,9 +792,9 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
 
         {/* Level Badge */}
         <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-[#FFD700]/30 text-right">
-          <span className="text-[10px] text-gray-400 uppercase font-mono block">Studio Tier</span>
+          <span className="text-[10px] text-gray-400 uppercase font-mono block">{t('studio_tier', 'Studio Tier')}</span>
           <span className="text-xs font-black text-[#FFD700]">
-            {playerStudioLevel === 0 ? 'LEVEL 0 • FREE' : 'LEVEL 1 • PRO'}
+            {playerStudioLevel === 0 ? t('studio_level_0', 'LEVEL 0 • FREE') : t('studio_level_1', 'LEVEL 1 • PRO')}
           </span>
         </div>
       </div>
@@ -814,7 +814,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
           }`}
         >
           <Disc3 className="w-4 h-4" />
-          <span>14 Long Beats</span>
+          <span>{t('studio_long_beats', '14 Long Beats')}</span>
         </button>
 
         <button
@@ -830,7 +830,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
           }`}
         >
           <Mic className="w-4 h-4" />
-          <span>Vocal Booth & Rent</span>
+          <span>{t('studio_vocal_booth', 'Vocal Booth & Rent')}</span>
         </button>
       </div>
 
