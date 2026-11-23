@@ -398,5 +398,8 @@
   "shop_duration": "Duração",
   "shop_locked_studio_beat": "BEAT DE ESTÚDIO BLOQUEADO",
   "shop_level": "Nível",
-  "watch_ad_get_10_sc": "ASSISTA AO ANÚNCIO E GANHE 10 SC"
+  "watch_ad_get_10_sc": "ASSISTA AO ANÚNCIO E GANHE 10 SC",
+  "home_total_net_worth": "Patrimônio líquido total",
+  "home_coin_transactions_last_10": "Transações de moedas (últimas 10)",
+  "home_street_novel": "📖 Romance de rua"
 }
