@@ -452,5 +452,16 @@
   "watch_after_five_ads": "אחרי 5 פרסומות",
   "watch_unlocked": "נפתח",
   "shop_inside_house": "בתוך הבית",
-  "shop_vehicle_view": "רכב"
+  "shop_vehicle_view": "רכב",
+  "studio_live_stereo_mixed": "סטריאו חי • מיקס",
+  "studio_ready_beat_voice_mix": "מוכן • מיקס ביט + קול",
+  "studio_mixer_help": "כוונן כל מחוון בנפרד. השינויים יחולו על המיקס המוקלט.",
+  "studio_recording_mixed_track": "מקליט רצועה משולבת",
+  "studio_vocal_booth_beat_voice": "תא הקלטה - ביט + קול",
+  "studio_daily_label": "יומי",
+  "studio_recording_label": "הקלטה",
+  "studio_minimum": "מינימום",
+  "studio_maximum": "מקסימום",
+  "studio_stop_recording_aria": "עצור הקלטה",
+  "studio_start_recording_aria": "התחל הקלטה"
 }
