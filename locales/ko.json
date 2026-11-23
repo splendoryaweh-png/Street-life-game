@@ -306,5 +306,21 @@
   "shop_market": "마켓",
   "shop_balance": "잔액:",
   "shop_energy": "에너지:",
-  "shop_renew_rent": "임대 갱신"
+  "shop_renew_rent": "임대 갱신",
+  "daily_free_title": "일일 무료 시스템",
+  "daily_free_all": "모든 일일 무료 보상",
+  "daily_free_completed": "완료",
+  "daily_free_unlocked": "잠금 해제",
+  "daily_free_locked": "잠김",
+  "daily_free_claimed_today": "오늘 수령 완료 ✓ (내일 다시 오세요)",
+  "daily_free_play_to_unlock": "게임 1회 플레이 후 잠금 해제 🔒",
+  "daily_free_verifying": "보상 확인 중...",
+  "daily_free_claim_day": "일차 보상 받기",
+  "daily_free_nitro": "매일 무료 니트로",
+  "daily_free_charges_left": "일일 무료 충전 남음",
+  "daily_free_racing_coins": "레이싱 코인 2배",
+  "daily_free_racing_desc": "매일 처음 5개의 도로 코인은 2배 보상!",
+  "daily_free_active_today": "오늘 활성화",
+  "daily_free_simulate": "플레이 시뮬레이션",
+  "daily_free_relock": "테스트 다시 잠그기"
 }
