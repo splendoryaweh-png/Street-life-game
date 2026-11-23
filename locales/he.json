@@ -298,5 +298,13 @@
   "referral_claim": "קבלת 520",
   "referral_welcome_claimed": "בונוס ברוכים הבאים התקבל (+520 מטבעות)",
   "referral_invited_count": "חברים שהוזמנו:",
-  "referral_simulate": "הדמיית הזמנה אחת (+100)"
+  "referral_simulate": "הדמיית הזמנה אחת (+100)",
+  "shop_inventory_title": "מלאי - Street Hustle",
+  "shop_view_character": "צפייה בדמות",
+  "shop_tab": "חנות",
+  "shop_craft": "יצירה",
+  "shop_market": "שוק",
+  "shop_balance": "יתרה:",
+  "shop_energy": "אנרגיה:",
+  "shop_renew_rent": "חידוש שכירות"
 }
