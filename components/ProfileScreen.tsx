@@ -217,7 +217,7 @@ export function ProfileScreen({
               {t('profile_studio_rent_status', 'Studio Rent Status')}
             </span>
             <span className="text-sm font-black text-[#FFD700]">
-              {isRentExpired ? '{t('profile_rent_expired', 'Rent Expired 🔒')}' : `Rent expires in ${daysRemaining} days`}
+              {isRentExpired ? t('profile_rent_expired', 'Rent Expired 🔒') : `${t('studio_rent_expires_in', 'Rent expires in ')}${daysRemaining} days`}
             </span>
           </div>
         </div>
@@ -549,7 +549,7 @@ export function ProfileScreen({
                 type="email"
                 value={adminLoginInput}
                 onChange={(e) => setAdminLoginInput(e.target.value)}
-                placeholder="{t('profile_admin_email_placeholder', 'Enter admin email...')}"
+                placeholder={t('profile_admin_email_placeholder', 'Enter admin email...')}
                 autoFocus
                 className="w-full px-3.5 py-3 rounded-xl bg-black border border-white/20 text-sm text-white focus:outline-none focus:border-[#FFD700]"
               />
