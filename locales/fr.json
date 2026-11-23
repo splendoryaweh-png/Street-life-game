@@ -128,5 +128,17 @@
   "earn_up_to": "Gagnez jusqu’à 5k SC",
   "video_sponsors": "Sponsors vidéo",
   "daily_free_vault": "Coffre quotidien gratuit",
-  "free_nitro_spins": "Tours et Nitro gratuits"
+  "free_nitro_spins": "Tours et Nitro gratuits",
+  "studio_preview_mix": "Écouter le mix",
+  "studio_post_mix": "Publier le mix",
+  "studio_video_freestyle": "FREESTYLE VIDÉO",
+  "studio_camera_recording": "La caméra enregistre le beat et la voix ensemble",
+  "studio_enable_camera_video": "Activer la caméra pour la vidéo",
+  "studio_close_camera": "Fermer la caméra",
+  "studio_enable_camera": "Activer la caméra",
+  "studio_live_camera": "CAMÉRA EN DIRECT",
+  "studio_flip": "Retourner",
+  "free": "GRATUIT",
+  "studio_record_mix": "Enregistrer le mix",
+  "studio_daily_limit": "Limite quotidienne atteinte"
 }
