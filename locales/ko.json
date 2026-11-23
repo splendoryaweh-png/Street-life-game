@@ -363,7 +363,7 @@
   "shop_owned": "보유",
   "shop_buy_eat": "구매하고 먹기",
   "shop_eat": "먹기",
-  "shop_studio_view": "스튜디오 보기",
+  "shop_studio_view": "스튜디오",
   "shop_track_payout": "트랙 지급액",
   "shop_fan_base": "팬 수",
   "shop_beats_library_access": "비트 라이브러리 이용:",
@@ -450,5 +450,7 @@
   "watch_coins_label": "10 코인",
   "watch_watched_suffix": "시청 완료",
   "watch_after_five_ads": "광고 5개 후",
-  "watch_unlocked": "잠금 해제"
+  "watch_unlocked": "잠금 해제",
+  "shop_inside_house": "집 안",
+  "shop_vehicle_view": "차량"
 }
