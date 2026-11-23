@@ -437,5 +437,10 @@
   "shop_item_luxury_gold_phone_name": "هاتف ذهبي فاخر",
   "shop_item_bedroom_studio_name": "استوديو غرفة النوم (للمبتدئين)",
   "shop_item_street_studio_name": "استوديو الشارع",
-  "shop_item_pro_studio_name": "استوديو احترافي"
+  "shop_item_pro_studio_name": "استوديو احترافي",
+  "watch_coins_per_ad": "+10 عملات / إعلان",
+  "watch_coins_label": "10 عملات",
+  "watch_watched_suffix": "تمت مشاهدته",
+  "watch_after_five_ads": "بعد 5 إعلانات",
+  "watch_unlocked": "مفتوح"
 }
