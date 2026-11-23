@@ -782,11 +782,11 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
           <div className="flex items-center gap-2">
             <Radio className="w-6 h-6 text-[#FFD700] drop-shadow-[0_0_8px_#FFD700]" />
             <h1 className="text-2xl font-black italic tracking-tight text-white uppercase">
-              FREESTYLE STUDIO
+              {t('studio_heading', 'FREESTYLE STUDIO')}
             </h1>
           </div>
           <p className="text-xs font-semibold text-gray-400 mt-0.5">
-            Level {playerStudioLevel} Studio • {playerStudioLevel === 0 ? `4 Beats (${t('studio_free_30_days', 'Free for 30 days')})` : '7 Beats (Level 1 Pro)'}
+            {t('studio_level_desc', 'Level {level} Studio').replace('{level}', String(playerStudioLevel))} • {playerStudioLevel === 0 ? `4 Beats (${t('studio_free_30_days', 'Free for 30 days')})` : '7 Beats (Level 1 Pro)'}
           </p>
         </div>
 
@@ -865,7 +865,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black uppercase text-white">
-                  {rentExpired ? 'STUDIO RENT EXPIRED' : 'STUDIO RENT ACTIVE'}
+                  {rentExpired ? t('studio_rent_status_expired', 'STUDIO RENT EXPIRED') : t('studio_rent_status_active', 'STUDIO RENT ACTIVE')}
                 </span>
                 <span
                   className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
@@ -928,7 +928,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
                   {t('studio_watch_ad', 'Watch Ad Under Studio')}
                 </span>
                 <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
-                  Ad {currentAdIndex}/33 - 10 coins
+                  {t('studio_ad_count', 'Ad {count}/33 - 10 coins').replace('{count}', String(currentAdIndex))}
                 </span>
               </div>
               <p className="text-[11px] text-gray-400 mt-0.5">
