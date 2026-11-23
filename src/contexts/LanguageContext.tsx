@@ -100,14 +100,18 @@ export function detectLanguage(): LanguageCode {
   let tgLang = 'en';
   try {
     const tg = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { language_code?: string } } } } }).Telegram;
-    tgLang = tg?.WebApp?.initDataUnsafe?.user?.language_code?.toLowerCase() || 'en';
+    const telegramLanguage = tg?.WebApp?.initDataUnsafe?.user?.language_code?.toLowerCase();
+    const browserLanguage = navigator.languages?.[0] || navigator.language || 'en';
+    tgLang = telegramLanguage || browserLanguage.toLowerCase();
   } catch {}
 
   let auto: LanguageCode = 'en'; // DEFAULT FOR NIGERIA - Africa/Lagos = English
 
   if (tz === 'Africa/Lagos' || tz.startsWith('Africa/Lagos/')) {
-    // Nigeria starts in English even if the device/Telegram UI uses another language.
+    // Nigeria defaults to English unless the player explicitly selects another language.
     auto = 'en';
+  } else if (/Seoul|Pyongyang/.test(tz)) {
+    auto = 'ko';
   } else if (tz === 'Europe/Paris' || tz.startsWith('Europe/Paris/')) {
     // France starts in French even if Telegram's interface language is English.
     auto = 'fr';
@@ -152,10 +156,8 @@ export function detectLanguage(): LanguageCode {
 
   // NOTE: Pidgin code is "pcm". NEVER auto-select Pidgin.
   // Pidgin only when user manually taps it in Settings.
-  try {
-    localStorage.setItem(playerLanguageKey, auto);
-  } catch {}
-
+  // Auto-detected values are deliberately NOT saved as manual preferences.
+  // This allows the app to re-detect the player's current locale on the next launch.
   return auto;
 }
 
