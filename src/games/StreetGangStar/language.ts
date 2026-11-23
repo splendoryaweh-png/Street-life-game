@@ -9,7 +9,7 @@
  *   - 'pt': Portuguese
  */
 
-export type GangStarLanguage = 'en' | 'fr' | 'ar' | 'pidgin' | 'pcm' | 'es' | 'pt';
+export type GangStarLanguage = 'en' | 'fr' | 'ar' | 'pidgin' | 'pcm' | 'es' | 'pt' | 'zh' | 'ko' | 'he';
 
 export type GangStarTextKey =
   | 'game_title'
@@ -408,6 +408,20 @@ const TRANSLATIONS: Record<string, Record<GangStarTextKey, string>> = {
     controls_guide: 'WASD: Mover | MOUSE: Mirar | CLIQUE: Atirar | E: Carro | Q: Abrigo | R: Recarregar | B: Loja',
     multiplayer_title: 'Guerra Urbana Multijogador',
     single_player_title: 'Campanha Solo',
+  },
+
+  zh: {
+    ...{} as Record<GangStarTextKey, string>,
+    ...({} as Record<GangStarTextKey, string>),
+    game_title: '街头帮派之星', intro_boss_name: '街头老大', intro_call_1: '帮派分子正在抢劫街道！快去阻止他们！', intro_call_2: '他们有激光步枪、摩托车和装甲巴士，平民被困住了！', intro_call_3: '准备装备、寻找掩护并击败帮派头目！', mission_save: '任务：拯救平民并消灭所有入侵者！', robber_alert: '警告：附近发现帮派袭击！', gun_shop: '帮派武器商店', betray_warning: '背叛！你攻击了自己的队友！', team_join: '选择你的街头阵营', team_blue: '蓝色帮派（保卫街道）', team_red: '红色海盗（自由混战）', team_blue_desc: '保护平民并一起追捕劫匪。', team_red_desc: '各自为战，没有规则。', switch_team: '切换阵营 [T]', car_enter: '按 E 驾驶车辆', car_exit: '按 E 离开车辆', car_hijacked: '已夺取帮派司机的车辆！', cover_active: '掩护中（激光伤害降低 80%）', cover_inactive: '可寻找掩护 [Q]', health: '生命值', ammo: '弹药', coins: '街头现金', leaderboard: '城市帮派排行榜', civilians_saved: '已救助平民', gangsters_eliminated: '已击败帮派分子', weapon_pistol: '标准激光手枪', weapon_shotgun: '散射激光霰弹枪', weapon_ak: '快速自动激光 AK-47', weapon_sniper: '重型脉冲狙击枪', insufficient_coins: '街头现金不足！击败帮派分子赚取金币。', purchased: '武器已购买并装备！', reload_alert: '正在装填能量弹药……', start_game: '开始任务', next: '下一步', close: '关闭', back: '返回', exit_game: '退出街道', customize_avatar: '自定义角色', choose_color: '选择装备颜色', choose_face: '选择面具 / 面部', room_code: '房间代码', create_room: '创建新城市房间', join_room: '使用邀请代码加入', invite_code: '输入房间代码', random_city: '快速加入随机城市', players_online: '区域玩家', host_badge: '区域队长（房主）', civilian_saved_alert: '平民已获救！', player_down: '重伤！救援人员正在赶来……', respawning: '正在安全地点重生……', controls_guide: 'WASD：移动 | 鼠标：瞄准 | 点击：射击 | E：车辆 | Q：掩护 | R：装弹 | B：商店', multiplayer_title: '多人街区战争', single_player_title: '单人战役'
+  },
+  ko: {
+    ...({} as Record<GangStarTextKey, string>),
+    game_title: '스트리트 갱 스타', intro_boss_name: '스트리트 보스', intro_call_1: '갱스터들이 거리를 털고 있어요! 지금 막으세요!', intro_call_2: '레이저 소총과 오토바이, 장갑 버스가 있습니다. 시민들이 위험합니다!', intro_call_3: '장비를 갖추고 엄폐한 뒤 갱단 두목을 처치하세요!', mission_save: '임무: 시민을 구하고 침입자를 모두 제거하세요!', robber_alert: '경고: 근처에서 갱단 습격이 감지되었습니다!', gun_shop: '갱단 무기 상점', betray_warning: '배신! 팀원을 공격했습니다!', team_join: '거리 세력을 선택하세요', team_blue: '블루 신디케이트 (거리 방어)', team_red: '레드 코르세어 (자유 전투)', team_blue_desc: '시민을 보호하고 강도들을 함께 추적하세요.', team_red_desc: '각자 생존하세요. 규칙은 없습니다.', switch_team: '세력 변경 [T]', car_enter: 'E 키를 눌러 운전', car_exit: 'E 키를 눌러 차량에서 내리기', car_hijacked: '신디케이트 운전자의 차량을 탈취했습니다!', cover_active: '엄폐 중 (레이저 피해 80% 감소)', cover_inactive: '엄폐 가능 [Q]', health: '체력', ammo: '탄약', coins: '스트리트 캐시', leaderboard: '도시 신디케이트 순위', civilians_saved: '구출한 시민', gangsters_eliminated: '제거한 갱스터', weapon_pistol: '기본 레이저 권총', weapon_shotgun: '확산 레이저 샷건', weapon_ak: '연사 레이저 AK-47', weapon_sniper: '중형 펄스 저격총', insufficient_coins: '스트리트 캐시가 부족합니다!', purchased: '무기를 구매하고 장착했습니다!', reload_alert: '레이저 배터리 충전 중...', start_game: '임무 시작', next: '다음', close: '닫기', back: '뒤로', exit_game: '거리 나가기', customize_avatar: '캐릭터 꾸미기', choose_color: '전술 장비 색상', choose_face: '전투 마스크 / 얼굴', room_code: '방 코드', create_room: '새 도시 방 만들기', join_room: '초대 코드로 참가', invite_code: '방 코드 입력', random_city: '랜덤 도시 빠른 참가', players_online: '지역 플레이어', host_badge: '지역 리더 (호스트)', civilian_saved_alert: '시민을 구했습니다!', player_down: '치명상! 구조대가 오고 있습니다...', respawning: '안전 구역에서 부활 중...', controls_guide: 'WASD: 이동 | 마우스: 조준 | 클릭: 발사 | E: 차량 | Q: 엄폐 | R: 재장전 | B: 상점', multiplayer_title: '멀티플레이어 거리 전쟁', single_player_title: '싱글 플레이 캠페인'
+  },
+  he: {
+    ...({} as Record<GangStarTextKey, string>),
+    game_title: 'כוכב כנופיות הרחוב', intro_boss_name: 'בוס הרחוב', intro_call_1: 'הגנגסטרים שודדים את הרחוב! צא לעצור אותם!', intro_call_2: 'יש להם רובי לייזר, אופנועים ואוטובוסים משוריינים. האזרחים לכודים!', intro_call_3: 'הצטייד, מצא מחסה וחסל את מנהיגי הכנופיה!', mission_save: 'משימה: הצילו אזרחים וחסלו את כל הפולשים!', robber_alert: 'אזהרה: זוהתה פשיטת כנופיה בקרבת מקום!', gun_shop: 'חנות הנשק של הסינדיקט', betray_warning: 'בגידה! ירית בחבר הצוות שלך!', team_join: 'בחר את סיעת הרחוב שלך', team_blue: 'הסינדיקט הכחול (הגנת הרחוב)', team_red: 'הקורסארים האדומים (כולם נגד כולם)', team_blue_desc: 'הגן על האזרחים ורדוף אחר השודדים יחד.', team_red_desc: 'כל אחד לעצמו. אין חוקים.', switch_team: 'החלף סיעה [T]', car_enter: 'לחץ E לנהיגה', car_exit: 'לחץ E ליציאה מהרכב', car_hijacked: 'הרכב נלקח מנהג הסינדיקט!', cover_active: 'במחסה (80% פחות נזק לייזר)', cover_inactive: 'מחסה זמין [Q]', health: 'בריאות', ammo: 'תחמושת', coins: 'כסף רחוב', leaderboard: 'טבלת מובילי הסינדיקט', civilians_saved: 'אזרחים שניצלו', gangsters_eliminated: 'גנגסטרים שחוסלו', weapon_pistol: 'אקדח לייזר רגיל', weapon_shotgun: 'רובה לייזר מפזר', weapon_ak: 'רובה לייזר אוטומטי AK-47', weapon_sniper: 'רובה צלפים כבד', insufficient_coins: 'אין מספיק כסף רחוב!', purchased: 'הנשק נרכש וצויד!', reload_alert: 'טעינת סוללת הלייזר...', start_game: 'התחל משימה', next: 'הבא', close: 'סגור', back: 'חזרה', exit_game: 'צא לרחוב', customize_avatar: 'התאם אישית דמות', choose_color: 'צבע ציוד טקטי', choose_face: 'מסכת קרב / פנים', room_code: 'קוד חדר', create_room: 'צור חדר עיר חדש', join_room: 'הצטרף באמצעות קוד הזמנה', invite_code: 'הזן קוד חדר', random_city: 'הצטרפות מהירה לעיר אקראית', players_online: 'שחקנים באזור', host_badge: 'מוביל האזור (מארח)', civilian_saved_alert: 'אזרח ניצל!', player_down: 'פציעה קשה! צוות רפואי בדרך...', respawning: 'מתחדש בבית בטוח...', controls_guide: 'WASD: תנועה | עכבר: כיוון | לחיצה: ירי | E: רכב | Q: מחסה | R: טעינה | B: חנות', multiplayer_title: 'מלחמת רחובות מרובת משתתפים', single_player_title: 'מערכה לשחקן יחיד'
   },
 };
 
