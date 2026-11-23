@@ -322,5 +322,19 @@
   "daily_free_racing_desc": "חמשת מטבעות הדרך הראשונים בכל יום מעניקים תגמול כפול!",
   "daily_free_active_today": "פעיל היום",
   "daily_free_simulate": "הדמיית משחק",
-  "daily_free_relock": "נעילה מחדש של הבדיקה"
+  "daily_free_relock": "נעילה מחדש של הבדיקה",
+  "shop_cat_clothes": "בגדים",
+  "shop_cat_houses": "בתים",
+  "shop_cat_vehicles": "כלי רכב",
+  "shop_cat_phones": "טלפונים",
+  "shop_cat_design": "עיצוב",
+  "shop_cat_studio": "סטודיו",
+  "shop_cat_filters": "מסננים",
+  "shop_cat_food": "אוכל",
+  "shop_freestyle_booth": "תא פריסטייל (15 ביטים)",
+  "shop_beats_unlocked": "ביטים שנפתחו • הקלטה ובדיקה",
+  "shop_enter_booth": "כניסה לתא",
+  "shop_equipped": "מצויד",
+  "shop_wear": "ללבוש",
+  "shop_buy_for": "קנייה"
 }
