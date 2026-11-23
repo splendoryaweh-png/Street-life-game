@@ -186,5 +186,12 @@
   "profile_edition": "إصدار Street Life 2.5",
   "profile_local_storage": "تخزين البيانات محليًا",
   "profile_telegram_auth": "مصادقة تيليجرام",
-  "profile_no_data_selling": "لا نبيع البيانات"
+  "profile_no_data_selling": "لا نبيع البيانات",
+  "studio_pause": "إيقاف مؤقت",
+  "studio_play_beat": "تشغيل الإيقاع",
+  "studio_mixer_controls": "عناصر التحكم بالمزج",
+  "studio_beat_voice": "إيقاع + صوت",
+  "studio_beat_volume": "مستوى صوت الإيقاع",
+  "studio_voice_volume": "مستوى صوت الصوت",
+  "studio_locked": "مقفل"
 }
