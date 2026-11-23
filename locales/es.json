@@ -455,5 +455,10 @@
   "profile_version": "Versión",
   "profile_platform": "Plataforma",
   "profile_support": "Soporte",
-  "shop_item_walking_name": "Caminando"
+  "shop_item_walking_name": "Caminando",
+  "studio_filter_normal": "Normal",
+  "studio_filter_warm": "Cálido",
+  "studio_filter_bw": "Blanco y negro",
+  "studio_filter_cool": "Frío",
+  "studio_filter_vintage": "Vintage"
 }
