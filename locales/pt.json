@@ -460,5 +460,19 @@
   "studio_filter_warm": "Quente",
   "studio_filter_bw": "Preto e branco",
   "studio_filter_cool": "Frio",
-  "studio_filter_vintage": "Vintage"
+  "studio_filter_vintage": "Vintage",
+  "watch_milestone_bonus_label": "Recompensa extra do marco",
+  "watch_milestone_claimed_short": "RESGATADO",
+  "watch_milestone_ready": "PRONTO PARA RESGATAR",
+  "watch_tap_for_details": "VER DETALHES",
+  "watch_milestone_details": "Assista à quantidade necessária de anúncios normais para desbloquear este marco. Depois, assista a mais um anúncio recompensado para resgatar o bônus.",
+  "watch_milestone_progress": "Progresso",
+  "watch_milestone_bonus": "Bônus do marco: +10 SC",
+  "watch_milestone_ad_note": "O vídeo de resgate também concede os +10 SC normais e conta no limite diário de anúncios.",
+  "watch_milestone_claimed": "Recompensa do marco resgatada!",
+  "watch_milestone_watch_claim": "ASSISTIR ANÚNCIO E RESGATAR +10 SC",
+  "watch_milestone_need_ads": "Assista a mais anúncios normais para desbloquear esta recompensa.",
+  "watch_milestone_already_claimed": "Você já resgatou este marco hoje.",
+  "watch_milestone_locked": "Assista aos anúncios necessários para desbloquear este marco.",
+  "watch_ad_incomplete": "O anúncio não foi concluído. Nenhuma recompensa foi adicionada."
 }
