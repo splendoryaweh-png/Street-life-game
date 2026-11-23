@@ -298,5 +298,21 @@
   "shop_market": "السوق",
   "shop_balance": "الرصيد:",
   "shop_energy": "الطاقة:",
-  "shop_renew_rent": "تجديد الإيجار"
+  "shop_renew_rent": "تجديد الإيجار",
+  "daily_free_title": "نظام المكافآت اليومية المجانية",
+  "daily_free_all": "كل المكافآت اليومية",
+  "daily_free_completed": "مكتمل",
+  "daily_free_unlocked": "مفتوح",
+  "daily_free_locked": "مقفل",
+  "daily_free_claimed_today": "تم الاستلام اليوم ✓ (عد غدًا)",
+  "daily_free_play_to_unlock": "العب لعبة واحدة لفتح المكافأة 🔒",
+  "daily_free_verifying": "جارٍ التحقق من المكافأة...",
+  "daily_free_claim_day": "استلام اليوم",
+  "daily_free_nitro": "نيترو يومي مجاني",
+  "daily_free_charges_left": "شحنات يومية مجانية متبقية",
+  "daily_free_racing_coins": "عملات السباق 2X",
+  "daily_free_racing_desc": "أول 5 عملات طريق يوميًا تمنح مكافأة مضاعفة!",
+  "daily_free_active_today": "نشط اليوم",
+  "daily_free_simulate": "محاكاة اللعب",
+  "daily_free_relock": "إعادة قفل الاختبار"
 }
