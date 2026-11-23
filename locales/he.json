@@ -445,5 +445,10 @@
   "shop_item_luxury_gold_phone_name": "טלפון זהב יוקרתי",
   "shop_item_bedroom_studio_name": "אולפן חדר שינה (למתחילים)",
   "shop_item_street_studio_name": "אולפן רחוב",
-  "shop_item_pro_studio_name": "אולפן מקצועי"
+  "shop_item_pro_studio_name": "אולפן מקצועי",
+  "watch_coins_per_ad": "+10 מטבעות / פרסומת",
+  "watch_coins_label": "10 מטבעות",
+  "watch_watched_suffix": "נצפו",
+  "watch_after_five_ads": "אחרי 5 פרסומות",
+  "watch_unlocked": "נפתח"
 }
