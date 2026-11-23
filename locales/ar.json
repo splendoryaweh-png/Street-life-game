@@ -470,5 +470,10 @@
   "profile_version": "الإصدار",
   "profile_platform": "المنصة",
   "profile_support": "الدعم",
-  "shop_item_walking_name": "المشي"
+  "shop_item_walking_name": "المشي",
+  "studio_filter_normal": "عادي",
+  "studio_filter_warm": "دافئ",
+  "studio_filter_bw": "أبيض وأسود",
+  "studio_filter_cool": "بارد",
+  "studio_filter_vintage": "كلاسيكي"
 }
