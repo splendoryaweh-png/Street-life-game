@@ -949,7 +949,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             {playerStudioLevel >= 1 ? (
               <span className="text-[10px]">Lvl {playerStudioLevel} ✅</span>
             ) : (
-              <span className="px-1.5 py-0.2 rounded bg-yellow-400/20 text-yellow-300 text-[9px] font-bold">Lvl 0</span>
+              <span className="px-1.5 py-0.2 rounded bg-yellow-400/20 text-yellow-300 text-[9px] font-bold">{t('shop_level_0', 'Lvl 0')}</span>
             )}
           </button>
         </div>
@@ -989,8 +989,8 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
             <span className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-amber-400" />
               {calculateDaysLeft(playerState.equipped.rentExpiresTimestamp, currentTimestamp) <= 0
-                ? '⚠️ Rent has EXPIRED! Renew to avoid street homelessness.'
-                : `Rent Active: ${calculateDaysLeft(playerState.equipped.rentExpiresTimestamp, currentTimestamp)} days left`}
+                ? t('shop_rent_expired_warning', '⚠️ Rent has EXPIRED! Renew to avoid street homelessness.')
+                : `${t('shop_rent_active', 'Rent Active')}: ${calculateDaysLeft(playerState.equipped.rentExpiresTimestamp, currentTimestamp)} ${t('shop_days_left', 'days left')}`}
             </span>
             <button
               onClick={() => {
@@ -1023,7 +1023,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
           >
             <Tv className="w-4 h-4 text-yellow-400" />
             <span>
-              {isWatchingAd ? 'Loading Adsgram ad...' : 'Watch ad to get 10 SC'}
+              {isWatchingAd ? t('shop_loading_ads', 'Loading Adsgram ad...') : t('shop_watch_ad_10', 'Watch ad to get 10 SC')}
             </span>
           </button>
         </div>
@@ -1227,7 +1227,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                           }`}
                         >
                           {isRentExpired
-                            ? `{t('shop_renew_rent', 'Renew Rent')} (${item.price.toLocaleString()} SC)`
+                            ? `${t('shop_renew_rent', 'Renew Rent')} (${item.price.toLocaleString()} SC)`
                             : isRent
                             ? `${t('shop_rent', 'Rent')} (${item.price.toLocaleString()} SC)`
                             : `${t('shop_buy_for', 'Buy')} (${item.price.toLocaleString()} SC)`}
@@ -1253,7 +1253,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                       <div className="flex items-center justify-between">
                         <span className="text-2xl">{item.icon}</span>
                         <span className="text-xs font-mono font-black text-[#FFD700]">
-                          {item.price === 0 ? 'FREE' : `${item.price.toLocaleString()} SC`}
+                          {item.price === 0 ? t('shop_free', 'FREE') : `${item.price.toLocaleString()} SC`}
                         </span>
                       </div>
                       <h4 className="text-sm font-black text-white mt-1">{t(`shop_item_${item.id}_name`, item.name)}</h4>
@@ -1302,7 +1302,7 @@ export function InventoryScreen({ gameState, onToast }: InventoryScreenProps) {
                       <div className="flex items-center justify-between">
                         <span className="text-2xl">{item.icon}</span>
                         <span className="text-xs font-mono font-black text-[#FFD700]">
-                          {item.price === 0 ? 'FREE' : `${item.price.toLocaleString()} SC`}
+                          {item.price === 0 ? t('shop_free', 'FREE') : `${item.price.toLocaleString()} SC`}
                         </span>
                       </div>
                       <h4 className="text-sm font-black text-white mt-1">{t(`shop_item_${item.id}_name`, item.name)}</h4>
