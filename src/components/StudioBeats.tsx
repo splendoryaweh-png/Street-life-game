@@ -1158,14 +1158,14 @@ export function StudioBeats({
                 value={beatVolume}
                 onChange={(e) => handleBeatVolumeChange(Number(e.target.value))}
                 disabled={false}
-                aria-label="Beat volume"
+                aria-label={t("studio_beat_volume_aria", "Beat volume")}
                 className="w-full h-2 rounded-full accent-yellow-400 cursor-pointer"
               />
 
               <div className="flex justify-between text-[9px] text-gray-500 mt-1">
-                <span>0% OFF</span>
-                <span>50% BALANCED</span>
-                <span>100% MAX</span>
+                <span>0% {t('studio_off', 'OFF')}</span>
+                <span>50% {t('studio_balanced', 'BALANCED')}</span>
+                <span>100% {t('studio_max', 'MAX')}</span>
               </div>
             </div>
 
@@ -1186,7 +1186,7 @@ export function StudioBeats({
                 value={voiceVolume}
                 onChange={(e) => handleVoiceVolumeChange(Number(e.target.value))}
                 disabled={false}
-                aria-label="Voice volume"
+                aria-label={t("studio_voice_volume_aria", "Voice volume")}
                 className="w-full h-2 rounded-full accent-cyan-400 cursor-pointer"
               />
 
