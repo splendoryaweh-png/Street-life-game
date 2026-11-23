@@ -212,6 +212,41 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         if (isHost) { channelRef.current.postMessage({ type: 'host_sync', senderId: myPlayerId, payload: { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters } }); }
       }
       s.remotePlayers.forEach((rem, remId) => { rem.x += (rem.targetX - rem.x) * 0.25; rem.y += (rem.targetY - rem.y) * 0.25; if (now - rem.lastSeen > 8000) { s.remotePlayers.delete(remId); setActivePlayerCount(s.remotePlayers.size + 1); } });
+      if (isHost) {
+        // Host owns civilian traffic and publishes its turns to every player.
+        s.cars.forEach((car) => {
+          if (car.isOccupied) return;
+          if (car.direction === 'horizontal') {
+            car.x += car.vx;
+            if (car.x > cityData.mapWidth + 80) car.x = -80;
+            if (car.x < -80) car.x = cityData.mapWidth + 80;
+            const junction = cityData.roads.some((road) => road.direction === 'vertical' && Math.abs(car.x - (road.x + road.width / 2)) < 3 && cityData.roads.some((cross) => cross.direction === 'horizontal' && Math.abs(car.y - (cross.y + cross.height / 2)) < cross.height / 2));
+            if (junction && now - (car.lastTurnAt || 0) > 1200 && Math.random() < 0.35) {
+              const turnSpeed = car.speed * (Math.random() < 0.5 ? -1 : 1);
+              car.direction = 'vertical'; car.vx = 0; car.vy = turnSpeed;
+              [car.width, car.height] = [car.height, car.width]; car.lastTurnAt = now;
+            }
+          } else {
+            car.y += car.vy;
+            if (car.y > cityData.mapHeight + 80) car.y = -80;
+            if (car.y < -80) car.y = cityData.mapHeight + 80;
+            const junction = cityData.roads.some((road) => road.direction === 'horizontal' && Math.abs(car.y - (road.y + road.height / 2)) < 3 && cityData.roads.some((cross) => cross.direction === 'vertical' && Math.abs(car.x - (cross.x + cross.width / 2)) < cross.width / 2));
+            if (junction && now - (car.lastTurnAt || 0) > 1200 && Math.random() < 0.35) {
+              const turnSpeed = car.speed * (Math.random() < 0.5 ? -1 : 1);
+              car.direction = 'horizontal'; car.vy = 0; car.vx = turnSpeed;
+              [car.width, car.height] = [car.height, car.width]; car.lastTurnAt = now;
+            }
+          }
+        });
+        s.civilians.forEach((civ) => {
+          if (civ.state === 'scared') return;
+          civ.x += Math.cos(civ.facingAngle) * civ.speed;
+          civ.y += Math.sin(civ.facingAngle) * civ.speed;
+          if (Math.random() < 0.012) civ.facingAngle += (Math.random() - 0.5) * 1.2;
+          civ.x = Math.max(80, Math.min(cityData.mapWidth - 80, civ.x));
+          civ.y = Math.max(80, Math.min(cityData.mapHeight - 80, civ.y));
+        });
+      }
       if (isHost && now - s.lastSpawnTime >= 5000) {
         s.lastSpawnTime = now; const edge = cityData.gangsterSpawnEdges[Math.floor(Math.random() * cityData.gangsterSpawnEdges.length)]; const isBus = Math.random() > 0.65;
         s.gangsters.push({ id: `gangster_${now}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: 6, maxHealth: 6, speed: isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isBus ? 'bus' : 'motorcycle' });
@@ -258,7 +293,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             if (distToSegment(civ.x, civ.y, l.x1, l.y1, l.x2, l.y2) < 30) {
               civ.hitCount = (civ.hitCount || 0) + 1; s.lasers.splice(lIdx, 1); hit = true;
               for (let sp = 0; sp < 7; sp++) s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 18 });
-              if (civ.hitCount >= 4) { for (let sp = 0; sp < 14; sp++) s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.5) * 9, color: sp % 2 ? '#991B1B' : '#DC2626', life: 24 }); s.civilians.splice(civIdx, 1); }
+              if (civ.hitCount >= 3) { for (let sp = 0; sp < 14; sp++) s.sparks.push({ x: civ.x, y: civ.y, vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.5) * 9, color: sp % 2 ? '#991B1B' : '#DC2626', life: 24 }); s.civilians.splice(civIdx, 1); }
               break;
             }
           }
