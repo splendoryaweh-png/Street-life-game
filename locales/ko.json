@@ -192,5 +192,13 @@
   "studio_beat_voice": "비트 + 보컬",
   "studio_beat_volume": "비트 볼륨",
   "studio_voice_volume": "보컬 볼륨",
-  "studio_locked": "잠김"
+  "studio_locked": "잠김",
+  "turf_player_down": "쓰러졌습니다",
+  "turf_death_description": "광고를 시청하면 중단한 지점부터 경기를 계속하거나 홈으로 돌아갈 수 있습니다.",
+  "turf_earned": "획득",
+  "turf_ad_playing": "보상 광고 재생 중...",
+  "turf_watch_continue": "광고 시청 후 계속하기",
+  "turf_back_home": "홈으로 돌아가기",
+  "turf_ad_success_note": "보상 광고가 완료된 후에만 경기가 재개됩니다.",
+  "turf_hour_victory": "승리! 1시간!"
 }
