@@ -204,6 +204,7 @@ export interface UserGameState {
   // PROM 4: Watch Ads System
   watchCountDaily?: number;
   lastWatchDate?: string | null;
+  watchMilestonesClaimedToday?: number[];
   boostUntil?: number | null;
   // PROM 6: Task System (completedTasks object and taskProgress metrics)
   completedTasks: Record<string, boolean>;
