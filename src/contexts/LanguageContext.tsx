@@ -81,6 +81,53 @@ function getPlayerLanguageStorageKey(): string {
   }
 }
 
+function languageForCountry(countryCode: string): LanguageCode | null {
+  const country = countryCode.toUpperCase();
+  if (['NG'].includes(country)) return 'en';
+  if (['FR','SN','CI','DZ','MA','TN','BE','CH','LU'].includes(country)) return 'fr';
+  if (['ES','MX','AR','CO','PE','CL','VE','EC','BO','PY','UY','CR','PA','GT','HN','SV','NI','DO','CU'].includes(country)) return 'es';
+  if (['RU','BY','KZ','KG'].includes(country)) return 'ru';
+  if (['PT','BR','AO','MZ'].includes(country)) return 'pt';
+  if (['ID'].includes(country)) return 'id';
+  if (['SA','AE','EG','QA','KW','BH','OM','YE','JO','LB','IQ','SY','PS','LY','SD'].includes(country)) return 'ar';
+  if (['CN','TW','HK','MO'].includes(country)) return 'zh';
+  if (['KR'].includes(country)) return 'ko';
+  if (['IL'].includes(country)) return 'he';
+  if (['PH'].includes(country)) return 'fil';
+  return null;
+}
+
+/**
+ * Uses the browser's location permission and reverse geocoding to identify the
+ * player's country. Coordinates are sent only to the reverse-geocoding provider
+ * after the player grants browser location permission.
+ */
+async function detectLanguageFromLocation(): Promise<LanguageCode | null> {
+  if (typeof window === 'undefined' || !navigator.geolocation) return null;
+
+  const position = await new Promise<GeolocationPosition | null>((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (value) => resolve(value),
+      () => resolve(null),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 30 * 60 * 1000 }
+    );
+  });
+  if (!position) return null;
+
+  try {
+    const { latitude, longitude } = position.coords;
+    const response = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
+      { headers: { Accept: 'application/json' } }
+    );
+    if (!response.ok) return null;
+    const data = await response.json() as { countryCode?: string };
+    return data.countryCode ? languageForCountry(data.countryCode) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function detectLanguage(): LanguageCode {
   if (typeof window === 'undefined') return 'en';
 
@@ -180,12 +227,27 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [languageReady, setLanguageReady] = useState(false);
 
   useEffect(() => {
-    // Defer state hydration until after the effect body to avoid a synchronous cascading render.
-    void Promise.resolve().then(() => {
+    let active = true;
+    // Apply a fast locale/time-zone fallback first, then refine it using the
+    // player's country if they grant the browser location permission.
+    void Promise.resolve().then(async () => {
       const detected = detectLanguage();
+      if (!active) return;
       setLanguageState(detected);
       setLanguageReady(true);
+
+      const locatedLanguage = await detectLanguageFromLocation();
+      if (!active || !locatedLanguage) return;
+
+      // A manual choice always wins, including a choice made while location
+      // detection is still running.
+      const manualKey = getPlayerLanguageStorageKey();
+      try {
+        if (localStorage.getItem(manualKey)) return;
+      } catch {}
+      setLanguageState(locatedLanguage);
     });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
