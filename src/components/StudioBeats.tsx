@@ -1191,9 +1191,9 @@ export function StudioBeats({
               />
 
               <div className="flex justify-between text-[9px] text-gray-500 mt-1">
-                <span>0% OFF</span>
-                <span>50% BALANCED</span>
-                <span>100% MAX</span>
+                <span>0% {t('studio_off', 'OFF')}</span>
+                <span>50% {t('studio_balanced', 'BALANCED')}</span>
+                <span>100% {t('studio_max', 'MAX')}</span>
               </div>
             </div>
 
