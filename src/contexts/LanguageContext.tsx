@@ -73,7 +73,7 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
 function getPlayerLanguageStorageKey(): string {
   if (typeof window === 'undefined') return 'street_lang_manual';
   try {
-    const tg = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { id?: number | string } } } }).Telegram;
+    const tg = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { id?: number | string } } } } }).Telegram;
     const telegramId = tg?.WebApp?.initDataUnsafe?.user?.id;
     return telegramId ? `street_lang_manual:${telegramId}` : 'street_lang_manual';
   } catch {
