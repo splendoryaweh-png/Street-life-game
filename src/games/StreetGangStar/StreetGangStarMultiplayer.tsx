@@ -11,7 +11,7 @@ import { GangChat } from './GangChat';
 import { StreetJoystick } from './StreetJoystick';
 
 export interface RemotePlayer { id: string; name: string; x: number; y: number; targetX: number; targetY: number; facingAngle: number; health: number; maxHealth: number; team: 'blue' | 'red'; gun: WeaponType; avatarColor: string; isCover: boolean; inCarId: string | null; jumpOffset?: number; lastReaction?: { emoji: string; until: number }; lastSeen: number; hitCount?: number; }
-export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert'; senderId: string; payload: any; }
+export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert' | 'driver_eject'; senderId: string; payload: any; }
 interface StreetGangStarMultiplayerProps { onBack: () => void; onToast: (msg: string) => void; language?: string; initialCountry?: string; }
 
 export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', initialCountry = 'NG' }: StreetGangStarMultiplayerProps) {
@@ -46,7 +46,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
 
   const gameStateRef = useRef({
     player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false, hitCount: 0 },
-    remotePlayers: new Map<string, RemotePlayer>(),
+    remotePlayers: new Map<string, RemotePlayer>(), ejectedDrivers: [] as { id: string; x: number; y: number; facingAngle: number; state: 'falling' | 'standing'; stateAt: number }[],
     unlockedGuns: { pistol: true, shotgun_laser: false, ak_laser: false, sniper_laser: false } as Record<WeaponType, boolean>,
     cars: [] as (CityCar & { health: number; maxHealth: number })[], civilians: [] as Civilian[], gangsters: [] as Gangster[], lasers: [] as LaserBeam[], sparks: [] as SparkParticle[],
     keys: { w: false, a: false, s: false, d: false, shift: false, mouseLeft: false },
@@ -97,7 +97,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         const p = msg.payload; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2, color: p.color, life: 7, maxLife: 7, isPlayer: false, damage: p.damage });
       } else if (msg.type === 'reaction') {
         const rem = s.remotePlayers.get(msg.senderId); if (rem) { rem.lastReaction = { emoji: msg.payload.emoji, until: Date.now() + 2000 }; }
-      } else if (msg.type === 'host_sync' && !isHost) { s.cars = msg.payload.cars || s.cars; s.civilians = msg.payload.civilians || s.civilians; s.gangsters = msg.payload.gangsters || s.gangsters; }
+      } else if (msg.type === 'driver_eject') { if (!s.ejectedDrivers.some((driver) => driver.id === msg.payload.id)) s.ejectedDrivers.push(msg.payload); } else if (msg.type === 'host_sync' && !isHost) { s.cars = msg.payload.cars || s.cars; s.civilians = msg.payload.civilians || s.civilians; s.gangsters = msg.payload.gangsters || s.gangsters; s.ejectedDrivers = msg.payload.ejectedDrivers || s.ejectedDrivers; }
     };
     const player = gameStateRef.current.player;
     player.health = 100; player.hitCount = 0; player.x = newCity.spawnPoints[0].x; player.y = newCity.spawnPoints[0].y; player.inCarId = null; player.isCover = false;
@@ -164,7 +164,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const handleToggleCar = useCallback(() => {
     const s = gameStateRef.current; const p = s.player; if (p.inCarId) { const car = s.cars.find((c) => c.id === p.inCarId); if (car) { car.isOccupied = false; car.hasDriver = false; car.driverType = null; p.x = car.x + 30; p.y = car.y + 30; } p.inCarId = null; setHudInCar(false); playSfx('click'); onToast(t('car_exit')); return; }
     let nearestCar: any = null; let minDist = 70; for (const c of s.cars) { const dist = Math.hypot(c.x - p.x, c.y - p.y); if (dist < minDist) { minDist = dist; nearestCar = c; } }
-    if (nearestCar) { if (nearestCar.hasDriver && nearestCar.driverType === 'civilian') { nearestCar.hasDriver = false; nearestCar.driverType = 'player'; nearestCar.isOccupied = true; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('siren'); onToast(t('car_hijacked')); } else if (!nearestCar.isOccupied) { nearestCar.isOccupied = true; nearestCar.hasDriver = true; nearestCar.driverType = 'player'; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('click'); onToast(t('car_enter')); } }
+    if (nearestCar) { if (nearestCar.hasDriver && nearestCar.driverType === 'civilian') { const ejected = { id: `ejected_${nearestCar.id}_${Date.now()}_${myPlayerId}`, x: nearestCar.x - 24, y: nearestCar.y + 18, facingAngle: Math.atan2(p.y - nearestCar.y, p.x - nearestCar.x), state: 'falling' as const, stateAt: Date.now() }; s.ejectedDrivers.push(ejected); channelRef.current?.postMessage({ type: 'driver_eject', senderId: myPlayerId, payload: ejected }); nearestCar.hasDriver = false; nearestCar.driverType = 'player'; nearestCar.isOccupied = true; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('siren'); onToast(t('car_hijacked')); } else if (!nearestCar.isOccupied) { nearestCar.isOccupied = true; nearestCar.hasDriver = true; nearestCar.driverType = 'player'; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('click'); onToast(t('car_enter')); } }
   }, [onToast, playSfx, t]);
   const handleToggleCover = useCallback(() => {
     const s = gameStateRef.current; const p = s.player; let nearObstacle = false;
@@ -206,10 +206,11 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       const s = gameStateRef.current; const p = s.player; const now = Date.now();
       if (!s.isRunning) { animId = requestAnimationFrame(loop); return; }
       if (s.keys.mouseLeft) { shootPlayerLaser(); }
+      s.ejectedDrivers.forEach((driver) => { if (driver.state === 'falling' && now - driver.stateAt >= 520) { driver.state = 'standing'; driver.stateAt = now; } });
       if (now - s.lastBroadcastTime >= 100 && channelRef.current) {
         s.lastBroadcastTime = now;
         channelRef.current.postMessage({ type: 'player_sync', senderId: myPlayerId, payload: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, team: myTeam, gun: p.gun, avatarColor: '#FFD700', isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset } });
-        if (isHost) { channelRef.current.postMessage({ type: 'host_sync', senderId: myPlayerId, payload: { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters } }); }
+        if (isHost) { channelRef.current.postMessage({ type: 'host_sync', senderId: myPlayerId, payload: { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters, ejectedDrivers: s.ejectedDrivers } }); }
       }
       s.remotePlayers.forEach((rem, remId) => { rem.x += (rem.targetX - rem.x) * 0.25; rem.y += (rem.targetY - rem.y) * 0.25; if (now - rem.lastSeen > 8000) { s.remotePlayers.delete(remId); setActivePlayerCount(s.remotePlayers.size + 1); } });
       if (isHost) {
@@ -391,6 +392,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         if (isShield) { ctx.save(); ctx.translate(x, y - jumpOffset); ctx.strokeStyle = '#38BDF8'; ctx.lineWidth = 2.5; ctx.shadowColor = '#38BDF8'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(0, 0, 26, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0; ctx.restore(); }
       }
 
+      s.ejectedDrivers.forEach((driver) => { const fall = driver.state === 'falling' ? Math.min(1, (now - driver.stateAt) / 520) : 1; ctx.save(); ctx.globalAlpha = 1 - fall * 0.12; drawHuman(ctx, driver.x, driver.y, driver.facingAngle, '#94A3B8', false, 'red', 0, false); ctx.restore(); });
       s.remotePlayers.forEach((rem) => {
         const shirt = rem.team === 'blue' ? '#0EA5E9' : '#DC2626';
         drawHuman(ctx, rem.x, rem.y, rem.facingAngle, shirt, false, rem.team, rem.jumpOffset || 0, rem.isCover);
