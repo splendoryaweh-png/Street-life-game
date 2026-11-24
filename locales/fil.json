@@ -352,5 +352,12 @@
   "studio_balanced": "BALANSE",
   "studio_max": "PINAKAMALAKAS",
   "studio_beat_volume_aria": "Lakas ng beat",
-  "studio_voice_volume_aria": "Lakas ng boses"
+  "studio_voice_volume_aria": "Lakas ng boses",
+  "extend_rent_30_days": "Palawigin ang renta nang 30 araw",
+  "profile_save": "I-save",
+  "profile_beats": "Mga Beat",
+  "profile_email_identity": "Email at Pagkakakilanlan (Link ng Admin)",
+  "profile_email_help": "I-save ang personal mong email para makatanggap ng mga reward, update, at notification ng system.",
+  "profile_studio_rent_status": "Katayuan ng Renta sa Studio",
+  "profile_rent_expired": "Nag-expire na ang Renta 🔒"
 }
