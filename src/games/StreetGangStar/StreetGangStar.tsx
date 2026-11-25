@@ -8,6 +8,7 @@ import { getRandomCityByCountry, CityData, isPointInsideBuilding } from './CityG
 import { getGangStarText, GangStarTextKey } from './language';
 import { StreetGangStarIntro } from './Intro';
 import { StreetJoystick } from './StreetJoystick';
+import { drawSideViewScene } from './SideViewRenderer';
 export type WeaponType = 'pistol' | 'shotgun_laser' | 'ak_laser' | 'sniper_laser';
 export interface WeaponDef { id: WeaponType; nameKey: GangStarTextKey; damage: number; maxAmmo: number; fireRateMs: number; laserColor: string; price: number; bulletSpeed: number; spread: number; }
 export const WEAPONS: Record<WeaponType, WeaponDef> = {
@@ -300,6 +301,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
         drawHuman(ctx, p.x, p.y - (p.jumpOffset || 0), p.facingAngle, avatarColor, 'player', true, p.isCover);
       }
       ctx.restore();
+      drawSideViewScene(ctx, { city: cityData, player: p, cars: s.cars, civilians: s.civilians, gangsters: s.gangsters, lasers: s.lasers, screenWidth: s.screenDim.w, screenHeight: s.screenDim.h, cameraX: p.x - s.screenDim.w / 2 });
       const mmSize = 62; const mmX = s.screenDim.w - mmSize - 12; const mmY = s.screenDim.h - mmSize - 190;
       ctx.save(); ctx.fillStyle = 'rgba(8,10,18,0.9)'; ctx.beginPath(); ctx.roundRect(mmX, mmY, mmSize, mmSize, 10); ctx.fill(); ctx.strokeStyle = 'rgba(255,215,0,0.6)'; ctx.lineWidth = 1; ctx.stroke();
       ctx.fillStyle = 'rgba(148,163,184,0.6)'; s.civilians.forEach((c) => { const cx = mmX + (c.x / cityData.mapWidth) * mmSize; const cy = mmY + (c.y / cityData.mapHeight) * mmSize; ctx.fillRect(cx - 1, cy - 1, 1.5, 1.5); });
