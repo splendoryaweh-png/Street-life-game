@@ -73,23 +73,61 @@ export interface CityData {
 }
 
 const NIGERIAN_CITIES = [
-  'Lagos - Ikeja Street',
-  'Port Harcourt - Diobu',
+  'Lagos - Broad Street',
+  'Lagos - Allen Avenue',
+  'Lagos - Awolowo Road',
+  'Lagos - Admiralty Way',
+  'Lagos - Ikorodu Road',
+  'Lagos - Agege Motor Road',
+  'Abuja - Aminu Kano Crescent',
+  'Abuja - Adetokunbo Ademola Crescent',
+  'Port Harcourt - Aba Road',
+  'Port Harcourt - Olu Obasanjo Road',
+  'Ibadan - Cocoa House Road',
+  'Ibadan - Ring Road',
   'Uyo - Ikot Ekpene Road',
-  'Abuja - Wuse Zone',
-  'Kano - Sabon Gari',
-  'Onitsha Main Market',
+  'Kano - Murtala Mohammed Way',
+  'Onitsha - New Market Road',
+  'Enugu - Ogui Road',
 ];
 
 const US_CITIES = [
-  'Los Angeles - Compton Street',
-  'New York - Brooklyn Ave',
-  'California - Oakland Blvd',
+  'New York - Broadway',
+  'New York - Wall Street',
+  'New York - Fifth Avenue',
+  'New York - Brooklyn Avenue',
+  'New York - Flatbush Avenue',
+  'New York - Queens Boulevard',
+  'Los Angeles - Sunset Boulevard',
+  'Los Angeles - Crenshaw Boulevard',
+  'Chicago - Michigan Avenue',
+  'Chicago - State Street',
+  'Houston - Westheimer Road',
+  'Atlanta - Peachtree Street',
+  'Miami - Biscayne Boulevard',
+  'Oakland - Broadway',
 ];
 
 const GHANA_CITIES = [
-  'Accra - Makola Street',
-  'Kumasi - Kejetia',
+  'Accra - Oxford Street',
+  'Accra - Kwame Nkrumah Avenue',
+  'Accra - Ring Road',
+  'Kumasi - Harper Road',
+  'Kumasi - Kejetia Road',
+  'Takoradi - Market Circle Road',
+];
+
+const OTHER_CITIES = [
+  'London - Oxford Street',
+  'London - Baker Street',
+  'Paris - Rue de Rivoli',
+  'Toronto - Yonge Street',
+  'Dubai - Sheikh Zayed Road',
+  'Nairobi - Kenyatta Avenue',
+  'Cape Town - Long Street',
+  'Johannesburg - Commissioner Street',
+  'Tokyo - Shibuya Street',
+  'Sydney - George Street',
 ];
 
 const THEMES: Record<string, CityTheme> = {
@@ -178,7 +216,7 @@ export function getRandomCityByCountry(countryCode?: string, seedStr?: string): 
     cityList = GHANA_CITIES;
   } else {
     // Random from all
-    const all = [...NIGERIAN_CITIES, ...US_CITIES, ...GHANA_CITIES];
+    const all = [...NIGERIAN_CITIES, ...US_CITIES, ...GHANA_CITIES, ...OTHER_CITIES];
     cityList = all;
     selectedCountry = 'WORLD';
   }
