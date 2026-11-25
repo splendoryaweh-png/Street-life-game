@@ -9,6 +9,7 @@ import { getGangStarText, GangStarTextKey } from './language';
 import { WEAPONS, WeaponType, CityCar, Civilian, Gangster, LaserBeam, SparkParticle } from './StreetGangStar';
 import { GangChat } from './GangChat';
 import { StreetJoystick } from './StreetJoystick';
+import { drawSideViewScene } from './SideViewRenderer';
 
 export interface RemotePlayer { id: string; name: string; x: number; y: number; targetX: number; targetY: number; facingAngle: number; health: number; maxHealth: number; team: 'blue' | 'red'; gun: WeaponType; avatarColor: string; isCover: boolean; inCarId: string | null; jumpOffset?: number; lastReaction?: { emoji: string; until: number }; lastSeen: number; hitCount?: number; }
 export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert' | 'driver_eject'; senderId: string; payload: any; }
@@ -405,6 +406,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         ctx.save(); ctx.translate(p.x, p.y - (p.jumpOffset || 0)); ctx.fillStyle = '#FFD700'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${myPlayerName} (YOU)`, 0, -20); if (s.myReaction && now < s.myReaction.until) { ctx.font = '16px sans-serif'; ctx.fillText(s.myReaction.emoji, 0, -32); } ctx.restore();
       }
       ctx.restore();
+      drawSideViewScene(ctx, { city: cityData, player: p, cars: s.cars, civilians: s.civilians, gangsters: s.gangsters, lasers: s.lasers, remotePlayers: Array.from(s.remotePlayers.values()), screenWidth: s.screenDim.w, screenHeight: s.screenDim.h, cameraX: p.x - s.screenDim.w / 2 });
 
       // SMALL RADAR - 62px BOTTOM RIGHT (LIKE SECOND PICTURE)
       const mmSize = 62; const mmX = s.screenDim.w - mmSize - 12; const mmY = s.screenDim.h - mmSize - 190;
