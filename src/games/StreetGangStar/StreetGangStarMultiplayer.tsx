@@ -45,7 +45,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   const gameStateRef = useRef({
-    player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false, hitCount: 0 },
+    player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, hitCount: 0, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false, hitCount: 0 },
     remotePlayers: new Map<string, RemotePlayer>(), ejectedDrivers: [] as { id: string; x: number; y: number; facingAngle: number; state: 'falling' | 'standing'; stateAt: number }[],
     unlockedGuns: { pistol: true, shotgun_laser: false, ak_laser: false, sniper_laser: false } as Record<WeaponType, boolean>,
     cars: [] as (CityCar & { health: number; maxHealth: number })[], civilians: [] as Civilian[], gangsters: [] as Gangster[], lasers: [] as LaserBeam[], sparks: [] as SparkParticle[],
@@ -265,7 +265,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       const cameraX = Math.max(0, Math.min(cityData.mapWidth - s.screenDim.w, p.x - s.screenDim.w / 2)); const cameraY = Math.max(0, Math.min(cityData.mapHeight - s.screenDim.h, p.y - s.screenDim.h / 2));
       if (s.isMouseActive) { const playerScreenX = p.x - cameraX; const playerScreenY = p.y - cameraY; p.facingAngle = Math.atan2(s.mousePos.y - playerScreenY, s.mousePos.x - playerScreenX); }
 
-      // ===== NEW HIT LOGIC - 3 SHOTS PLAYER/ENEMY, 10 SHOTS CAR =====
+      // ===== MULTIPLAYER HIT LOGIC - 15 ENEMY HITS DOWN A PLAYER =====
       function distToSegment(px: number, py: number, x1: number, y1: number, x2: number, y2: number) {
         const l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1); if (l2 === 0) return Math.hypot(px - x1, py - y1);
         let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2; t = Math.max(0, Math.min(1, t));
@@ -341,15 +341,15 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             }
           }
           if (civilianHit) continue;
-          // ENEMY HITS YOU - 10 HITS TO GO DOWN
+          // ENEMY HITS YOU - 15 HITS TO GO DOWN
           if (distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 32) {
-            p.hitCount = (p.hitCount || 0) + 1; p.health = Math.max(0, 100 - p.hitCount * 10); setHudHealth(p.health);
+            p.hitCount = (p.hitCount || 0) + 1; p.health = Math.max(0, 100 - (p.hitCount / 15) * 100); setHudHealth(p.health);
             s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#38BDF8', life: 14 }); }
-            if (p.health <= 0 || p.hitCount >= 10) {
+            if (p.health <= 0 || p.hitCount >= 15) {
               playSfx('siren');
               p.health = 0;
-              p.hitCount = 10;
+              p.hitCount = 15;
               p.inCarId = null;
               p.isCover = false;
               s.isRunning = false;
