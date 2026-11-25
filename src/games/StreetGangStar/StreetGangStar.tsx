@@ -47,7 +47,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   const [showDeathAdPrompt, setShowDeathAdPrompt] = useState(false);
   const [deathAdWatching, setDeathAdWatching] = useState(false);
   const gameStateRef = useRef({
-    player: { x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, jumpOffset: 0, jumpVy: 0, isJumping: false },
+    player: { x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, hitCount: 0, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, jumpOffset: 0, jumpVy: 0, isJumping: false },
     unlockedGuns: { pistol: true, shotgun_laser: false, ak_laser: false, sniper_laser: false } as Record<WeaponType, boolean>,
     cars: [] as CityCar[], civilians: [] as Civilian[], gangsters: [] as Gangster[], ejectedDrivers: [] as EjectedDriver[], lasers: [] as LaserBeam[], sparks: [] as SparkParticle[],
     keys: { w: false, a: false, s: false, d: false, shift: false, mouseLeft: false },
@@ -64,7 +64,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length] }); } s.civilians = civs;
   }, [cityData]);
   const setupGame = useCallback(() => {
-    const s = gameStateRef.current; s.player.x = cityData.spawnPoints[0].x; s.player.y = cityData.spawnPoints[0].y; s.player.health = 100; s.player.ammo = WEAPONS.pistol.maxAmmo; s.player.maxAmmo = WEAPONS.pistol.maxAmmo; s.player.gun = 'pistol'; s.player.isCover = false; s.player.inCarId = null; s.gangsters = []; s.ejectedDrivers = []; s.lasers = []; s.sparks = []; s.lastSpawnTime = Date.now(); s.isRunning = true;
+    const s = gameStateRef.current; s.player.x = cityData.spawnPoints[0].x; s.player.y = cityData.spawnPoints[0].y; s.player.health = 100; s.player.hitCount = 0; s.player.ammo = WEAPONS.pistol.maxAmmo; s.player.maxAmmo = WEAPONS.pistol.maxAmmo; s.player.gun = 'pistol'; s.player.isCover = false; s.player.inCarId = null; s.gangsters = []; s.ejectedDrivers = []; s.lasers = []; s.sparks = []; s.lastSpawnTime = Date.now(); s.isRunning = true;
     setHudHealth(100); setHudAmmo(WEAPONS.pistol.maxAmmo); setHudMaxAmmo(WEAPONS.pistol.maxAmmo); setHudGun('pistol'); setHudInCover(false); setHudInCar(false); initTrafficAndCivilians();
   }, [initTrafficAndCivilians]);
   const handleStartFromIntro = () => { setShowIntro(false); setupGame(); };
@@ -75,6 +75,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       await showAdsgramRewardedAd();
       const s = gameStateRef.current;
       s.player.health = 60;
+      s.player.hitCount = 0;
       s.player.x = cityData.spawnPoints[0].x;
       s.player.y = cityData.spawnPoints[0].y;
       s.player.inCarId = null;
@@ -170,7 +171,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       for (let gIdx = s.gangsters.length - 1; gIdx >= 0; gIdx--) {
         const g = s.gangsters[gIdx]; let targetX = p.x; let targetY = p.y; let targetDist = Math.hypot(p.x - g.x, p.y - g.y); for (const c of s.civilians) { const cDist = Math.hypot(c.x - g.x, c.y - g.y); if (cDist < targetDist) { targetDist = cDist; targetX = c.x; targetY = c.y; } }
         const aimAngle = Math.atan2(targetY - g.y, targetX - g.x); g.facingAngle = aimAngle; g.x += Math.cos(aimAngle) * g.speed; g.y += Math.sin(aimAngle) * g.speed;
-        if (targetDist < 260 && now - g.lastShootTime >= 650) { g.lastShootTime = now; const beamLen = 320; const laserEndX = g.x + Math.cos(aimAngle) * beamLen; const laserEndY = g.y + Math.sin(aimAngle) * beamLen; s.lasers.push({ id: `laser_g_${now}_${Math.random()}`, x1: g.x + Math.cos(aimAngle) * 16, y1: g.y + Math.sin(aimAngle) * 16, x2: laserEndX, y2: laserEndY, color: '#EF4444', life: 6, maxLife: 6, isPlayer: false, damage: 10 }); if (targetDist < 350) { playSfx('shoot'); } }
+        if (targetDist < 260 && now - g.lastShootTime >= 650) { g.lastShootTime = now; const beamLen = 320; const laserEndX = g.x + Math.cos(aimAngle) * beamLen; const laserEndY = g.y + Math.sin(aimAngle) * beamLen; s.lasers.push({ id: `laser_g_${now}_${Math.random()}`, x1: g.x + Math.cos(aimAngle) * 16, y1: g.y + Math.sin(aimAngle) * 16, x2: laserEndX, y2: laserEndY, color: '#EF4444', life: 6, maxLife: 6, isPlayer: false, damage: 100 / 15 }); if (targetDist < 350) { playSfx('shoot'); } }
       }
 
       // ===== FIXED HIT LOGIC START =====
@@ -243,8 +244,9 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
           if (civilianHit) continue;
           if (p.inCarId) { const occupiedCar = s.cars.find((car) => car.id === p.inCarId); if (occupiedCar && (distToSegment(occupiedCar.x, occupiedCar.y, l.x1, l.y1, l.x2, l.y2) < 52 || Math.hypot(occupiedCar.x - l.x2, occupiedCar.y - l.y2) < 58)) { occupiedCar.health -= 1; s.lasers.splice(lIdx, 1); for (let sp = 0; sp < 6; sp++) s.sparks.push({ x: occupiedCar.x, y: occupiedCar.y, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, color: '#F97316', life: 18 }); if (occupiedCar.health <= 0) { for (let sp = 0; sp < 28; sp++) s.sparks.push({ x: occupiedCar.x, y: occupiedCar.y, vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15, color: sp % 2 ? '#EF4444' : '#FACC15', life: 30 }); s.cars = s.cars.filter((car) => car.id !== occupiedCar.id); p.inCarId = null; setHudInCar(false); p.health = 0; setHudHealth(0); s.isRunning = false; playSfx('siren'); onToast(t('player_down')); setShowDeathAdPrompt(true); } continue; } }
           if (Math.hypot(p.x - l.x2, p.y - l.y2) < 42 || distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 30) {
-            const dmg = 10;
-            p.health = Math.max(0, p.health - dmg); setHudHealth(p.health); s.lasers.splice(lIdx, 1);
+            const dmg = l.damage;
+            p.hitCount += 1;
+            p.health = Math.max(0, 100 - (p.hitCount / 15) * 100); setHudHealth(p.health); s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 4; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, color: '#38BDF8', life: 12 }); }
             if (p.health <= 0) { playSfx('siren'); onToast(t('player_down')); s.isRunning = false; setHudHealth(0); setShowDeathAdPrompt(true); }
           }
@@ -289,7 +291,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
         }
         ctx.fillStyle = '#000'; ctx.fillRect(g.x - 16, g.y - 34, 32, 5); ctx.fillStyle = g.vehicleType === 'bus' ? '#FACC15' : '#EF4444'; ctx.fillRect(g.x - 16, g.y - 34, 32 * (g.health / g.maxHealth), 5);
       });
-      for (const driver of s.ejectedDrivers) { if (driver.state === 'falling' && now - driver.stateAt >= 520) { driver.state = 'standing'; driver.stateAt = now; } if (driver.state === 'standing') { const aim = Math.atan2(p.y - driver.y, p.x - driver.x); driver.facingAngle = aim; if (Math.hypot(p.x - driver.x, p.y - driver.y) < 520 && now - driver.lastShootTime >= 900) { driver.lastShootTime = now; const sx = driver.x + Math.cos(aim) * 18; const sy = driver.y + Math.sin(aim) * 18; s.lasers.push({ id: `driver_laser_${driver.id}_${now}`, x1: sx, y1: sy, x2: sx + Math.cos(aim) * 330, y2: sy + Math.sin(aim) * 330, color: '#FB923C', life: 6, maxLife: 6, isPlayer: false, damage: 10 }); } } }
+      for (const driver of s.ejectedDrivers) { if (driver.state === 'falling' && now - driver.stateAt >= 520) { driver.state = 'standing'; driver.stateAt = now; } if (driver.state === 'standing') { const aim = Math.atan2(p.y - driver.y, p.x - driver.x); driver.facingAngle = aim; if (Math.hypot(p.x - driver.x, p.y - driver.y) < 520 && now - driver.lastShootTime >= 900) { driver.lastShootTime = now; const sx = driver.x + Math.cos(aim) * 18; const sy = driver.y + Math.sin(aim) * 18; s.lasers.push({ id: `driver_laser_${driver.id}_${now}`, x1: sx, y1: sy, x2: sx + Math.cos(aim) * 330, y2: sy + Math.sin(aim) * 330, color: '#FB923C', life: 6, maxLife: 6, isPlayer: false, damage: 100 / 15 }); } } }
       s.ejectedDrivers.forEach((driver) => { const fallProgress = driver.state === 'falling' ? Math.min(1, (now - driver.stateAt) / 520) : 1; ctx.save(); ctx.globalAlpha = driver.state === 'falling' ? 1 - fallProgress * 0.15 : 1; drawHuman(ctx, driver.x, driver.y + (driver.state === 'falling' ? 10 * (1 - fallProgress) : 0), driver.facingAngle + (driver.state === 'falling' ? (1 - fallProgress) * Math.PI / 2 : 0), '#A3A3A3', 'gangster', true, false); ctx.restore(); });
       s.sparks.forEach((sp) => { ctx.fillStyle = sp.color; ctx.beginPath(); ctx.arc(sp.x, sp.y, 2.8, 0, Math.PI * 2); ctx.fill(); });
       s.lasers.forEach((l) => { ctx.save(); ctx.strokeStyle = l.color; ctx.shadowColor = l.color; ctx.shadowBlur = 14; ctx.lineWidth = l.isPlayer ? 3.8 : 2.8; ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke(); ctx.restore(); });
