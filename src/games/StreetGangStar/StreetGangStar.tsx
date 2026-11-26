@@ -190,6 +190,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
           let hit = false;
           for (let gIdx = s.gangsters.length - 1; gIdx >= 0; gIdx--) {
             const g = s.gangsters[gIdx];
+            if (g.driverId === p.id) continue;
             if (distToSegment(g.x, g.y, l.x1, l.y1, l.x2, l.y2) < 38) {
               g.health -= 1; // 3 shots die
               for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); }
