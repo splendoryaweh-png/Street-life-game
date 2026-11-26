@@ -49,7 +49,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, hitCount: 0, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false },
     remotePlayers: new Map<string, RemotePlayer>(), ejectedDrivers: [] as { id: string; x: number; y: number; facingAngle: number; state: 'falling' | 'standing'; stateAt: number }[],
     unlockedGuns: { pistol: true, shotgun_laser: false, ak_laser: false, sniper_laser: false } as Record<WeaponType, boolean>,
-    cars: [] as (CityCar & { health: number; maxHealth: number })[], civilians: [] as Civilian[], gangsters: [] as Gangster[], lasers: [] as LaserBeam[], sparks: [] as SparkParticle[],
+    cars: [] as (CityCar & { health: number; maxHealth: number })[], civilians: [] as Civilian[], gangsters: [] as (Gangster & { isPlayerOwned?: boolean; driverId?: string | null; })[], lasers: [] as LaserBeam[], sparks: [] as SparkParticle[],
     keys: { w: false, a: false, s: false, d: false, shift: false, mouseLeft: false },
     joystickMovement: { dx: 0, dy: 0, isMoving: false }, isRunActive: false, isMouseActive: false, mousePos: { x: 0, y: 0 }, screenDim: { w: 800, h: 600 }, lastSpawnTime: Date.now(), lastBroadcastTime: 0, myReaction: null as { emoji: string; until: number } | null, isRunning: false,
   });
@@ -163,7 +163,9 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     setTimeout(() => { s.player.ammo = wDef.maxAmmo; s.player.isReloading = false; setHudAmmo(wDef.maxAmmo); }, 900);
   }, [onToast, playSfx, t]);
   const handleToggleCar = useCallback(() => {
-    const s = gameStateRef.current; const p = s.player; if (p.inCarId) { const car = s.cars.find((c) => c.id === p.inCarId); if (car) { car.isOccupied = false; car.hasDriver = false; car.driverType = null; p.x = car.x + 30; p.y = car.y + 30; } p.inCarId = null; setHudInCar(false); playSfx('click'); onToast(t('car_exit')); return; }
+    const s = gameStateRef.current; const p = s.player; if (p.inCarId) { const tank = s.gangsters.find((g) => g.id === p.inCarId && g.vehicleType === 'tank'); if (tank) { tank.driverId = null; tank.isPlayerOwned = true; p.x = tank.x + 54; p.y = tank.y + 18; } else { const car = s.cars.find((c) => c.id === p.inCarId); if (car) { car.isOccupied = false; car.hasDriver = false; car.driverType = null; p.x = car.x + 30; p.y = car.y + 30; } } p.inCarId = null; setHudInCar(false); playSfx('click'); onToast(t('car_exit')); return; }
+    let nearestTank: any = null; let tankDistance = 92; for (const g of s.gangsters) { if (g.vehicleType !== 'tank') continue; const dist = Math.hypot(g.x - p.x, g.y - p.y); if (dist < tankDistance && (!g.driverId || g.driverId === myPlayerId)) { tankDistance = dist; nearestTank = g; } }
+    if (nearestTank) { nearestTank.isPlayerOwned = true; nearestTank.driverId = myPlayerId; p.inCarId = nearestTank.id; p.x = nearestTank.x; p.y = nearestTank.y; setHudInCar(true); playSfx('siren'); onToast('ARMOURED TANK HIJACKED! You are protected while inside.'); return; }
     let nearestCar: any = null; let minDist = 70; for (const c of s.cars) { const dist = Math.hypot(c.x - p.x, c.y - p.y); if (dist < minDist) { minDist = dist; nearestCar = c; } }
     if (nearestCar) { if (nearestCar.hasDriver && nearestCar.driverType === 'civilian') { const ejected = { id: `ejected_${nearestCar.id}_${Date.now()}_${myPlayerId}`, x: nearestCar.x - 24, y: nearestCar.y + 18, facingAngle: Math.atan2(p.y - nearestCar.y, p.x - nearestCar.x), state: 'falling' as const, stateAt: Date.now() }; s.ejectedDrivers.push(ejected); channelRef.current?.postMessage({ type: 'driver_eject', senderId: myPlayerId, payload: ejected }); nearestCar.hasDriver = false; nearestCar.driverType = 'player'; nearestCar.isOccupied = true; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('siren'); onToast(t('car_hijacked')); } else if (!nearestCar.isOccupied) { nearestCar.isOccupied = true; nearestCar.hasDriver = true; nearestCar.driverType = 'player'; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('click'); onToast(t('car_enter')); } }
   }, [onToast, playSfx, t]);
@@ -257,7 +259,10 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
       const isSprinting = s.keys.shift || s.isRunActive;
       if (p.inCarId) {
-        const car = s.cars.find((c) => c.id === p.inCarId); if (car) { const driveSpeed = isSprinting ? 7.5 : 5.0; if (s.joystickMovement.isMoving) { car.x += s.joystickMovement.dx * driveSpeed; car.y += s.joystickMovement.dy * driveSpeed; } else { if (s.keys.w) car.y -= driveSpeed; if (s.keys.s) car.y += driveSpeed; if (s.keys.a) car.x -= driveSpeed; if (s.keys.d) car.x += driveSpeed; } car.x = Math.max(80, Math.min(cityData.mapWidth - 80, car.x)); car.y = Math.max(80, Math.min(cityData.mapHeight - 80, car.y)); p.x = car.x; p.y = car.y; }
+        const tank = s.gangsters.find((g) => g.id === p.inCarId && g.vehicleType === 'tank');
+        const car = s.cars.find((c) => c.id === p.inCarId);
+        const vehicle: any = tank || car;
+        if (vehicle) { const driveSpeed = tank ? (isSprinting ? 6.2 : 4.2) : (isSprinting ? 7.5 : 5.0); let dx = 0; let dy = 0; if (s.joystickMovement.isMoving) { dx = s.joystickMovement.dx; dy = s.joystickMovement.dy; } else { if (s.keys.w) dy -= 1; if (s.keys.s) dy += 1; if (s.keys.a) dx -= 1; if (s.keys.d) dx += 1; } if (dx && dy) { dx *= 0.7071; dy *= 0.7071; } vehicle.x = Math.max(80, Math.min(cityData.mapWidth - 80, vehicle.x + dx * driveSpeed)); vehicle.y = Math.max(80, Math.min(cityData.mapHeight - 80, vehicle.y + dy * driveSpeed)); if (tank && (dx || dy)) tank.facingAngle = Math.atan2(dy, dx); p.x = vehicle.x; p.y = vehicle.y; }
       } else {
         const moveSpeed = isSprinting ? p.speed * 1.65 : p.speed; let dx = 0; let dy = 0;
         if (s.joystickMovement.isMoving) { dx = s.joystickMovement.dx; dy = s.joystickMovement.dy; if (!s.isMouseActive) { p.facingAngle = Math.atan2(dy, dx); } } else { if (s.keys.w) dy -= 1; if (s.keys.s) dy += 1; if (s.keys.a) dx -= 1; if (s.keys.d) dx += 1; if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; } }
@@ -342,8 +347,15 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             }
           }
           if (civilianHit) continue;
-          // ENEMY HITS YOU - 15 HITS TO GO DOWN
-          if (distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 32) {
+          // ENEMY HITS YOU - ARMOUR FIRST, THEN 15 PLAYER HITS
+          const occupiedTank = p.inCarId ? s.gangsters.find((g) => g.id === p.inCarId && g.vehicleType === 'tank') : undefined;
+          if (occupiedTank && distToSegment(occupiedTank.x, occupiedTank.y, l.x1, l.y1, l.x2, l.y2) < 54) {
+            occupiedTank.health -= 1; s.lasers.splice(lIdx, 1);
+            for (let sp = 0; sp < 7; sp++) s.sparks.push({ x: occupiedTank.x, y: occupiedTank.y, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, color: '#FACC15', life: 18 });
+            if (occupiedTank.health <= 0) { const tx = occupiedTank.x; const ty = occupiedTank.y; for (let sp = 0; sp < 22; sp++) s.sparks.push({ x: tx, y: ty, vx: (Math.random() - 0.5) * 13, vy: (Math.random() - 0.5) * 13, color: sp % 2 ? '#F97316' : '#FACC15', life: 28 }); s.gangsters = s.gangsters.filter((g) => g.id !== occupiedTank.id); p.inCarId = null; p.x = tx + 58; p.y = ty + 20; setHudInCar(false); onToast('YOUR TANK WAS DESTROYED! You are exposed again.'); }
+            continue;
+          }
+          if (!occupiedTank && distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 32) {
             p.hitCount = (p.hitCount || 0) + 1; p.health = Math.max(0, 100 - (p.hitCount / 15) * 100); setHudHealth(p.health);
             s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#38BDF8', life: 14 }); }
@@ -376,7 +388,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       s.gangsters.forEach((g) => {
         if (g.vehicleType === 'tank') {
           ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.facingAngle);
-          ctx.fillStyle = '#475569'; ctx.beginPath(); ctx.roundRect(-38, -23, 76, 46, 9); ctx.fill();
+          ctx.fillStyle = g.isPlayerOwned ? '#166534' : '#475569'; ctx.beginPath(); ctx.roundRect(-38, -23, 76, 46, 9); ctx.fill();
           ctx.strokeStyle = '#CBD5E1'; ctx.lineWidth = 3; ctx.strokeRect(-32, -18, 64, 36);
           ctx.fillStyle = '#1E293B'; for (let wheel = -27; wheel <= 27; wheel += 18) { ctx.beginPath(); ctx.arc(wheel, -21, 6, 0, Math.PI * 2); ctx.arc(wheel, 21, 6, 0, Math.PI * 2); ctx.fill(); }
           ctx.fillStyle = '#64748B'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
