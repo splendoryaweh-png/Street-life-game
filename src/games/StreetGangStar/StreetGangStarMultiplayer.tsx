@@ -92,7 +92,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       if (msg.type === 'player_sync') {
         const payload = msg.payload; const existing = s.remotePlayers.get(msg.senderId);
         if (existing) { existing.name = payload.name; existing.targetX = payload.x; existing.targetY = payload.y; existing.facingAngle = payload.facingAngle; existing.health = payload.health; existing.team = payload.team; existing.gun = payload.gun; existing.avatarColor = payload.avatarColor; existing.isCover = payload.isCover; existing.inCarId = payload.inCarId; existing.jumpOffset = payload.jumpOffset || 0; existing.lastSeen = Date.now(); }
-        else { s.remotePlayers.set(msg.senderId, { id: msg.senderId, name: payload.name, x: payload.x, y: payload.y, targetX: payload.x, targetY: payload.y, facingAngle: payload.facingAngle, health: payload.health ?? 100, maxHealth: 3, team: payload.team, gun: payload.gun, avatarColor: payload.avatarColor, isCover: payload.isCover, inCarId: payload.inCarId, jumpOffset: payload.jumpOffset || 0, lastSeen: Date.now(), hitCount: 0 }); }
+        else { s.remotePlayers.set(msg.senderId, { id: msg.senderId, name: payload.name, x: payload.x, y: payload.y, targetX: payload.x, targetY: payload.y, facingAngle: payload.facingAngle, health: payload.health ?? 100, maxHealth: 15, team: payload.team, gun: payload.gun, avatarColor: payload.avatarColor, isCover: payload.isCover, inCarId: payload.inCarId, jumpOffset: payload.jumpOffset || 0, lastSeen: Date.now(), hitCount: 0 }); }
         setActivePlayerCount(s.remotePlayers.size + 1);
       } else if (msg.type === 'laser_fire') {
         const p = msg.payload; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2, color: p.color, life: 7, maxLife: 7, isPlayer: false, damage: p.damage });
@@ -304,8 +304,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             if (distToSegment(rem.x, rem.y, l.x1, l.y1, l.x2, l.y2) < 32) {
               rem.hitCount = (rem.hitCount || 0) + 1;
               s.sparks.push({ x: rem.x, y: rem.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: l.color, life: 14 });
-              if (rem.hitCount >= 10) {
-                s.remotePlayers.delete(rem.id); p.coins += 10; setHudCoins(p.coins); addGameCoins(10, '+10 SC - Player Kill (10 hits)', 'task_reward'); playSfx('coin'); onToast(`ELIMINATED ${rem.name} - 10 HITS! 🔥`);
+              if (rem.hitCount >= 15) {
+                s.remotePlayers.delete(rem.id); p.coins += 10; setHudCoins(p.coins); addGameCoins(10, '+10 SC - Player Kill (15 hits)', 'task_reward'); playSfx('coin'); onToast(`ELIMINATED ${rem.name} - 15 HITS! 🔥`);
               }
               s.lasers.splice(lIdx, 1); hit = true;
             }
@@ -397,7 +397,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       s.remotePlayers.forEach((rem) => {
         const shirt = rem.team === 'blue' ? '#0EA5E9' : '#DC2626';
         drawHuman(ctx, rem.x, rem.y, rem.facingAngle, shirt, false, rem.team, rem.jumpOffset || 0, rem.isCover);
-        ctx.save(); ctx.translate(rem.x, rem.y - (rem.jumpOffset || 0)); ctx.fillStyle = '#FFF'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(rem.name, 0, -20); if (rem.lastReaction && now < rem.lastReaction.until) { ctx.font = '16px sans-serif'; ctx.fillText(rem.lastReaction.emoji, 0, -32); } ctx.fillStyle = '#000'; ctx.fillRect(-14, -28, 28, 4); ctx.fillStyle = '#22C55E'; ctx.fillRect(-14, -28, 28 * (rem.health / 100) * (3 - (rem.hitCount || 0)) / 3, 4); ctx.restore();
+        ctx.save(); ctx.translate(rem.x, rem.y - (rem.jumpOffset || 0)); ctx.fillStyle = '#FFF'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(rem.name, 0, -20); if (rem.lastReaction && now < rem.lastReaction.until) { ctx.font = '16px sans-serif'; ctx.fillText(rem.lastReaction.emoji, 0, -32); } ctx.fillStyle = '#000'; ctx.fillRect(-14, -28, 28, 4); ctx.fillStyle = '#22C55E'; ctx.fillRect(-14, -28, 28 * (rem.health / 100) * (15 - (rem.hitCount || 0)) / 15, 4); ctx.restore();
       });
 
       if (!p.inCarId) {
