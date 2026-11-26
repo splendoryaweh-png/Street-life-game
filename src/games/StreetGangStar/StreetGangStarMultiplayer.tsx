@@ -374,9 +374,16 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       cityData.buildings.forEach((bld) => { ctx.fillStyle = bld.wallColor; ctx.fillRect(bld.x, bld.y, bld.width, bld.height); ctx.strokeStyle = bld.roofColor; ctx.lineWidth = 5; ctx.strokeRect(bld.x + 6, bld.y + 6, bld.width - 12, bld.height - 12); });
       s.cars.forEach((car) => { ctx.save(); ctx.translate(car.x, car.y); ctx.fillStyle = car.color; ctx.beginPath(); ctx.roundRect(-car.width / 2, -car.height / 2, car.width, car.height, 6); ctx.fill(); ctx.fillStyle = '#0F172A'; ctx.fillRect(-car.width / 4, -car.height / 4, car.width / 2, car.height / 2); ctx.fillStyle = '#FEF08A'; if (car.direction === 'horizontal') { ctx.fillRect(car.width / 2 - 3, -car.height / 2 + 2, 4, 4); ctx.fillRect(car.width / 2 - 3, car.height / 2 - 6, 4, 4); } else { ctx.fillRect(-car.width / 2 + 2, car.height / 2 - 3, 4, 4); ctx.fillRect(car.width / 2 - 6, car.height / 2 - 3, 4, 4); } ctx.restore(); });
       s.gangsters.forEach((g) => {
-        if (g.vehicleType === 'bus') { ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.facingAngle); ctx.fillStyle = '#7F1D1D'; ctx.beginPath(); ctx.roundRect(-34, -20, 68, 40, 8); ctx.fill(); ctx.fillStyle = '#1F2937'; ctx.fillRect(-26, -14, 12, 8); ctx.fillRect(-8, -14, 12, 8); ctx.fillRect(10, -14, 12, 8); ctx.fillStyle = '#FEF08A'; ctx.fillRect(32, -8, 4, 4); ctx.fillRect(32, 6, 4, 4); ctx.restore(); }
+        if (g.vehicleType === 'tank') {
+          ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.facingAngle);
+          ctx.fillStyle = '#475569'; ctx.beginPath(); ctx.roundRect(-38, -23, 76, 46, 9); ctx.fill();
+          ctx.strokeStyle = '#CBD5E1'; ctx.lineWidth = 3; ctx.strokeRect(-32, -18, 64, 36);
+          ctx.fillStyle = '#1E293B'; for (let wheel = -27; wheel <= 27; wheel += 18) { ctx.beginPath(); ctx.arc(wheel, -21, 6, 0, Math.PI * 2); ctx.arc(wheel, 21, 6, 0, Math.PI * 2); ctx.fill(); }
+          ctx.fillStyle = '#64748B'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#94A3B8'; ctx.fillRect(5, -4, 37, 8); ctx.restore();
+        } else if (g.vehicleType === 'bus') { ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.facingAngle); ctx.fillStyle = '#7F1D1D'; ctx.beginPath(); ctx.roundRect(-34, -20, 68, 40, 8); ctx.fill(); ctx.fillStyle = '#1F2937'; ctx.fillRect(-26, -14, 12, 8); ctx.fillRect(-8, -14, 12, 8); ctx.fillRect(10, -14, 12, 8); ctx.fillStyle = '#FEF08A'; ctx.fillRect(32, -8, 4, 4); ctx.fillRect(32, 6, 4, 4); ctx.restore(); }
         else { ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.facingAngle); ctx.fillStyle = '#18181B'; ctx.beginPath(); ctx.roundRect(-16, -5, 32, 10, 4); ctx.fill(); ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.arc(-10, 0, 5, 0, Math.PI * 2); ctx.arc(10, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
-        ctx.fillStyle = '#000'; ctx.fillRect(g.x - 16, g.y - 34, 32, 5); ctx.fillStyle = g.vehicleType === 'bus' ? '#FACC15' : '#EF4444'; ctx.fillRect(g.x - 16, g.y - 34, 32 * (g.health / g.maxHealth), 5);
+        ctx.fillStyle = '#000'; ctx.fillRect(g.x - 22, g.y - 40, 44, 5); ctx.fillStyle = g.vehicleType === 'tank' ? '#FACC15' : g.vehicleType === 'bus' ? '#FACC15' : '#EF4444'; ctx.fillRect(g.x - 22, g.y - 40, 44 * (g.health / g.maxHealth), 5);
       });
       s.sparks.forEach((sp) => { ctx.fillStyle = sp.color; ctx.beginPath(); ctx.arc(sp.x, sp.y, 2.8, 0, Math.PI * 2); ctx.fill(); });
       s.lasers.forEach((l) => { ctx.save(); ctx.strokeStyle = l.color; ctx.shadowColor = l.color; ctx.shadowBlur = 12; ctx.lineWidth = l.isPlayer ? 3.8 : 2.8; ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke(); ctx.restore(); });
