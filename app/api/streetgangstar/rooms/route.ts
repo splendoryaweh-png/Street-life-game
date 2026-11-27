@@ -28,13 +28,30 @@ export async function POST(request: Request) {
 
     const { data: player, error: playerError } = await db
       .from('players')
-      .select('telegram_id, username, first_name')
+      .select('telegram_id, username, first_name, coins')
       .eq('telegram_id', user.id)
       .maybeSingle();
     if (playerError) throw playerError;
     if (!player) return NextResponse.json({ error: 'Register your Street Life account before joining a match.' }, { status: 403 });
 
     const action = body?.action;
+
+    if (action === 'get_balance') {
+      return NextResponse.json({ ok: true, balance: Number(player.coins) || 0 });
+    }
+
+    if (action === 'purchase_singleplayer_tank') {
+      const tankKey = cleanText(body?.tankKey, 100, '');
+      if (!/^[a-zA-Z0-9_-]{1,100}$/.test(tankKey)) {
+        return NextResponse.json({ error: 'Invalid tank identifier.' }, { status: 400 });
+      }
+      const { data, error } = await db.rpc('streetgangstar_purchase_singleplayer_tank', {
+        p_telegram_id: user.id,
+        p_tank_key: tankKey,
+      });
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json(data);
+    }
 
     if (action === 'purchase_missile_tank' || action === 'hijack_missile_tank') {
       const roomCode = cleanText(body?.roomCode, 8, '').toUpperCase();
