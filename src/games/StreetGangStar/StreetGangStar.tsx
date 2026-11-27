@@ -36,6 +36,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   const tankPurchaseKeyRef = useRef<string | null>(null);
   const [accountBalance, setAccountBalance] = useState<number | null>(null);
   const [showTeamModal, setShowTeamModal] = useState<boolean>(false);
+  const [showPauseMenu, setShowPauseMenu] = useState(false);
   const [playerTeam, setPlayerTeam] = useState<'blue' | 'red'>('blue');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [cityData] = useState<CityData>(() => getRandomCityByCountry(initialCountry, 'single_player_seed'));
@@ -120,6 +121,8 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     if (tankPurchaseBusy) return;
     const s = gameStateRef.current;
     if (s.gangsters.some((g) => g.vehicleType === 'tank' && g.isPlayerOwned && g.health > 0)) { onToast('You already have an active tank.'); return; }
+    const initData = getTelegramInitData();
+    if (!initData) { onToast('Open Street Life inside Telegram to securely purchase a tank with SC. Browser preview supports gameplay testing, but cannot charge your account.'); return; }
     setTankPurchaseBusy(true);
     const tankKey = tankPurchaseKeyRef.current || `single_tank_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     tankPurchaseKeyRef.current = tankKey;
@@ -127,7 +130,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       const response = await fetch('/api/streetgangstar/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'purchase_singleplayer_tank', initData: getTelegramInitData(), tankKey }),
+        body: JSON.stringify({ action: 'purchase_singleplayer_tank', initData, tankKey }),
       });
       const result = await response.json();
       if (!response.ok || !result?.ok) throw new Error(result?.error || 'Tank purchase failed.');
@@ -191,7 +194,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
         s.gangsters.push({ id: `gangster_${Date.now()}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: isTank ? 20 : 6, maxHealth: isTank ? 20 : 6, speed: isTank ? 1.5 : isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isTank ? 'tank' : isBus ? 'bus' : 'motorcycle' });
       }
       if (p.isJumping) { p.jumpOffset += p.jumpVy; p.jumpVy -= 0.65; if (p.jumpOffset <= 0) { p.jumpOffset = 0; p.jumpVy = 0; p.isJumping = false; } }
-      let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
+      let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } if (!nearCarFound) { for (const vehicle of s.gangsters) { if (vehicle.vehicleType === 'tank' && vehicle.health > 0 && Math.hypot(vehicle.x - p.x, vehicle.y - p.y) < 105) { nearCarFound = true; break; } } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
       const isSprinting = s.keys.shift || s.isRunActive;
       if (p.inCarId) {
         const tank = s.gangsters.find((g) => g.id === p.inCarId && g.vehicleType === 'tank'); const car = s.cars.find((c) => c.id === p.inCarId); const vehicle: any = tank || car; if (vehicle) { const driveSpeed = tank ? (isSprinting ? 6.2 : 4.2) : (isSprinting ? 7.5 : 5.0); let driveX = 0; let driveY = 0; if (s.joystickMovement.isMoving) { driveX = s.joystickMovement.dx; driveY = s.joystickMovement.dy; } else { if (s.keys.w) driveY -= 1; if (s.keys.s) driveY += 1; if (s.keys.a) driveX -= 1; if (s.keys.d) driveX += 1; } const magnitude = Math.hypot(driveX, driveY); if (magnitude > 0.08) { driveX /= Math.max(1, magnitude); driveY /= Math.max(1, magnitude); const targetAngle = Math.atan2(driveY, driveX); if (tank) tank.facingAngle = targetAngle; else if (car) { car.targetAngle = targetAngle; let turnDelta = ((car.targetAngle - (car.angle || 0) + Math.PI * 3) % (Math.PI * 2)) - Math.PI; car.angle = (car.angle || 0) + turnDelta * 0.22; } p.facingAngle = targetAngle; vehicle.x += driveX * driveSpeed; vehicle.y += driveY * driveSpeed; } vehicle.x = Math.max(80, Math.min(cityData.mapWidth - 80, vehicle.x)); vehicle.y = Math.max(80, Math.min(cityData.mapHeight - 80, vehicle.y)); p.x = vehicle.x; p.y = vehicle.y; }
@@ -383,7 +386,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       <div className="absolute top-3 left-3 z-30 flex flex-col gap-1 max-w-[185px] scale-[0.75] origin-top-left pointer-events-none">
         <div className="p-2.5 rounded-2xl bg-black/80 border border-white/15 backdrop-blur-md shadow-xl flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button onClick={() => { playSfx('click'); onBack(); }} type="button" className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 pointer-events-auto text-white active:scale-95 transition-all"><ArrowLeft className="w-4 h-4 text-[#FFD700]" /></button>
+            <button onClick={() => { playSfx('click'); setShowPauseMenu(true); }} type="button" className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 pointer-events-auto text-white active:scale-95 transition-all"><ArrowLeft className="w-4 h-4 text-[#FFD700]" /></button>
             <div><div className="flex items-center gap-1.5"><span className="text-xs font-black uppercase text-white tracking-wider">{cityData.streetName}</span><span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase ${playerTeam === 'blue' ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' : 'bg-red-500/20 text-red-400 border border-red-500/40'}`}>{playerTeam === 'blue' ? 'BLUE' : 'RED'}</span></div><p className="text-[10px] text-gray-400">{cityData.cityName}</p></div>
           </div><button onClick={() => setSoundEnabled((prev) => !prev)} type="button" className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 pointer-events-auto text-gray-300">{soundEnabled ? <Volume2 className="w-4 h-4 text-[#FFD700]" /> : <VolumeX className="w-4 h-4 text-red-400" />}</button>
         </div>
@@ -415,6 +418,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
         </div>
       )}
       {showTeamModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-white/20 p-5 shadow-2xl text-left relative animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><h3 className="text-sm font-black uppercase tracking-wider text-white">{t('team_join')}</h3><button onClick={() => setShowTeamModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="space-y-3"><button onClick={() => { setPlayerTeam('blue'); setShowTeamModal(false); playSfx('click'); onToast('Joined Blue Syndicate Defend Team!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left transition-all ${playerTeam === 'blue' ? 'bg-sky-950/60 border-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.3)]' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-sky-400">{t('team_blue')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_blue_desc')}</p></button><button onClick={() => { setPlayerTeam('red'); setShowTeamModal(false); playSfx('click'); onToast('Joined Red Corsairs Free-For-All!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left transition-all ${playerTeam === 'red' ? 'bg-red-950/60 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-red-400">{t('team_red')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_red_desc')}</p></button></div></div></div>)}
+      {showPauseMenu && (<div className="absolute inset-0 z-[120] flex items-center justify-center bg-black/85 p-5 backdrop-blur-md"><div className="w-full max-w-xs rounded-3xl border border-amber-300/60 bg-[#12131C] p-5 text-center shadow-2xl"><h2 className="text-lg font-black uppercase text-white">Game Paused</h2><p className="mt-2 text-xs text-gray-300">Your progress in this session will stop while paused.</p><button type="button" onClick={() => setShowPauseMenu(false)} className="mt-5 w-full rounded-xl bg-amber-400 px-4 py-3 text-xs font-black uppercase text-black">Resume Game</button><button type="button" onClick={() => { setShowPauseMenu(false); onBack(); }} className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-xs font-black uppercase text-white">Exit to Games</button></div></div>)}
     </div>
   );
 }
