@@ -121,14 +121,14 @@ export function GangChat({
       })
       .on('broadcast', { event: 'chat_reaction' }, ({ payload }) => {
         if (!active || !payload) return;
-        const { messageId, emoji, reactorId, reactorName } = payload;
+        const { messageId, emoji, reactorName } = payload;
         setMessages((prev) => prev.map((msg) => {
           if (msg.id !== messageId) return msg;
           const reactors = msg.reactions?.[emoji] || [];
-          const updated = reactors.includes(reactorId) ? reactors.filter((id) => id !== reactorId) : [...reactors, reactorId];
+          const updated = reactors.includes(reactorName) ? reactors.filter((name) => name !== reactorName) : [...reactors, reactorName];
           const reactions = { ...(msg.reactions || {}) };
           if (updated.length) reactions[emoji] = updated; else delete reactions[emoji];
-          return { ...msg, reactions, _reactorNames: { ...(msg as any)._reactorNames, [emoji]: reactorName } } as ChatMessage;
+          return { ...msg, reactions };
         }));
       })
       .subscribe((status) => {
@@ -141,7 +141,7 @@ export function GangChat({
       if (channelRef.current === channel) channelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [roomCode, playerId, onToast]);
+  }, [roomCode, playerId]);
 
   // Send a text message
   const handleSendMessage = (e?: React.FormEvent) => {
@@ -198,7 +198,7 @@ export function GangChat({
     );
 
     if (channelRef.current && connectionStatus === 'live') {
-      void channelRef.current.send({ type: 'broadcast', event: 'chat_reaction', payload: { messageId, emoji, reactorId: playerId, reactorName: playerName } });
+      void channelRef.current.send({ type: 'broadcast', event: 'chat_reaction', payload: { messageId, emoji, reactorName: playerName } });
     }
   };
 
