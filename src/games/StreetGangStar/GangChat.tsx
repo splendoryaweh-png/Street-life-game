@@ -74,7 +74,7 @@ export function GangChat({
   const [showInputEmojiPicker, setShowInputEmojiPicker] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'live' | 'offline'>('connecting');
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'live' | 'offline'>(realtimeClient ? 'connecting' : 'offline');
   const isOpenRef = useRef(isOpen);
   const soundEnabledRef = useRef(soundEnabled);
   useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
@@ -99,14 +99,9 @@ export function GangChat({
   // Supabase Realtime carries chat between different Telegram devices, not just tabs.
   useEffect(() => {
     if (!roomCode) return;
-    if (!realtimeClient) {
-      setConnectionStatus('offline');
-      onToast?.('Gang Chat connection is unavailable. Please try again.');
-      return;
-    }
+    if (!realtimeClient) return;
 
     let active = true;
-    setConnectionStatus('connecting');
     const channel = realtimeClient.channel(`gangstar_chat_${roomCode}`, {
       config: { broadcast: { self: false } },
     });
@@ -142,7 +137,7 @@ export function GangChat({
       if (channelRef.current === channel) channelRef.current = null;
       void realtimeClient.removeChannel(channel);
     };
-  }, [roomCode, playerId]);
+  }, [roomCode, playerId, realtimeClient]);
 
   // Send a text message
   const handleSendMessage = (e?: React.FormEvent) => {
