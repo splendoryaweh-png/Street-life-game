@@ -34,6 +34,8 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
   const [tankPurchaseBusy, setTankPurchaseBusy] = useState(false);
   const tankPurchaseKeyRef = useRef<string | null>(null);
+  const weaponPurchaseKeysRef = useRef<Partial<Record<WeaponType, string>>>({});
+  const [weaponPurchaseBusy, setWeaponPurchaseBusy] = useState(false);
   const [accountBalance, setAccountBalance] = useState<number | null>(null);
   const [showTeamModal, setShowTeamModal] = useState<boolean>(false);
   const [showPauseMenu, setShowPauseMenu] = useState(false);
@@ -115,7 +117,40 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     const startX = p.inCarId ? (s.cars.find((c) => c.id === p.inCarId)?.x || p.x) : p.x + Math.cos(p.facingAngle) * 22; const startY = p.inCarId ? (s.cars.find((c) => c.id === p.inCarId)?.y || p.y) : p.y + Math.sin(p.facingAngle) * 22; const baseAngle = p.facingAngle; const spreadAngles = wDef.spread === 3 ? [baseAngle - 0.14, baseAngle, baseAngle + 0.14] : [baseAngle];
     spreadAngles.forEach((ang) => { const beamLength = 450; const endX = startX + Math.cos(ang) * beamLength; const endY = startY + Math.sin(ang) * beamLength; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, life: 7, maxLife: 7, isPlayer: true, damage: wDef.damage }); });
   }, [handleReload, playSfx]);
-  const handleBuyWeapon = (wKey: WeaponType) => { const s = gameStateRef.current; const wDef = WEAPONS[wKey]; if (s.player.coins < wDef.price) { onToast(t('insufficient_coins')); return; } s.player.coins -= wDef.price; s.unlockedGuns[wKey] = true; s.player.gun = wKey; s.player.ammo = wDef.maxAmmo; s.player.maxAmmo = wDef.maxAmmo; setHudCoins(s.player.coins); setHudGun(wKey); setHudAmmo(wDef.maxAmmo); setHudMaxAmmo(wDef.maxAmmo); playSfx('success'); onToast(`${t('purchased')} ${t(wDef.nameKey)}`); setShowShopModal(false); };
+  const handleBuyWeapon = async (wKey: WeaponType) => {
+    if (weaponPurchaseBusy) return;
+    const s = gameStateRef.current;
+    const wDef = WEAPONS[wKey];
+    if (s.unlockedGuns[wKey]) {
+      s.player.gun = wKey; s.player.ammo = wDef.maxAmmo; s.player.maxAmmo = wDef.maxAmmo;
+      setHudGun(wKey); setHudAmmo(wDef.maxAmmo); setHudMaxAmmo(wDef.maxAmmo); setShowShopModal(false);
+      return;
+    }
+    if (wDef.price <= 0) return;
+    const initData = getTelegramInitData();
+    if (!initData) { onToast('Open Street Life inside Telegram to buy weapons with your real SC balance.'); return; }
+    const purchaseKey = weaponPurchaseKeysRef.current[wKey] || `weapon_${wKey}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    weaponPurchaseKeysRef.current[wKey] = purchaseKey;
+    setWeaponPurchaseBusy(true);
+    try {
+      const response = await fetch('/api/streetgangstar/rooms', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'purchase_weapon', initData, purchaseKey, weaponKey: wKey }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result?.ok) throw new Error(result?.error || 'Weapon purchase failed.');
+      weaponPurchaseKeysRef.current[wKey] = undefined;
+      s.unlockedGuns[wKey] = true; s.player.gun = wKey; s.player.ammo = wDef.maxAmmo; s.player.maxAmmo = wDef.maxAmmo;
+      setHudGun(wKey); setHudAmmo(wDef.maxAmmo); setHudMaxAmmo(wDef.maxAmmo);
+      setAccountBalance(Number(result.balance_after));
+      playSfx('success'); onToast(`${t('purchased')} ${t(wDef.nameKey)} — ${Number(result.cost || wDef.price).toLocaleString()} SC deducted.`);
+      setShowShopModal(false);
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Could not buy this weapon.');
+    } finally {
+      setWeaponPurchaseBusy(false);
+    }
+  };
 
   const handleBuyTank = async () => {
     if (tankPurchaseBusy) return;
