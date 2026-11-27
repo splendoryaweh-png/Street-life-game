@@ -17,7 +17,19 @@ export interface SideViewScene {
   cameraX: number;
 }
 
-/** Draws a readable, horizontally scrolling street-level scene. Simulation coordinates remain untouched. */
+/** Lighten existing city palette without changing its layout or camera framing. */
+function lightenColor(color: string, amount = 0.38): string {
+  const hex = color.replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return color;
+  const value = Number.parseInt(hex, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  const lift = (channel: number) => Math.round(channel + (255 - channel) * amount);
+  return '#' + [lift(r), lift(g), lift(b)].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+/** Draws the existing street-level scene in a brighter daylight palette. Camera framing and movement remain unchanged. */
 export function drawSideViewScene(ctx: CanvasRenderingContext2D, scene: SideViewScene) {
   const { city, player, screenWidth, screenHeight } = scene;
   const groundY = Math.round(screenHeight * 0.79);
@@ -28,7 +40,7 @@ export function drawSideViewScene(ctx: CanvasRenderingContext2D, scene: SideView
   sky.addColorStop(0, '#7CC7F2'); sky.addColorStop(1, '#D9EAF4');
   ctx.fillStyle = sky; ctx.fillRect(0, 0, screenWidth, groundY);
   ctx.fillStyle = '#E8D9BD'; ctx.fillRect(0, groundY - 24, screenWidth, 24);
-  ctx.fillStyle = '#30343B'; ctx.fillRect(0, groundY, screenWidth, screenHeight - groundY);
+  ctx.fillStyle = '#AAB4BE'; ctx.fillRect(0, groundY, screenWidth, screenHeight - groundY);
   ctx.fillStyle = '#F4D35E'; ctx.fillRect(0, groundY + 34, screenWidth, 4);
 
   // Parallax skyline and recognizable building fronts, not overhead roof blocks.
@@ -37,16 +49,16 @@ export function drawSideViewScene(ctx: CanvasRenderingContext2D, scene: SideView
   for (let i = first; i < last; i++) {
     const x = i * 260 - cameraX;
     const h = 115 + ((i * 47) % 135);
-    ctx.fillStyle = ['#9AA6B2', '#C7B7A3', '#8D9BA8', '#B7A18B'][i % 4];
+    ctx.fillStyle = ['#C7D0D8', '#E1D2BE', '#C0CDD6', '#D9C3AA'][i % 4];
     ctx.fillRect(x, groundY - h - 24, 225, h);
-    ctx.fillStyle = 'rgba(25,35,45,.28)'; ctx.fillRect(x + 8, groundY - h - 16, 209, 9);
+    ctx.fillStyle = 'rgba(65,75,85,.10)'; ctx.fillRect(x + 8, groundY - h - 16, 209, 9);
     for (let wy = groundY - h + 12; wy < groundY - 42; wy += 28) {
       for (let wx = x + 14; wx < x + 210; wx += 34) {
-        ctx.fillStyle = (Math.floor(wx + wy + i) % 3 === 0) ? '#F8D98B' : '#426174';
+        ctx.fillStyle = (Math.floor(wx + wy + i) % 3 === 0) ? '#FFF0B8' : '#B9DCEB';
         ctx.fillRect(wx, wy, 17, 15);
       }
     }
-    ctx.fillStyle = '#3C4650'; ctx.fillRect(x + 12, groundY - 39, 58, 15);
+    ctx.fillStyle = '#71808B'; ctx.fillRect(x + 12, groundY - 39, 58, 15);
     ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 9px sans-serif';
     ctx.fillText(city.cityName.toUpperCase(), x + 17, groundY - 28);
   }
@@ -55,20 +67,20 @@ export function drawSideViewScene(ctx: CanvasRenderingContext2D, scene: SideView
     const x = b.x - cameraX;
     if (x + b.width < -20 || x > screenWidth + 20) return;
     const h = Math.max(90, Math.min(230, b.height * 0.45));
-    ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(x + 7, groundY - h + 8, Math.max(35, b.width * .55), h);
-    ctx.fillStyle = b.wallColor; ctx.fillRect(x, groundY - h, Math.max(35, b.width * .55), h);
-    ctx.fillStyle = b.roofColor; ctx.fillRect(x - 4, groundY - h - 8, Math.max(43, b.width * .55) + 8, 10);
+    ctx.fillStyle = 'rgba(65,75,85,.10)'; ctx.fillRect(x + 7, groundY - h + 8, Math.max(35, b.width * .55), h);
+    ctx.fillStyle = lightenColor(b.wallColor, 0.42); ctx.fillRect(x, groundY - h, Math.max(35, b.width * .55), h);
+    ctx.fillStyle = lightenColor(b.roofColor, 0.48); ctx.fillRect(x - 4, groundY - h - 8, Math.max(43, b.width * .55) + 8, 10);
     for (let wx = x + 10; wx < x + b.width * .5 - 8; wx += 28) {
-      ctx.fillStyle = '#29485B'; ctx.fillRect(wx, groundY - h + 18, 17, 22);
+      ctx.fillStyle = '#B7D5E3'; ctx.fillRect(wx, groundY - h + 18, 17, 22);
     }
-    ctx.fillStyle = '#6B4428'; ctx.fillRect(x + 12, groundY - 38, 18, 38);
+    ctx.fillStyle = '#A87952'; ctx.fillRect(x + 12, groundY - 38, 18, 38);
     ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 10px sans-serif'; ctx.fillText(b.name.slice(0, 22), x + 8, groundY - h - 14);
   });
 
   city.roads.filter(r => r.direction === 'horizontal').forEach(r => {
     const x = r.x - cameraX;
     if (x < screenWidth && x + r.width > 0) {
-      ctx.fillStyle = '#26313A'; ctx.fillRect(Math.max(0, x), groundY + 6, Math.min(screenWidth, r.width), screenHeight - groundY - 6);
+      ctx.fillStyle = '#8996A1'; ctx.fillRect(Math.max(0, x), groundY + 6, Math.min(screenWidth, r.width), screenHeight - groundY - 6);
     }
   });
   // Prominent street sign stays readable as the player travels.
