@@ -285,7 +285,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             const g = s.gangsters[gIdx];
             if (g.driverId === myPlayerId) continue;
             if (distToSegment(g.x, g.y, l.x1, l.y1, l.x2, l.y2) < 38) {
-              g.health -= 1; // 3 shots
+              const playerIsDrivingTank = s.gangsters.some((vehicle) => vehicle.id === p.inCarId && vehicle.vehicleType === 'tank');
+              g.health -= g.vehicleType === 'tank' && playerIsDrivingTank ? 2 : 1; // Tank-on-tank: 10 hits; ordinary weapons: 20 hits
               for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); }
               s.lasers.splice(lIdx, 1); hit = true;
               if (g.health <= 0) {
