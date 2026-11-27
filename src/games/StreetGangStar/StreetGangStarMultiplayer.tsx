@@ -91,8 +91,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       const msg = event.data; if (!msg || msg.senderId === myPlayerId) return; const s = gameStateRef.current;
       if (msg.type === 'player_sync') {
         const payload = msg.payload; const existing = s.remotePlayers.get(msg.senderId);
-        if (existing) { existing.name = payload.name; existing.targetX = payload.x; existing.targetY = payload.y; existing.facingAngle = payload.facingAngle; existing.health = payload.health; existing.team = payload.team; existing.gun = payload.gun; existing.avatarColor = payload.avatarColor; existing.isCover = payload.isCover; existing.inCarId = payload.inCarId; existing.jumpOffset = payload.jumpOffset || 0; existing.lastSeen = Date.now(); }
-        else { s.remotePlayers.set(msg.senderId, { id: msg.senderId, name: payload.name, x: payload.x, y: payload.y, targetX: payload.x, targetY: payload.y, facingAngle: payload.facingAngle, health: payload.health ?? 100, maxHealth: 15, team: payload.team, gun: payload.gun, avatarColor: payload.avatarColor, isCover: payload.isCover, inCarId: payload.inCarId, jumpOffset: payload.jumpOffset || 0, lastSeen: Date.now(), hitCount: 0 }); }
+        if (existing) { existing.name = payload.name; existing.targetX = payload.x; existing.targetY = payload.y; existing.facingAngle = payload.facingAngle; existing.health = payload.health ?? existing.health; existing.hitCount = payload.hitCount ?? existing.hitCount ?? 0; existing.team = payload.team; existing.gun = payload.gun; existing.avatarColor = payload.avatarColor; existing.isCover = payload.isCover; existing.inCarId = payload.inCarId; existing.jumpOffset = payload.jumpOffset || 0; existing.lastSeen = Date.now(); }
+        else { s.remotePlayers.set(msg.senderId, { id: msg.senderId, name: payload.name, x: payload.x, y: payload.y, targetX: payload.x, targetY: payload.y, facingAngle: payload.facingAngle, health: payload.health ?? 100, maxHealth: 100, team: payload.team, gun: payload.gun, avatarColor: payload.avatarColor, isCover: payload.isCover, inCarId: payload.inCarId, jumpOffset: payload.jumpOffset || 0, lastSeen: Date.now(), hitCount: payload.hitCount ?? 0 }); }
         setActivePlayerCount(s.remotePlayers.size + 1);
       } else if (msg.type === 'laser_fire') {
         const p = msg.payload; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2, color: p.color, life: 7, maxLife: 7, isPlayer: false, damage: p.damage });
@@ -212,7 +212,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       s.ejectedDrivers.forEach((driver) => { if (driver.state === 'falling' && now - driver.stateAt >= 520) { driver.state = 'standing'; driver.stateAt = now; } });
       if (now - s.lastBroadcastTime >= 100 && channelRef.current) {
         s.lastBroadcastTime = now;
-        channelRef.current.postMessage({ type: 'player_sync', senderId: myPlayerId, payload: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, team: myTeam, gun: p.gun, avatarColor: '#FFD700', isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset } });
+        channelRef.current.postMessage({ type: 'player_sync', senderId: myPlayerId, payload: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, hitCount: p.hitCount || 0, team: myTeam, gun: p.gun, avatarColor: '#FFD700', isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset } });
         if (isHost) { channelRef.current.postMessage({ type: 'host_sync', senderId: myPlayerId, payload: { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters, ejectedDrivers: s.ejectedDrivers } }); }
       }
       s.remotePlayers.forEach((rem, remId) => { rem.x += (rem.targetX - rem.x) * 0.25; rem.y += (rem.targetY - rem.y) * 0.25; if (now - rem.lastSeen > 8000) { s.remotePlayers.delete(remId); setActivePlayerCount(s.remotePlayers.size + 1); } });
