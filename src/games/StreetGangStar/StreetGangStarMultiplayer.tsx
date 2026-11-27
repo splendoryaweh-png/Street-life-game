@@ -258,12 +258,14 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const handleJump = useCallback(() => { const s = gameStateRef.current; const p = s.player; if (p.isJumping || p.inCarId) return; p.isJumping = true; p.jumpVy = 8.5; playPickupSound(); onToast('LEAP JUMP! 🚀'); }, [onToast]);
   const purchaseMissileTank = useCallback(async () => {
     if (missileBusy) return;
+    const initData = getTelegramInitData();
+    if (!initData) { onToast('Open Street Life inside Telegram to securely purchase a missile tank with SC. Browser preview supports gameplay testing, but cannot charge your account.'); return; }
     const s = gameStateRef.current;
     const tankKey = missilePurchaseKeyRef.current || `mt_${myPlayerId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     missilePurchaseKeyRef.current = tankKey;
     setMissileBusy(true);
     try {
-      const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'purchase_missile_tank', initData: getTelegramInitData(), roomCode, tankKey, x: s.player.x + 95, y: s.player.y + 20 }) });
+      const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'purchase_missile_tank', initData, roomCode, tankKey, x: s.player.x + 95, y: s.player.y + 20 }) });
       const result = await response.json();
       if (!response.ok || !result?.ok) throw new Error(result?.error || 'Missile tank purchase failed.');
       missilePurchaseKeyRef.current = null;
@@ -421,7 +423,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   }, [inLobby, roomCode, isHost, myPlayerName, myTeam]);
 
   useEffect(() => {
-    if (inLobby) return; const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return; let animId: number;
+    if (inLobby || showPauseMenu) return; const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return; let animId: number;
     const handleResize = () => { if (!canvas) return; canvas.width = window.innerWidth; canvas.height = window.innerHeight; gameStateRef.current.screenDim = { w: canvas.width, h: canvas.height }; }; handleResize(); window.addEventListener('resize', handleResize);
     const onMouseMove = (e: MouseEvent) => { const rect = canvas.getBoundingClientRect(); gameStateRef.current.mousePos = { x: e.clientX - rect.left, y: e.clientY - rect.top }; gameStateRef.current.isMouseActive = true; };
     const onMouseDown = (e: MouseEvent) => { if (e.button === 0) { gameStateRef.current.keys.mouseLeft = true; shootPlayerLaser(); } };
@@ -682,7 +684,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     };
     animId = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', handleResize); canvas.removeEventListener('mousemove', onMouseMove); canvas.removeEventListener('mousedown', onMouseDown); window.removeEventListener('mouseup', onMouseUp); };
-  }, [inLobby, cityData, myPlayerId, myPlayerName, myTeam, isHost, shootPlayerLaser, playSfx, onToast, t, cancelTankHijack]);
+  }, [inLobby, showPauseMenu, cityData, myPlayerId, myPlayerName, myTeam, isHost, shootPlayerLaser, playSfx, onToast, t, cancelTankHijack]);
 
   if (inLobby) {
     return (
