@@ -113,7 +113,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
 
   const connectToRoom = (code: string, hostStatus: boolean) => {
     if (channelRef.current) { channelRef.current.close(); }
-    const channelName = `gangstar_${code}`; const channel = new BroadcastChannel(channelName); channelRef.current = channel;
+    const channelName = `gangstar_${code}`; const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(channelName) : null; channelRef.current = channel;
     const newCity = getRandomCityByCountry(initialCountry, code); setCityData(newCity);
     if (hostStatus) {
       const s = gameStateRef.current; const cars: any[] = []; const colors = ['#38BDF8', '#F97316', '#A855F7', '#EF4444', '#10B981', '#E2E8F0', '#FACC15'];
@@ -121,7 +121,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       const civs: Civilian[] = []; const civColors = ['#94A3B8', '#CBD5E1', '#E2E8F0', '#F1F5F9', '#64748B'];
       for (let i = 0; i < 15; i++) { civs.push({ id: `civ_${i}`, x: 1200 + ((i * 170) % 1800), y: 1100 + ((i * 190) % 1800), vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, speed: 1.2, facingAngle: Math.random() * Math.PI * 2, state: 'walking', color: civColors[i % civColors.length] }); } s.civilians = civs;
     }
-    channel.onmessage = (event: MessageEvent<MultiplayerMessage>) => {
+    if (channel) channel.onmessage = (event: MessageEvent<MultiplayerMessage>) => {
       const msg = event.data; if (!msg || msg.senderId === myPlayerId) return; const s = gameStateRef.current;
       if (msg.type === 'player_sync') {
         const payload = msg.payload; const existing = s.remotePlayers.get(msg.senderId);
