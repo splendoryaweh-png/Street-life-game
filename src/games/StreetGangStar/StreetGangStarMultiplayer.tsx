@@ -28,6 +28,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
   const [myTeam, setMyTeam] = useState<'blue' | 'red'>('blue');
   const [showTeamModal, setShowTeamModal] = useState<boolean>(false);
+  const [showPauseMenu, setShowPauseMenu] = useState(false);
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
   const [missileBusy, setMissileBusy] = useState(false);
   const missilePurchaseKeyRef = useRef<string | null>(null);
@@ -478,7 +479,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         s.gangsters.push({ id: `gangster_${now}_${Math.random()}`, type: isBus ? 'fighter_bus' : 'fighter_motor', x: edge.x, y: edge.y, vx: 0, vy: 0, health: isTank ? 20 : 6, maxHealth: isTank ? 20 : 6, speed: isTank ? 1.5 : isBus ? 1.8 : 3.2, facingAngle: 0, gun: isBus ? 'shotgun_laser' : 'ak_laser', lastShootTime: now, vehicleType: isTank ? 'tank' : isBus ? 'bus' : 'motorcycle' });
       }
       if (p.isJumping) { p.jumpOffset += p.jumpVy; p.jumpVy -= 0.65; if (p.jumpOffset <= 0) { p.jumpOffset = 0; p.jumpVy = 0; p.isJumping = false; } }
-      let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
+      let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } if (!nearCarFound) { for (const vehicle of s.gangsters) { if (vehicle.vehicleType === 'tank' && vehicle.health > 0 && Math.hypot(vehicle.x - p.x, vehicle.y - p.y) < 105) { nearCarFound = true; break; } } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
       const isSprinting = s.keys.shift || s.isRunActive;
       if (hijackTargetRef.current && (s.joystickMovement.isMoving || s.keys.w || s.keys.a || s.keys.s || s.keys.d)) cancelTankHijack('Hijack failed because you moved.');
       if (p.inCarId) {
@@ -704,7 +705,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       <div className="absolute top-3 left-3 z-30 flex flex-col gap-1 max-w-[185px] scale-[0.75] origin-top-left pointer-events-none">
         <div className="p-2.5 rounded-2xl bg-black/80 border border-white/15 backdrop-blur-md shadow-xl flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button onClick={() => { playSfx('click'); leaveRoom(); onBack(); }} type="button" className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 pointer-events-auto text-white"><ArrowLeft className="w-4 h-4 text-[#FFD700]" /></button>
+            <button onClick={() => { playSfx('click'); setShowPauseMenu(true); }} type="button" className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 pointer-events-auto text-white"><ArrowLeft className="w-4 h-4 text-[#FFD700]" /></button>
             <div><div className="flex items-center gap-1.5"><span className="text-[11px] font-black uppercase text-white tracking-wider">{roomCode}</span><span className="text-[8px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40">{activePlayerCount} ONLINE</span></div><p className="text-[9px] text-gray-400">{cityData.streetName}</p></div>
           </div>
           <button onClick={() => { navigator.clipboard?.writeText(roomCode); setCopiedCode(true); onToast(`Copied: ${roomCode}`); setTimeout(() => setCopiedCode(false), 2000); }} type="button" className="p-1.5 rounded-xl bg-[#FFD700]/20 hover:bg-[#FFD700]/30 text-[#FFD700] pointer-events-auto">{copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button>
@@ -749,6 +750,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         </div>
       )}
       {showTeamModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-white/20 p-5 shadow-2xl text-left animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><h3 className="text-sm font-black uppercase text-white">{t('team_join')}</h3><button onClick={() => setShowTeamModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="space-y-3"><button onClick={() => { setMyTeam('blue'); gameStateRef.current.player.team = 'blue'; setShowTeamModal(false); playSfx('click'); onToast('Blue Team!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left ${myTeam === 'blue' ? 'bg-sky-950/60 border-sky-400' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-sky-400">{t('team_blue')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_blue_desc')}</p></button><button onClick={() => { setMyTeam('red'); gameStateRef.current.player.team = 'red'; setShowTeamModal(false); playSfx('click'); onToast('Red Team!'); }} type="button" className={`w-full p-4 rounded-2xl border text-left ${myTeam === 'red' ? 'bg-red-950/60 border-red-500' : 'bg-black/50 border-white/10'}`}><h4 className="text-xs font-black uppercase text-red-400">{t('team_red')}</h4><p className="text-[11px] text-gray-300 mt-1">{t('team_red_desc')}</p></button></div></div></div>)}
+      {showPauseMenu && (<div className="absolute inset-0 z-[120] flex items-center justify-center bg-black/85 p-5 backdrop-blur-md"><div className="w-full max-w-xs rounded-3xl border border-amber-300/60 bg-[#12131C] p-5 text-center shadow-2xl"><h2 className="text-lg font-black uppercase text-white">Game Paused</h2><p className="mt-2 text-xs text-gray-300">Your multiplayer room is paused on this device.</p><button type="button" onClick={() => setShowPauseMenu(false)} className="mt-5 w-full rounded-xl bg-amber-400 px-4 py-3 text-xs font-black uppercase text-black">Resume Match</button><button type="button" onClick={() => { setShowPauseMenu(false); void leaveRoom(); onBack(); }} className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-xs font-black uppercase text-white">Leave Match</button></div></div>)}
     </div>
   );
 }
