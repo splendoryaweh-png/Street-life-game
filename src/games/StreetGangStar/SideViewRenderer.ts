@@ -36,12 +36,19 @@ export function drawSideViewScene(ctx: CanvasRenderingContext2D, scene: SideView
   const cameraX = Math.max(0, Math.min(city.mapWidth - screenWidth, scene.cameraX));
   const laneOffset = (y: number) => ((y / city.mapHeight) - 0.5) * 34;
   ctx.clearRect(0, 0, screenWidth, screenHeight);
-  const sky = ctx.createLinearGradient(0, 0, 0, groundY);
-  sky.addColorStop(0, '#7CC7F2'); sky.addColorStop(1, '#D9EAF4');
-  ctx.fillStyle = sky; ctx.fillRect(0, 0, screenWidth, groundY);
-  ctx.fillStyle = '#E8D9BD'; ctx.fillRect(0, groundY - 24, screenWidth, 24);
-  ctx.fillStyle = '#AAB4BE'; ctx.fillRect(0, groundY, screenWidth, screenHeight - groundY);
-  ctx.fillStyle = '#F4D35E'; ctx.fillRect(0, groundY + 34, screenWidth, 4);
+
+  // Keep the simple road background shown in the user's reference; only lift
+  // the asphalt slightly so it is easier to see. Camera and player framing stay intact.
+  ctx.fillStyle = '#2B3038';
+  ctx.fillRect(0, 0, screenWidth, screenHeight);
+  ctx.strokeStyle = '#F4D35E';
+  ctx.lineWidth = 4;
+  ctx.setLineDash([48, 48]);
+  ctx.beginPath();
+  ctx.moveTo(screenWidth / 2, 0);
+  ctx.lineTo(screenWidth / 2, screenHeight);
+  ctx.stroke();
+  ctx.setLineDash([]);
 
   // Parallax skyline and recognizable building fronts, not overhead roof blocks.
   const first = Math.max(0, Math.floor(cameraX / 260) - 2);
