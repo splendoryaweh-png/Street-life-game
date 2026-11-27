@@ -262,7 +262,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     missilePurchaseKeyRef.current = tankKey;
     setMissileBusy(true);
     try {
-      const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'purchase_missile_tank', initData: getTelegramInitData(), roomCode, tankKey }) });
+      const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'purchase_missile_tank', initData: getTelegramInitData(), roomCode, tankKey, x: s.player.x + 95, y: s.player.y + 20 }) });
       const result = await response.json();
       if (!response.ok || !result?.ok) throw new Error(result?.error || 'Missile tank purchase failed.');
       missilePurchaseKeyRef.current = null;
@@ -339,7 +339,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'heartbeat', initData: getTelegramInitData(), roomCode,
-            playerState: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, hitCount: p.hitCount || 0, team: myTeam, gun: p.gun, isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset, recentShots: p.recentShots },
+            playerState: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, hitCount: p.hitCount || 0, team: myTeam, gun: p.gun, isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset, recentShots: p.recentShots, tankHealth: p.inCarId ? s.gangsters.find((g) => g.id === p.inCarId && g.isMissileTank)?.health : undefined },
             roomState: isHost ? { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters, ejectedDrivers: s.ejectedDrivers, missiles: s.missiles } : undefined
           })
         });
@@ -359,6 +359,24 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           if (Array.isArray(state.ejectedDrivers)) s.ejectedDrivers = state.ejectedDrivers;
           if (Array.isArray(state.missiles)) s.missiles = state.missiles;
         }
+        const serverTanks = Array.isArray(snapshot.missileTanks) ? snapshot.missileTanks : [];
+        const serverTankKeys = new Set<string>();
+        for (const row of serverTanks) {
+          const key = String(row.tank_key); serverTankKeys.add(key);
+          const ownerId = String(row.owner_telegram_id); const driverId = row.driver_telegram_id == null ? null : String(row.driver_telegram_id);
+          let tank = s.gangsters.find((g) => g.id === key);
+          if (!tank) {
+            tank = { id: key, type: 'fighter_motor', x: Number(row.pos_x) || 1200, y: Number(row.pos_y) || 1200, vx: 0, vy: 0, health: Number(row.health) || 20, maxHealth: 20, speed: 1.5, facingAngle: Number(row.facing_angle) || 0, gun: 'ak_laser', lastShootTime: 0, vehicleType: 'tank', isPlayerOwned: true, ownerId, driverId, isMissileTank: true };
+            s.gangsters.push(tank);
+          } else {
+            tank.x = Number(row.pos_x) || tank.x; tank.y = Number(row.pos_y) || tank.y; tank.health = Number(row.health) || tank.health;
+            tank.facingAngle = Number(row.facing_angle) || tank.facingAngle; tank.ownerId = ownerId; tank.driverId = driverId; tank.isPlayerOwned = true; tank.isMissileTank = true;
+          }
+          if (p.inCarId === key) { p.x = tank.x; p.y = tank.y; }
+        }
+        s.gangsters = s.gangsters.filter((g) => !g.isMissileTank || serverTankKeys.has(g.id));
+        if (p.inCarId && !serverTankKeys.has(p.inCarId) && s.gangsters.some((g) => g.id === p.inCarId && g.isMissileTank)) { p.inCarId = null; setHudInCar(false); }
+        setMissileTankCount(serverTanks.length);
         const active = (snapshot.players || []).filter((member: any) => String(member.telegram_id) !== String(snapshot.playerId));
         const seen = new Set<string>();
         for (const member of active) {
