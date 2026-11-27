@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useSyncExternalStore } from 'react';
+import dynamic from 'next/dynamic';
 import { NavTab, TelegramUser, LeaderboardEntry, UserGameState } from '@/types/game';
 import {
   subscribeGameState,
@@ -27,22 +28,22 @@ import { DailyRewardStrip } from '@/components/DailyRewardStrip';
 import { ReferralCard } from '@/components/ReferralCard';
 import { Leaderboard } from '@/components/Leaderboard';
 import { GameCards } from '@/components/GameCards';
-import { BankScreen } from '@/components/BankScreen';
-import { InventoryScreen } from '@/components/InventoryScreen';
-import { WatchScreen } from '@/components/WatchScreen';
-import { TasksScreen } from '@/components/TasksScreen';
-import { GamesScreen } from '@/components/GamesScreen';
+const BankScreen = dynamic(() => import('@/components/BankScreen').then((m) => m.BankScreen));
+const InventoryScreen = dynamic(() => import('@/components/InventoryScreen').then((m) => m.InventoryScreen));
+const WatchScreen = dynamic(() => import('@/components/WatchScreen').then((m) => m.WatchScreen));
+const TasksScreen = dynamic(() => import('@/components/TasksScreen').then((m) => m.TasksScreen));
+const GamesScreen = dynamic(() => import('@/components/GamesScreen').then((m) => m.GamesScreen));
 import { BottomNav } from '@/components/BottomNav';
 import { TabPlaceholder } from '@/components/TabPlaceholder';
-import { StudioScreen } from '@/components/StudioScreen';
-import { ProfileScreen } from '@/components/ProfileScreen';
-import { AdminPanelScreen } from '@/components/AdminPanelScreen';
-import { ToughWarScreen } from '@/components/ToughWarScreen';
+const StudioScreen = dynamic(() => import('@/components/StudioScreen').then((m) => m.StudioScreen));
+const ProfileScreen = dynamic(() => import('@/components/ProfileScreen').then((m) => m.ProfileScreen));
+const AdminPanelScreen = dynamic(() => import('@/components/AdminPanelScreen').then((m) => m.AdminPanelScreen));
+const ToughWarScreen = dynamic(() => import('@/components/ToughWarScreen').then((m) => m.ToughWarScreen));
 import { ProfileModal } from '@/components/ProfileModal';
 import { TonModal } from '@/components/TonModal';
-import { StreetGalaxyShooterModal } from '@/components/StreetGalaxyShooterModal';
-import { StreetRaceModal } from '@/components/StreetRaceModal';
-import { StreetRiderModal } from '@/components/StreetRiderModal';
+const StreetGalaxyShooterModal = dynamic(() => import('@/components/StreetGalaxyShooterModal').then((m) => m.StreetGalaxyShooterModal));
+const StreetRaceModal = dynamic(() => import('@/components/StreetRaceModal').then((m) => m.StreetRaceModal));
+const StreetRiderModal = dynamic(() => import('@/components/StreetRiderModal').then((m) => m.StreetRiderModal));
 import { TransactionsModal } from '@/components/TransactionsModal';
 import { HowToPlayModal } from '@/components/HowToPlayModal';
 import { useLanguage } from '@/src/contexts/LanguageContext';
