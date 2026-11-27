@@ -10,7 +10,7 @@ import { WEAPONS, WeaponType, CityCar, Civilian, Gangster, LaserBeam, SparkParti
 import { GangChat } from './GangChat';
 import { StreetJoystick } from './StreetJoystick';
 import { drawSideViewScene } from './SideViewRenderer';
-import { playerHealthAfterHits, tankDamagePerHit, isPlayerDown } from './CombatRules';
+import { playerHealthAfterHits, tankDamagePerHit, isPlayerDown as hasReachedPlayerHitLimit } from './CombatRules';
 
 export interface RemotePlayer { id: string; name: string; x: number; y: number; targetX: number; targetY: number; facingAngle: number; health: number; maxHealth: number; team: 'blue' | 'red'; gun: WeaponType; avatarColor: string; isCover: boolean; inCarId: string | null; jumpOffset?: number; lastReaction?: { emoji: string; until: number }; lastSeen: number; hitCount?: number; }
 export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert' | 'driver_eject'; senderId: string; payload: any; }
@@ -362,7 +362,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             p.hitCount = (p.hitCount || 0) + 1; p.health = playerHealthAfterHits(p.hitCount); setHudHealth(p.health);
             s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#38BDF8', life: 14 }); }
-            if (p.health <= 0 || isPlayerDown(p.hitCount)) {
+            if (p.health <= 0 || hasReachedPlayerHitLimit(p.hitCount)) {
               playSfx('siren');
               p.health = 0;
               p.hitCount = 15;
