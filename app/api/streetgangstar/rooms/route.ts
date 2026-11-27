@@ -35,6 +35,24 @@ export async function POST(request: Request) {
     if (!player) return NextResponse.json({ error: 'Register your Street Life account before joining a match.' }, { status: 403 });
 
     const action = body?.action;
+
+    if (action === 'purchase_missile_tank' || action === 'hijack_missile_tank') {
+      const roomCode = cleanText(body?.roomCode, 8, '').toUpperCase();
+      const tankKey = cleanText(body?.tankKey, 100, '');
+      if (!/^[A-Z0-9]{5,8}$/.test(roomCode) || !/^[a-zA-Z0-9_-]{1,100}$/.test(tankKey)) {
+        return NextResponse.json({ error: 'Invalid room or tank identifier.' }, { status: 400 });
+      }
+      const rpcName = action === 'purchase_missile_tank'
+        ? 'streetgangstar_purchase_missile_tank'
+        : 'streetgangstar_register_hijacked_missile_tank';
+      const { data, error } = await db.rpc(rpcName, {
+        p_room_code: roomCode,
+        p_telegram_id: user.id,
+        p_tank_key: tankKey,
+      });
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json(data);
+    }
     if (action === 'create') {
       const countryCode = cleanText(body?.countryCode, 2, 'NG').toUpperCase();
       const playerName = cleanText(body?.playerName, 24, player.username || player.first_name || 'Street Player');
