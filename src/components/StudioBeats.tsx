@@ -342,9 +342,9 @@ export function StudioBeats({
 
   const openCameraStream = async (facing: 'user' | 'environment') => {
     const base = {
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-      aspectRatio: { ideal: 16 / 9 },
+      width: { ideal: 720, max: 1280 },
+      height: { ideal: 1280, max: 1920 },
+      aspectRatio: { ideal: 9 / 16 },
       frameRate: { ideal: 30, max: 30 }
     };
     try {
