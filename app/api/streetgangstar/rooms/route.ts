@@ -53,20 +53,17 @@ export async function POST(request: Request) {
       return NextResponse.json(data);
     }
 
-    if (action === 'purchase_missile_tank' || action === 'hijack_missile_tank') {
+    if (['purchase_missile_tank','start_tank_hijack','complete_tank_hijack','cancel_tank_hijack'].includes(action)) {
       const roomCode = cleanText(body?.roomCode, 8, '').toUpperCase();
       const tankKey = cleanText(body?.tankKey, 100, '');
       if (!/^[A-Z0-9]{5,8}$/.test(roomCode) || !/^[a-zA-Z0-9_-]{1,100}$/.test(tankKey)) {
         return NextResponse.json({ error: 'Invalid room or tank identifier.' }, { status: 400 });
       }
-      const rpcName = action === 'purchase_missile_tank'
-        ? 'streetgangstar_purchase_missile_tank'
-        : 'streetgangstar_register_hijacked_missile_tank';
-      const { data, error } = await db.rpc(rpcName, {
-        p_room_code: roomCode,
-        p_telegram_id: user.id,
-        p_tank_key: tankKey,
-      });
+      const rpcName = action === 'purchase_missile_tank' ? 'streetgangstar_purchase_missile_tank'
+        : action === 'start_tank_hijack' ? 'streetgangstar_start_tank_hijack'
+        : action === 'complete_tank_hijack' ? 'streetgangstar_complete_tank_hijack'
+        : 'streetgangstar_cancel_tank_hijack';
+      const { data, error } = await db.rpc(rpcName, { p_room_code: roomCode, p_telegram_id: user.id, p_tank_key: tankKey });
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       return NextResponse.json(data);
     }
