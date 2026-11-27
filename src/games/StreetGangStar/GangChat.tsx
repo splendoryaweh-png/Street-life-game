@@ -56,6 +56,7 @@ export function GangChat({
   playerTeam,
   onToast,
 }: GangChatProps) {
+  const realtimeClient = supabase;
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
@@ -98,7 +99,7 @@ export function GangChat({
   // Supabase Realtime carries chat between different Telegram devices, not just tabs.
   useEffect(() => {
     if (!roomCode) return;
-    if (!supabase) {
+    if (!realtimeClient) {
       setConnectionStatus('offline');
       onToast?.('Gang Chat connection is unavailable. Please try again.');
       return;
@@ -106,7 +107,7 @@ export function GangChat({
 
     let active = true;
     setConnectionStatus('connecting');
-    const channel = supabase.channel(`gangstar_chat_${roomCode}`, {
+    const channel = realtimeClient.channel(`gangstar_chat_${roomCode}`, {
       config: { broadcast: { self: false } },
     });
     channelRef.current = channel;
@@ -139,7 +140,7 @@ export function GangChat({
     return () => {
       active = false;
       if (channelRef.current === channel) channelRef.current = null;
-      void supabase.removeChannel(channel);
+      void realtimeClient.removeChannel(channel);
     };
   }, [roomCode, playerId]);
 
