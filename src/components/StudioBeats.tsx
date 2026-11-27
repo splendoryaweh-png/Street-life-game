@@ -200,7 +200,12 @@ export function StudioBeats({
   const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);
   const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
   const [cameraZoom, setCameraZoom] = useState(1);
-  const [cameraZoomRange, setCameraZoomRange] = useState<{ min: number; max: number; step: number } | null>(null);
+  const cameraZoomRef = useRef(1);
+  const setSoftwareZoom = (value: number) => {
+    const next = Math.max(1, Math.min(3, Number(value) || 1));
+    cameraZoomRef.current = next;
+    setCameraZoom(next);
+  };
   const [videoFilter, setVideoFilter] = useState<'none' | 'warm' | 'mono' | 'cool' | 'vintage'>('none');
   const cameraSwitchingRef = useRef(false);
   const videoFilterOptions = [
@@ -381,33 +386,13 @@ export function StudioBeats({
     });
   };
 
-  const refreshCameraZoomRange = (stream: MediaStream) => {
-    const track = stream.getVideoTracks()[0];
-    const capabilities = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number; step?: number } }) | undefined;
-    const zoom = capabilities?.zoom;
-    if (zoom && Number.isFinite(zoom.min) && Number.isFinite(zoom.max) && zoom.max > zoom.min) {
-      const step = Number.isFinite(zoom.step) && zoom.step! > 0 ? zoom.step! : 0.1;
-      setCameraZoomRange({ min: zoom.min, max: zoom.max, step });
-      const current = (track.getSettings?.() as MediaTrackSettings & { zoom?: number }).zoom;
-      setCameraZoom(Math.min(zoom.max, Math.max(zoom.min, current ?? zoom.min)));
-    } else {
-      setCameraZoomRange(null);
-      setCameraZoom(1);
-    }
+  // Use software zoom so it works even when the phone/browser exposes no hardware zoom API.
+  const refreshCameraZoomRange = (_stream: MediaStream) => {
+    setSoftwareZoom(1);
   };
 
-  const handleCameraZoomChange = async (value: number) => {
-    const stream = streamRef.current;
-    const track = stream?.getVideoTracks()[0];
-    if (!track || !cameraZoomRange) return;
-    const nextZoom = Math.min(cameraZoomRange.max, Math.max(cameraZoomRange.min, value));
-    try {
-      await track.applyConstraints({ advanced: [{ zoom: nextZoom } as unknown as MediaTrackConstraintSet] } as MediaTrackConstraints);
-      setCameraZoom(nextZoom);
-    } catch (error) {
-      console.warn('Camera zoom adjustment is not supported by this camera:', error);
-      setCameraError('This camera does not support adjustable zoom.');
-    }
+  const handleCameraZoomChange = (value: number) => {
+    setSoftwareZoom(value);
   };
 
   const handleEnableCamera = async () => {
@@ -493,8 +478,7 @@ export function StudioBeats({
     }
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
-    setCameraZoomRange(null);
-    setCameraZoom(1);
+    setSoftwareZoom(1);
     if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
     setIsVideoFreestyle(false);
     setCameraError('');
@@ -626,11 +610,36 @@ export function StudioBeats({
       }
 
       let finalStream: MediaStream = dest.stream;
+      let softwareVideoStream: MediaStream | null = null;
+      let softwareVideoFrame = 0;
 
       if (isVideoFreestyle && micStream.getVideoTracks().length > 0) {
+        const sourceVideo = videoPreviewRef.current;
+        if (!sourceVideo) throw new Error('Camera preview is not ready. Please reopen the camera.');
+        const canvas = document.createElement('canvas');
+        const width = sourceVideo.videoWidth || 720;
+        const height = sourceVideo.videoHeight || 1280;
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Software zoom is unavailable in this browser.');
+        const drawZoomedFrame = () => {
+          if (sourceVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            const zoom = cameraZoomRef.current;
+            const cropWidth = width / zoom;
+            const cropHeight = height / zoom;
+            const sx = (width - cropWidth) / 2;
+            const sy = (height - cropHeight) / 2;
+            context.clearRect(0, 0, width, height);
+            context.drawImage(sourceVideo, sx, sy, cropWidth, cropHeight, 0, 0, width, height);
+          }
+          softwareVideoFrame = requestAnimationFrame(drawZoomedFrame);
+        };
+        drawZoomedFrame();
+        softwareVideoStream = canvas.captureStream(30);
         finalStream = new MediaStream([
           ...dest.stream.getAudioTracks(),
-          ...micStream.getVideoTracks()
+          ...softwareVideoStream.getVideoTracks()
         ]);
       }
 
@@ -648,6 +657,8 @@ export function StudioBeats({
       };
 
       recorder.onstop = async () => {
+        if (softwareVideoFrame) cancelAnimationFrame(softwareVideoFrame);
+        softwareVideoStream?.getTracks().forEach(track => track.stop());
         const finalSecs = recordingSecondsRef.current;
         const isVideo = isVideoFreestyle;
 
@@ -1341,7 +1352,7 @@ export function StudioBeats({
               playsInline
               muted
               disablePictureInPicture
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ filter: activeVideoFilter, objectPosition: 'center center' }}
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ filter: activeVideoFilter, objectPosition: 'center center', transform: `scale(${cameraZoom})` }}
             />
             <div
               className="absolute inset-0 z-[101] h-full min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y"
@@ -1359,12 +1370,11 @@ export function StudioBeats({
                     <span className="text-[10px] font-mono text-[#FFD700]">{cameraZoom.toFixed(1)}×</span>
                     <input
                       type="range"
-                      min={cameraZoomRange?.min ?? 1}
-                      max={cameraZoomRange?.max ?? 1}
-                      step={cameraZoomRange?.step ?? 0.1}
+                      min={1}
+                      max={3}
+                      step={0.1}
                       value={cameraZoom}
-                      onChange={(event) => void handleCameraZoomChange(Number(event.target.value))}
-                      disabled={!cameraZoomRange}
+                      onChange={(event) => handleCameraZoomChange(Number(event.target.value))}
                       aria-label="Camera zoom"
                       className="h-24 w-7 cursor-pointer accent-yellow-400 [writing-mode:vertical-lr] [direction:rtl] disabled:opacity-40"
                     />
@@ -1372,7 +1382,7 @@ export function StudioBeats({
                       <span aria-hidden="true" className="text-sm">＋</span>
                       <span aria-hidden="true" className="text-sm">−</span>
                     </div>
-                    {!cameraZoomRange && <span className="max-w-28 text-[9px] leading-tight text-white/60">Zoom unavailable on this camera</span>}
+                    <span className="max-w-28 text-[9px] leading-tight text-white/60">Software zoom</span>
                   </div>
                   <div className="flex w-full max-w-sm flex-wrap items-center justify-center gap-2">
                     <button type="button" onClick={handleSwitchCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
