@@ -1,6 +1,6 @@
 import type { CityData } from './CityGenerator';
 
-type Actor = { x: number; y: number; facingAngle?: number; color?: string; health?: number; maxHealth?: number; vehicleType?: string; name?: string; };
+type Actor = { x: number; y: number; facingAngle?: number; color?: string; health?: number; maxHealth?: number; vehicleType?: string; name?: string; jumpOffset?: number; };
 type Vehicle = { x: number; y: number; width: number; height: number; color: string; angle?: number; direction?: string; };
 type Beam = { x1: number; y1: number; x2: number; y2: number; color: string; life: number; isPlayer: boolean; };
 
@@ -78,7 +78,7 @@ export function drawSideViewScene(ctx: CanvasRenderingContext2D, scene: SideView
   ctx.fillText(city.streetName.toUpperCase().slice(0, 28), 25, 40);
 
   const drawPerson = (a: Actor, shirt: string, scale = 1) => {
-    const x = a.x - cameraX, y = groundY - 20 + laneOffset(a.y);
+    const x = a.x - cameraX, y = groundY - 20 + laneOffset(a.y) - (a.jumpOffset || 0);
     if (x < -50 || x > screenWidth + 50) return;
     ctx.fillStyle = '#20252B'; ctx.fillRect(x - 7 * scale, y - 17 * scale, 5 * scale, 18 * scale); ctx.fillRect(x + 2 * scale, y - 17 * scale, 5 * scale, 18 * scale);
     ctx.fillStyle = shirt; ctx.fillRect(x - 10 * scale, y - 38 * scale, 20 * scale, 23 * scale);
