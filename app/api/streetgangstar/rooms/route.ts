@@ -75,18 +75,14 @@ export async function POST(request: Request) {
             .eq('room_id', candidate.id).eq('telegram_id', user.id);
           return NextResponse.json({ ok: true, room: candidate, playerId: user.id });
         }
-        const { count, error: countError } = await db.from('streetgangstar_room_players')
-          .select('*', { count: 'exact', head: true }).eq('room_id', candidate.id);
-        if (countError) throw countError;
-        if ((count || 0) >= candidate.max_players) continue;
-        const { error: joinError } = await db.from('streetgangstar_room_players').insert({
-          room_id: candidate.id, telegram_id: user.id,
-          player_name: cleanText(body?.playerName, 24, player.username || player.first_name || 'Street Player'),
-          team: body?.team === 'red' ? 'red' : 'blue', is_host: false,
-          player_state: {}, last_seen_at: new Date().toISOString(),
+        const { data: joined, error: joinError } = await db.rpc('streetgangstar_join_room', {
+          p_room_id: candidate.id, p_telegram_id: user.id,
+          p_player_name: cleanText(body?.playerName, 24, player.username || player.first_name || 'Street Player'),
+          p_team: body?.team === 'red' ? 'red' : 'blue',
         });
-        if (joinError?.code === '23505') continue;
         if (joinError) throw joinError;
+        if (joined?.status === 'full' || joined?.status === 'unavailable') continue;
+        if (joined?.status !== 'joined' && joined?.status !== 'existing') continue;
         return NextResponse.json({ ok: true, room: candidate, playerId: user.id });
       }
       return NextResponse.json({ error: 'No active city room is available.' }, { status: 404 });
@@ -118,22 +114,14 @@ export async function POST(request: Request) {
       const { data: existing, error: existingError } = await db.from('streetgangstar_room_players')
         .select('telegram_id').eq('room_id', room.id).eq('telegram_id', user.id).maybeSingle();
       if (existingError) throw existingError;
-      if (!existing) {
-        const { count, error: countError } = await db.from('streetgangstar_room_players')
-          .select('*', { count: 'exact', head: true }).eq('room_id', room.id);
-        if (countError) throw countError;
-        if ((count || 0) >= room.max_players) return NextResponse.json({ error: 'This room is full.' }, { status: 409 });
-        const playerName = cleanText(body?.playerName, 24, player.username || player.first_name || 'Street Player');
-        const team = body?.team === 'red' ? 'red' : 'blue';
-        const { error: insertError } = await db.from('streetgangstar_room_players').insert({
-          room_id: room.id, telegram_id: user.id, player_name: playerName, team,
-          is_host: false, player_state: {}, last_seen_at: new Date().toISOString(),
-        });
-        if (insertError) throw insertError;
-      } else {
-        await db.from('streetgangstar_room_players').update({ last_seen_at: new Date().toISOString() })
-          .eq('room_id', room.id).eq('telegram_id', user.id);
-      }
+      const { data: joined, error: joinError } = await db.rpc('streetgangstar_join_room', {
+        p_room_id: room.id, p_telegram_id: user.id,
+        p_player_name: cleanText(body?.playerName, 24, player.username || player.first_name || 'Street Player'),
+        p_team: body?.team === 'red' ? 'red' : 'blue',
+      });
+      if (joinError) throw joinError;
+      if (joined?.status === 'full') return NextResponse.json({ error: 'This room is full.' }, { status: 409 });
+      if (joined?.status !== 'joined' && joined?.status !== 'existing') return NextResponse.json({ error: 'This room is no longer available.' }, { status: 404 });
       return NextResponse.json({ ok: true, room, playerId: user.id });
     }
 
