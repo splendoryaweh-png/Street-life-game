@@ -67,7 +67,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const createRoom = async () => {
     playClickSound();
     try {
-      const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', initData: getTelegramInitData(), countryCode: initialCountry, playerName: myPlayerName, maxPlayers: 16 }) });
+      const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', initData: getTelegramInitData(), countryCode: initialCountry, playerName: myPlayerName, maxPlayers: 20 }) });
       const result = await response.json();
       if (!response.ok || !result?.room?.room_code) throw new Error(result?.error || 'Unable to create multiplayer room.');
       const code = String(result.room.room_code);
@@ -81,7 +81,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       let response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'random_join', initData: getTelegramInitData(), playerName: myPlayerName, team: myTeam }) });
       let result = await response.json();
       if (!response.ok && response.status === 404) {
-        response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', initData: getTelegramInitData(), countryCode: initialCountry, playerName: myPlayerName, maxPlayers: 16 }) });
+        response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', initData: getTelegramInitData(), countryCode: initialCountry, playerName: myPlayerName, maxPlayers: 20 }) });
         result = await response.json();
       }
       if (!response.ok || !result?.room?.room_code) throw new Error(result?.error || 'No city room is available.');
