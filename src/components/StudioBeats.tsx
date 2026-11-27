@@ -199,6 +199,8 @@ export function StudioBeats({
 
   const [isVideoFreestyle, setIsVideoFreestyle] = useState(false);
   const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
+  const [cameraZoom, setCameraZoom] = useState(1);
+  const [cameraZoomRange, setCameraZoomRange] = useState<{ min: number; max: number; step: number } | null>(null);
   const [videoFilter, setVideoFilter] = useState<'none' | 'warm' | 'mono' | 'cool' | 'vintage'>('none');
   const cameraSwitchingRef = useRef(false);
   const videoFilterOptions = [
@@ -379,6 +381,35 @@ export function StudioBeats({
     });
   };
 
+  const refreshCameraZoomRange = (stream: MediaStream) => {
+    const track = stream.getVideoTracks()[0];
+    const capabilities = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number; step?: number } }) | undefined;
+    const zoom = capabilities?.zoom;
+    if (zoom && Number.isFinite(zoom.min) && Number.isFinite(zoom.max) && zoom.max > zoom.min) {
+      const step = Number.isFinite(zoom.step) && zoom.step! > 0 ? zoom.step! : 0.1;
+      setCameraZoomRange({ min: zoom.min, max: zoom.max, step });
+      const current = (track.getSettings?.() as MediaTrackSettings & { zoom?: number }).zoom;
+      setCameraZoom(Math.min(zoom.max, Math.max(zoom.min, current ?? zoom.min)));
+    } else {
+      setCameraZoomRange(null);
+      setCameraZoom(1);
+    }
+  };
+
+  const handleCameraZoomChange = async (value: number) => {
+    const stream = streamRef.current;
+    const track = stream?.getVideoTracks()[0];
+    if (!track || !cameraZoomRange) return;
+    const nextZoom = Math.min(cameraZoomRange.max, Math.max(cameraZoomRange.min, value));
+    try {
+      await track.applyConstraints({ advanced: [{ zoom: nextZoom } as unknown as MediaTrackConstraintSet] } as MediaTrackConstraints);
+      setCameraZoom(nextZoom);
+    } catch (error) {
+      console.warn('Camera zoom adjustment is not supported by this camera:', error);
+      setCameraError('This camera does not support adjustable zoom.');
+    }
+  };
+
   const handleEnableCamera = async () => {
     playClickSound();
     setCameraError('');
@@ -390,6 +421,7 @@ export function StudioBeats({
       const stream = await openCameraStream('user');
       streamRef.current?.getTracks().forEach(track => track.stop());
       streamRef.current = stream;
+      refreshCameraZoomRange(stream);
       setCameraFacing('user');
       setIsVideoFreestyle(true);
       try { window.Telegram?.WebApp?.expand?.(); } catch {}
@@ -429,6 +461,7 @@ export function StudioBeats({
         throw new Error('The device returned a different camera than requested.');
       }
       streamRef.current = nextStream;
+      refreshCameraZoomRange(nextStream);
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = nextStream;
         await videoPreviewRef.current.play();
@@ -460,6 +493,8 @@ export function StudioBeats({
     }
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
+    setCameraZoomRange(null);
+    setCameraZoom(1);
     if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
     setIsVideoFreestyle(false);
     setCameraError('');
@@ -1317,8 +1352,28 @@ export function StudioBeats({
                   <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold text-white/90">{t('studio_live_camera', 'LIVE CAMERA')}</span>
                 </div>
                 {cameraError && <div role="alert" className="relative z-[102] mx-3 mt-2 rounded-lg bg-red-950/90 p-2 text-xs font-semibold text-white">{cameraError}</div>}
-                <div className="min-h-[24vh] flex-1" aria-hidden="true" />
+                <div className="min-h-[12vh] flex-1" aria-hidden="true" />
                 <div className="relative z-[101] flex flex-col items-center gap-2 px-3 pt-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/90 via-black/55 to-transparent">
+                  <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-white/20 bg-black/70 px-3 py-2">
+                    <span className="text-[10px] font-black tracking-wider text-white">ZOOM</span>
+                    <span className="text-[10px] font-mono text-[#FFD700]">{cameraZoom.toFixed(1)}×</span>
+                    <input
+                      type="range"
+                      min={cameraZoomRange?.min ?? 1}
+                      max={cameraZoomRange?.max ?? 1}
+                      step={cameraZoomRange?.step ?? 0.1}
+                      value={cameraZoom}
+                      onChange={(event) => void handleCameraZoomChange(Number(event.target.value))}
+                      disabled={!cameraZoomRange || isRecording}
+                      aria-label="Camera zoom"
+                      className="h-24 w-7 cursor-pointer accent-yellow-400 [writing-mode:vertical-lr] [direction:rtl] disabled:opacity-40"
+                    />
+                    <div className="flex flex-col justify-between self-stretch py-1 text-white">
+                      <span aria-hidden="true" className="text-sm">＋</span>
+                      <span aria-hidden="true" className="text-sm">−</span>
+                    </div>
+                    {!cameraZoomRange && <span className="max-w-28 text-[9px] leading-tight text-white/60">Zoom unavailable on this camera</span>}
+                  </div>
                   <div className="flex w-full max-w-sm flex-wrap items-center justify-center gap-2">
                     <button type="button" onClick={handleSwitchCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
                       <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5"/> {t('studio_flip', 'Flip')}</span>
