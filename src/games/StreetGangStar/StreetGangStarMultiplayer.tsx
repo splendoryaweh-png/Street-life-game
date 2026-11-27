@@ -11,6 +11,7 @@ import { GangChat } from './GangChat';
 import { StreetJoystick } from './StreetJoystick';
 import { drawSideViewScene } from './SideViewRenderer';
 import { playerHealthAfterHits, tankDamagePerHit, isPlayerDown as hasReachedPlayerHitLimit } from './CombatRules';
+import { getTelegramInitData } from '@/lib/telegram';
 
 export interface RemotePlayer { id: string; name: string; x: number; y: number; targetX: number; targetY: number; facingAngle: number; health: number; maxHealth: number; team: 'blue' | 'red'; gun: WeaponType; avatarColor: string; isCover: boolean; inCarId: string | null; jumpOffset?: number; lastReaction?: { emoji: string; until: number }; lastSeen: number; hitCount?: number; }
 export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert' | 'driver_eject'; senderId: string; payload: any; }
@@ -45,6 +46,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [isReviving, setIsReviving] = useState<boolean>(false);
   const reviveRequestRef = useRef<boolean>(false);
   const channelRef = useRef<BroadcastChannel | null>(null);
+  const serverSyncBusyRef = useRef(false);
+  const serverRoomReadyRef = useRef(false);
 
   const gameStateRef = useRef({
     player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, hitCount: 0, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false },
@@ -60,10 +63,16 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     if (name === 'shoot') playShootSound(); else if (name === 'reload') playReloadSound(); else if (name === 'pickup') playPickupSound(); else if (name === 'coin') playCoinSound(); else if (name === 'success') playSuccessSound(); else if (name === 'siren') playSirenSound(); else if (name === 'click') playClickSound();
   }, [soundEnabled]);
 
-  const createRoom = () => {
-    playClickSound(); const code = `STREET${Math.floor(100 + Math.random() * 900)}`; setRoomCode(code); setIsHost(true);
-    try { const saved = JSON.parse(localStorage.getItem('gangstar_rooms') || '[]'); saved.push({ code, status: 'playing', createdAt: Date.now() }); localStorage.setItem('gangstar_rooms', JSON.stringify(saved.slice(-10))); } catch {}
-    connectToRoom(code, true);
+  const createRoom = async () => {
+    playClickSound();
+    try {
+      const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', initData: getTelegramInitData(), countryCode: initialCountry, playerName: myPlayerName, maxPlayers: 16 }) });
+      const result = await response.json();
+      if (!response.ok || !result?.room?.room_code) throw new Error(result?.error || 'Unable to create multiplayer room.');
+      const code = String(result.room.room_code);
+      setRoomCode(code); setIsHost(true); serverRoomReadyRef.current = true;
+      connectToRoom(code, true);
+    } catch (error) { onToast(error instanceof Error ? error.message : 'Room creation failed. Open Street Life inside Telegram and try again.'); }
   };
   const joinRandomCity = () => {
     playClickSound(); let targetCode = ''; try { const saved = JSON.parse(localStorage.getItem('gangstar_rooms') || '[]'); const active = saved.filter((r: any) => Date.now() - r.createdAt < 30 * 60 * 1000); if (active.length > 0) { targetCode = active[Math.floor(Math.random() * active.length)].code; } } catch {}
@@ -73,9 +82,16 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     setRoomCode(targetCode);
     connectToRoom(targetCode, shouldHost);
   };
-  const joinWithCode = (e: React.FormEvent) => {
+  const joinWithCode = async (e: React.FormEvent) => {
     e.preventDefault(); const cleaned = customRoomInput.toUpperCase().trim(); if (!cleaned) { onToast('Please enter a valid room code!'); return; }
-    playClickSound(); setRoomCode(cleaned); setIsHost(false); connectToRoom(cleaned, false);
+    playClickSound();
+    try {
+      const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'join', initData: getTelegramInitData(), roomCode: cleaned, playerName: myPlayerName, team: myTeam }) });
+      const result = await response.json();
+      if (!response.ok || !result?.room?.room_code) throw new Error(result?.error || 'Unable to join this room.');
+      setRoomCode(cleaned); setIsHost(String(result.room.host_telegram_id) === String(result.playerId)); serverRoomReadyRef.current = true;
+      connectToRoom(cleaned, String(result.room.host_telegram_id) === String(result.playerId));
+    } catch (error) { onToast(error instanceof Error ? error.message : 'Room join failed. Open Street Life inside Telegram and try again.'); }
   };
 
   const connectToRoom = (code: string, hostStatus: boolean) => {
@@ -197,6 +213,69 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     const onKeyUp = (e: KeyboardEvent) => { const k = e.key.toLowerCase(); const s = gameStateRef.current; if (k === 'w' || e.key === 'ArrowUp') s.keys.w = false; if (k === 'a' || e.key === 'ArrowLeft') s.keys.a = false; if (k === 's' || e.key === 'ArrowDown') s.keys.s = false; if (k === 'd' || e.key === 'ArrowRight') s.keys.d = false; if (e.key === 'Shift') s.keys.shift = false; };
     window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp); return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
   }, [inLobby, handleReload, handleToggleCar, handleToggleCover, handleJump, playSfx]);
+
+  useEffect(() => {
+    if (inLobby || !serverRoomReadyRef.current || !roomCode) return;
+    let stopped = false;
+    const syncRoom = async () => {
+      if (serverSyncBusyRef.current || stopped) return;
+      serverSyncBusyRef.current = true;
+      try {
+        const s = gameStateRef.current;
+        const p = s.player;
+        const response = await fetch('/api/streetgangstar/rooms', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'heartbeat', initData: getTelegramInitData(), roomCode,
+            playerState: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, hitCount: p.hitCount || 0, team: myTeam, gun: p.gun, isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset },
+            roomState: isHost ? { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters, ejectedDrivers: s.ejectedDrivers } : undefined
+          })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result?.error || 'Multiplayer connection lost.');
+        const pollResponse = await fetch('/api/streetgangstar/rooms', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'poll', initData: getTelegramInitData(), roomCode })
+        });
+        const snapshot = await pollResponse.json();
+        if (!pollResponse.ok) throw new Error(snapshot?.error || 'Unable to sync room.');
+        const state = snapshot.room?.room_state || {};
+        if (!isHost) {
+          if (Array.isArray(state.cars)) s.cars = state.cars;
+          if (Array.isArray(state.civilians)) s.civilians = state.civilians;
+          if (Array.isArray(state.gangsters)) s.gangsters = state.gangsters;
+          if (Array.isArray(state.ejectedDrivers)) s.ejectedDrivers = state.ejectedDrivers;
+        }
+        const active = (snapshot.players || []).filter((member: any) => String(member.telegram_id) !== String(snapshot.playerId));
+        const seen = new Set<string>();
+        for (const member of active) {
+          const id = String(member.telegram_id);
+          const value = member.player_state || {};
+          if (typeof value.x !== 'number' || typeof value.y !== 'number') continue;
+          seen.add(id);
+          const existing = s.remotePlayers.get(id);
+          const remote = {
+            id, name: String(member.player_name || value.name || 'Street Player'),
+            x: existing?.x ?? value.x, y: existing?.y ?? value.y,
+            targetX: value.x, targetY: value.y, facingAngle: Number(value.facingAngle) || 0,
+            health: Number(value.health) || 100, maxHealth: 100,
+            team: member.team === 'red' ? 'red' as const : 'blue' as const,
+            gun: (value.gun || 'pistol') as WeaponType, avatarColor: '#FFD700',
+            isCover: Boolean(value.isCover), inCarId: typeof value.inCarId === 'string' ? value.inCarId : null,
+            jumpOffset: Number(value.jumpOffset) || 0, lastSeen: Date.now(), hitCount: Number(value.hitCount) || 0
+          };
+          s.remotePlayers.set(id, { ...(existing || remote), ...remote });
+        }
+        for (const id of Array.from(s.remotePlayers.keys())) if (!seen.has(id)) s.remotePlayers.delete(id);
+        setActivePlayerCount((snapshot.players || []).length);
+      } catch (error) {
+        console.warn('Street Gang Star room sync:', error);
+      } finally { serverSyncBusyRef.current = false; }
+    };
+    void syncRoom();
+    const timer = window.setInterval(() => { void syncRoom(); }, 900);
+    return () => { stopped = true; window.clearInterval(timer); };
+  }, [inLobby, roomCode, isHost, myPlayerName, myTeam]);
 
   useEffect(() => {
     if (inLobby) return; const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return; let animId: number;
