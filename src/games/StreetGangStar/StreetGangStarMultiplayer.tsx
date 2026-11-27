@@ -459,6 +459,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       if (p.isJumping) { p.jumpOffset += p.jumpVy; p.jumpVy -= 0.65; if (p.jumpOffset <= 0) { p.jumpOffset = 0; p.jumpVy = 0; p.isJumping = false; } }
       let nearCarFound = false; for (const car of s.cars) { if (Math.hypot(car.x - p.x, car.y - p.y) < 75) { nearCarFound = true; break; } } setHudIsNearCar((prev) => (prev !== nearCarFound ? nearCarFound : prev));
       const isSprinting = s.keys.shift || s.isRunActive;
+      if (hijackTargetRef.current && (s.joystickMovement.isMoving || s.keys.w || s.keys.a || s.keys.s || s.keys.d)) cancelTankHijack('Hijack failed because you moved.');
       if (p.inCarId) {
         const tank = s.gangsters.find((g) => g.id === p.inCarId && g.vehicleType === 'tank');
         const car = s.cars.find((c) => c.id === p.inCarId);
