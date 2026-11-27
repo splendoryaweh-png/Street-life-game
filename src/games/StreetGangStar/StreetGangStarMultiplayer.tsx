@@ -30,6 +30,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [showTeamModal, setShowTeamModal] = useState<boolean>(false);
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
   const [missileBusy, setMissileBusy] = useState(false);
+  const missilePurchaseKeyRef = useRef<string | null>(null);
   const [hijackInProgress, setHijackInProgress] = useState(false);
   const hijackTargetRef = useRef<string | null>(null);
   const hijackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -257,12 +258,14 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const purchaseMissileTank = useCallback(async () => {
     if (missileBusy) return;
     const s = gameStateRef.current;
-    const tankKey = `mt_${myPlayerId}_${Date.now()}`;
+    const tankKey = missilePurchaseKeyRef.current || `mt_${myPlayerId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    missilePurchaseKeyRef.current = tankKey;
     setMissileBusy(true);
     try {
       const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'purchase_missile_tank', initData: getTelegramInitData(), roomCode, tankKey }) });
       const result = await response.json();
       if (!response.ok || !result?.ok) throw new Error(result?.error || 'Missile tank purchase failed.');
+      missilePurchaseKeyRef.current = null;
       const tank = { id: tankKey, type: 'fighter_motor' as const, x: s.player.x + 95, y: s.player.y + 20, vx: 0, vy: 0, health: 20, maxHealth: 20, speed: 1.5, facingAngle: s.player.facingAngle, gun: 'ak_laser' as WeaponType, lastShootTime: 0, vehicleType: 'tank' as const, isPlayerOwned: true, driverId: myPlayerId, isMissileTank: true };
       s.gangsters.push(tank);
       s.player.inCarId = tankKey; setHudInCar(true); setMissileTankCount(Number(result.room_tank_count) || missileTankCount + 1); setAccountBalance(Number(result.balance_after));
