@@ -125,6 +125,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, room, playerId: user.id });
     }
 
+    if (action === 'leave') {
+      const { data: membership, error: memberError } = await db.from('streetgangstar_room_players')
+        .select('is_host').eq('room_id', room.id).eq('telegram_id', user.id).maybeSingle();
+      if (memberError) throw memberError;
+      if (!membership) return NextResponse.json({ ok: true, alreadyLeft: true });
+      if (membership.is_host) {
+        // Keep the host seat so the same Telegram account can recover the room.
+        await db.from('streetgangstar_room_players').update({ last_seen_at: new Date(Date.now() - 30 * 60 * 1000).toISOString() })
+          .eq('room_id', room.id).eq('telegram_id', user.id);
+      } else {
+        const { error: deleteError } = await db.from('streetgangstar_room_players').delete()
+          .eq('room_id', room.id).eq('telegram_id', user.id);
+        if (deleteError) throw deleteError;
+      }
+      return NextResponse.json({ ok: true, hostSeatReserved: Boolean(membership.is_host) });
+    }
+
     if (action === 'heartbeat') {
       const state = safeState(body?.playerState);
       const { data: membership, error: memberError } = await db.from('streetgangstar_room_players')
