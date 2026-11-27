@@ -267,7 +267,7 @@ export function StreetJoystick({
             }`}
           >
             <Car className="w-5 h-5" />
-            <span>{isInCar ? 'EXIT CAR [E]' : 'HIJACK CAR [E]'}</span>
+            <span>{isInCar ? 'EXIT VEHICLE [E]' : 'ENTER / HIJACK VEHICLE [E]'}</span>
           </button>
         )}
 
