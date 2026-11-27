@@ -15,7 +15,9 @@ import {
   Flame,
   Radio,
 } from 'lucide-react';
-import { playClickSound, playPickupSound, playSuccessSound } from '@/lib/sound';
+import { playClickSound, playPickupSound } from '@/lib/sound';
+import { supabase } from '@/lib/supabase';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface ChatMessage {
   id: string;
@@ -71,9 +73,14 @@ export function GangChat({
   const [showInputEmojiPicker, setShowInputEmojiPicker] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'live' | 'offline'>('connecting');
+  const isOpenRef = useRef(isOpen);
+  const soundEnabledRef = useRef(soundEnabled);
+  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+  useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const channelRef = useRef<BroadcastChannel | null>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Auto-scroll to bottom of chat
   const scrollToBottom = useCallback(() => {
@@ -88,58 +95,53 @@ export function GangChat({
     }
   }, [isOpen, messages, scrollToBottom]);
 
-  // Connect to room BroadcastChannel
+  // Supabase Realtime carries chat between different Telegram devices, not just tabs.
   useEffect(() => {
     if (!roomCode) return;
+    if (!supabase) {
+      setConnectionStatus('offline');
+      onToast?.('Gang Chat connection is unavailable. Please try again.');
+      return;
+    }
 
-    const channelName = `gangstar_chat_${roomCode}`;
-    const channel = new BroadcastChannel(channelName);
+    let active = true;
+    setConnectionStatus('connecting');
+    const channel = supabase.channel(`gangstar_chat_${roomCode}`, {
+      config: { broadcast: { self: false } },
+    });
     channelRef.current = channel;
 
-    channel.onmessage = (event: MessageEvent) => {
-      const data = event.data;
-      if (!data) return;
-
-      if (data.type === 'NEW_CHAT_MESSAGE') {
-        const newMsg: ChatMessage = data.payload;
-        if (newMsg.senderId !== playerId) {
-          setMessages((prev) => [...prev, newMsg]);
-          if (!isOpen) {
-            setUnreadCount((c) => c + 1);
-          }
-          if (soundEnabled) {
-            playPickupSound();
-          }
-        }
-      } else if (data.type === 'ADD_CHAT_REACTION') {
-        const { messageId, emoji, reactorName } = data.payload;
-        setMessages((prev) =>
-          prev.map((msg) => {
-            if (msg.id !== messageId) return msg;
-            const existingReactors = msg.reactions[emoji] || [];
-            const hasReacted = existingReactors.includes(reactorName);
-
-            const updatedReactors = hasReacted
-              ? existingReactors.filter((name) => name !== reactorName)
-              : [...existingReactors, reactorName];
-
-            const newReactions = { ...msg.reactions };
-            if (updatedReactors.length === 0) {
-              delete newReactions[emoji];
-            } else {
-              newReactions[emoji] = updatedReactors;
-            }
-
-            return { ...msg, reactions: newReactions };
-          })
-        );
-      }
-    };
+    channel
+      .on('broadcast', { event: 'chat_message' }, ({ payload }) => {
+        if (!active || !payload || payload.senderId === playerId) return;
+        const incoming = payload as ChatMessage;
+        setMessages((prev) => prev.some((msg) => msg.id === incoming.id) ? prev : [...prev, incoming]);
+        if (!isOpenRef.current) setUnreadCount((count) => count + 1);
+        if (soundEnabledRef.current) playPickupSound();
+      })
+      .on('broadcast', { event: 'chat_reaction' }, ({ payload }) => {
+        if (!active || !payload) return;
+        const { messageId, emoji, reactorId, reactorName } = payload;
+        setMessages((prev) => prev.map((msg) => {
+          if (msg.id !== messageId) return msg;
+          const reactors = msg.reactions?.[emoji] || [];
+          const updated = reactors.includes(reactorId) ? reactors.filter((id) => id !== reactorId) : [...reactors, reactorId];
+          const reactions = { ...(msg.reactions || {}) };
+          if (updated.length) reactions[emoji] = updated; else delete reactions[emoji];
+          return { ...msg, reactions, _reactorNames: { ...(msg as any)._reactorNames, [emoji]: reactorName } } as ChatMessage;
+        }));
+      })
+      .subscribe((status) => {
+        if (!active) return;
+        setConnectionStatus(status === 'SUBSCRIBED' ? 'live' : status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED' ? 'offline' : 'connecting');
+      });
 
     return () => {
-      channel.close();
+      active = false;
+      if (channelRef.current === channel) channelRef.current = null;
+      void supabase.removeChannel(channel);
     };
-  }, [roomCode, playerId, isOpen, soundEnabled]);
+  }, [roomCode, playerId, onToast]);
 
   // Send a text message
   const handleSendMessage = (e?: React.FormEvent) => {
@@ -162,11 +164,10 @@ export function GangChat({
     setShowInputEmojiPicker(false);
     playClickSound();
 
-    if (channelRef.current) {
-      channelRef.current.postMessage({
-        type: 'NEW_CHAT_MESSAGE',
-        payload: newMsg,
-      });
+    if (channelRef.current && connectionStatus === 'live') {
+      void channelRef.current.send({ type: 'broadcast', event: 'chat_message', payload: newMsg });
+    } else {
+      onToast?.('Gang Chat is reconnecting. Message was not sent to other players.');
     }
   };
 
@@ -196,15 +197,8 @@ export function GangChat({
       })
     );
 
-    if (channelRef.current) {
-      channelRef.current.postMessage({
-        type: 'ADD_CHAT_REACTION',
-        payload: {
-          messageId,
-          emoji,
-          reactorName: playerName,
-        },
-      });
+    if (channelRef.current && connectionStatus === 'live') {
+      void channelRef.current.send({ type: 'broadcast', event: 'chat_reaction', payload: { messageId, emoji, reactorId: playerId, reactorName: playerName } });
     }
   };
 
@@ -237,7 +231,7 @@ export function GangChat({
 
       {/* EXPANDED CHAT PANEL */}
       {isOpen && (
-        <div className="fixed top-14 right-3 z-40 w-80 sm:w-96 max-h-[75vh] flex flex-col rounded-3xl bg-[#0C0E17]/95 border-2 border-[#FFD700]/60 shadow-[0_0_35px_rgba(0,0,0,0.8)] backdrop-blur-xl pointer-events-auto animate-in slide-in-from-right-5 duration-200">
+        <div className="fixed top-14 right-3 z-40 w-[min(92vw,24rem)] max-h-[75dvh] flex flex-col rounded-3xl bg-[#0C0E17]/95 border-2 border-[#FFD700]/60 shadow-[0_0_35px_rgba(0,0,0,0.8)] backdrop-blur-xl pointer-events-auto animate-in slide-in-from-right-5 duration-200">
           {/* Header */}
           <div className="p-3 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -247,8 +241,8 @@ export function GangChat({
               <div>
                 <h3 className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-1.5">
                   <span>ROOM {roomCode} FREQUENCY</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                    LIVE
+                  <span className={`text-[9px] px-1.5 py-0.2 rounded-full border ${connectionStatus === 'live' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : connectionStatus === 'connecting' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-red-500/20 text-red-300 border-red-500/40'}`}>
+                    {connectionStatus === 'live' ? 'LIVE' : connectionStatus === 'connecting' ? 'CONNECTING' : 'OFFLINE'}
                   </span>
                 </h3>
                 <p className="text-[10px] text-gray-400">Real-time Gang Communication</p>
@@ -294,7 +288,7 @@ export function GangChat({
           </div>
 
           {/* Messages Scroll Area */}
-          <div className="flex-1 p-3 space-y-3 overflow-y-auto max-h-[38vh] text-left text-xs">
+          <div className="flex-1 min-h-0 p-3 space-y-3 overflow-y-auto max-h-[38vh] text-left text-xs">
             {messages.map((msg) => {
               const isMe = msg.senderId === playerId;
               const isSystem = msg.senderId === 'system';
