@@ -45,7 +45,7 @@ export async function POST(request: Request) {
           room_code: roomCode, host_telegram_id: user.id, country_code: countryCode,
           status: 'waiting', max_players: maxPlayers, room_state: {},
           expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-        }).select('id, room_code, country_code, status, max_players').single();
+        }).select('id, room_code, host_telegram_id, country_code, status, max_players').single();
         if (error?.code === '23505') continue;
         if (error) throw error;
         const { error: joinError } = await db.from('streetgangstar_room_players').insert({
