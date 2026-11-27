@@ -9,6 +9,7 @@ import { getGangStarText, GangStarTextKey } from './language';
 import { StreetGangStarIntro } from './Intro';
 import { StreetJoystick } from './StreetJoystick';
 import { drawSideViewScene } from './SideViewRenderer';
+import { playerHealthAfterHits, tankDamagePerHit, isPlayerDown } from './CombatRules';
 export type WeaponType = 'pistol' | 'shotgun_laser' | 'ak_laser' | 'sniper_laser';
 export interface WeaponDef { id: WeaponType; nameKey: GangStarTextKey; damage: number; maxAmmo: number; fireRateMs: number; laserColor: string; price: number; bulletSpeed: number; spread: number; }
 export const WEAPONS: Record<WeaponType, WeaponDef> = {
@@ -193,7 +194,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
             if (g.id === p.inCarId) continue;
             if (distToSegment(g.x, g.y, l.x1, l.y1, l.x2, l.y2) < 38) {
               const playerIsDrivingTank = s.gangsters.some((vehicle) => vehicle.id === p.inCarId && vehicle.vehicleType === 'tank');
-              g.health -= g.vehicleType === 'tank' && playerIsDrivingTank ? 2 : 1; // Tank-on-tank: 10 hits; ordinary weapons: 20 hits
+              g.health -= tankDamagePerHit(playerIsDrivingTank, g.vehicleType === 'tank'); // 10 tank hits vs 20 ordinary hits
               for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); }
               s.lasers.splice(lIdx, 1); hit = true;
               if (g.health <= 0) {
@@ -252,9 +253,9 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
           if (!occupiedTank && (Math.hypot(p.x - l.x2, p.y - l.y2) < 42 || distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 30)) {
             const dmg = l.damage;
             p.hitCount += 1;
-            p.health = Math.max(0, 100 - (p.hitCount / 15) * 100); setHudHealth(p.health); s.lasers.splice(lIdx, 1);
+            p.health = playerHealthAfterHits(p.hitCount); setHudHealth(p.health); s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 4; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, color: '#38BDF8', life: 12 }); }
-            if (p.health <= 0) { playSfx('siren'); onToast(t('player_down')); s.isRunning = false; setHudHealth(0); setShowDeathAdPrompt(true); }
+            if (isPlayerDown(p.hitCount) || p.health <= 0) { p.hitCount = 15; playSfx('siren'); onToast(t('player_down')); s.isRunning = false; setHudHealth(0); setShowDeathAdPrompt(true); }
           }
         }
         if (l.life <= 0 && s.lasers[lIdx]) { s.lasers.splice(lIdx, 1); }
