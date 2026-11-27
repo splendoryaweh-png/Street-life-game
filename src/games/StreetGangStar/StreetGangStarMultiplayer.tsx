@@ -405,7 +405,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         const serverTankKeys = new Set<string>();
         for (const row of serverTanks) {
           const key = String(row.tank_key); serverTankKeys.add(key);
-          const ownerId = String(row.owner_telegram_id); const driverId = row.driver_telegram_id == null ? null : String(row.driver_telegram_id);
+          const ownerTelegramId = String(row.owner_telegram_id); const driverTelegramId = row.driver_telegram_id == null ? null : String(row.driver_telegram_id); const ownerId = ownerTelegramId === String(snapshot.playerId) ? myPlayerId : ownerTelegramId; const driverId = driverTelegramId === String(snapshot.playerId) ? myPlayerId : driverTelegramId;
           let tank = s.gangsters.find((g) => g.id === key);
           if (!tank) {
             tank = { id: key, type: 'fighter_motor', x: Number(row.pos_x) || 1200, y: Number(row.pos_y) || 1200, vx: 0, vy: 0, health: Number(row.health) || 20, maxHealth: 20, speed: 1.5, facingAngle: Number(row.facing_angle) || 0, gun: 'ak_laser', lastShootTime: 0, vehicleType: 'tank', isPlayerOwned: true, ownerId, driverId, isMissileTank: true };
