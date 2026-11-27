@@ -29,6 +29,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [myTeam, setMyTeam] = useState<'blue' | 'red'>('blue');
   const [showTeamModal, setShowTeamModal] = useState<boolean>(false);
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
+  const [missileBusy, setMissileBusy] = useState(false);
+  const [missileTankCount, setMissileTankCount] = useState(0);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [cityData, setCityData] = useState<CityData>(() => getRandomCityByCountry(initialCountry, roomCode || 'STREET_DEFAULT'));
@@ -52,7 +54,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, hitCount: 0, recentShots: [] as { id: number; beams: { x1: number; y1: number; x2: number; y2: number; color: string; damage: number }[] }[], ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false },
     remotePlayers: new Map<string, RemotePlayer>(), ejectedDrivers: [] as { id: string; x: number; y: number; facingAngle: number; state: 'falling' | 'standing'; stateAt: number }[],
     unlockedGuns: { pistol: true, shotgun_laser: false, ak_laser: false, sniper_laser: false } as Record<WeaponType, boolean>,
-    cars: [] as (CityCar & { health: number; maxHealth: number })[], civilians: [] as Civilian[], gangsters: [] as (Gangster & { isPlayerOwned?: boolean; driverId?: string | null; })[], lasers: [] as LaserBeam[], sparks: [] as SparkParticle[],
+    cars: [] as (CityCar & { health: number; maxHealth: number })[], civilians: [] as Civilian[], gangsters: [] as (Gangster & { isPlayerOwned?: boolean; driverId?: string | null; })[], lasers: [] as LaserBeam[], missiles: [] as { id: string; x: number; y: number; targetId: string | null; ownerId: string; life: number; damage: number }[], sparks: [] as SparkParticle[],
     keys: { w: false, a: false, s: false, d: false, shift: false, mouseLeft: false },
     joystickMovement: { dx: 0, dy: 0, isMoving: false }, isRunActive: false, isMouseActive: false, mousePos: { x: 0, y: 0 }, screenDim: { w: 800, h: 600 }, lastSpawnTime: Date.now(), lastBroadcastTime: 0, myReaction: null as { emoji: string; until: number } | null, isRunning: false,
   });
@@ -122,7 +124,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         const p = msg.payload; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2, color: p.color, life: 7, maxLife: 7, isPlayer: false, damage: p.damage });
       } else if (msg.type === 'reaction') {
         const rem = s.remotePlayers.get(msg.senderId); if (rem) { rem.lastReaction = { emoji: msg.payload.emoji, until: Date.now() + 2000 }; }
-      } else if (msg.type === 'driver_eject') { if (!s.ejectedDrivers.some((driver) => driver.id === msg.payload.id)) s.ejectedDrivers.push(msg.payload); } else if (msg.type === 'host_sync' && !isHost) { s.cars = msg.payload.cars || s.cars; s.civilians = msg.payload.civilians || s.civilians; s.gangsters = msg.payload.gangsters || s.gangsters; s.ejectedDrivers = msg.payload.ejectedDrivers || s.ejectedDrivers; }
+      } else if (msg.type === 'driver_eject') { if (!s.ejectedDrivers.some((driver) => driver.id === msg.payload.id)) s.ejectedDrivers.push(msg.payload); } else if (msg.type === 'host_sync' && !isHost) { s.cars = msg.payload.cars || s.cars; s.civilians = msg.payload.civilians || s.civilians; s.gangsters = msg.payload.gangsters || s.gangsters; s.ejectedDrivers = msg.payload.ejectedDrivers || s.ejectedDrivers; s.missiles = msg.payload.missiles || s.missiles; }
     };
     const player = gameStateRef.current.player;
     player.health = 100; player.hitCount = 0; player.x = newCity.spawnPoints[0].x; player.y = newCity.spawnPoints[0].y; player.inCarId = null; player.isCover = false;
@@ -208,6 +210,35 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     if (nearObstacle) { p.isCover = !p.isCover; setHudInCover(p.isCover); playSfx('click'); onToast(p.isCover ? t('cover_active') : t('cover_inactive')); } else { onToast(t('cover_inactive')); }
   }, [cityData.buildings, onToast, playSfx, t]);
   const handleJump = useCallback(() => { const s = gameStateRef.current; const p = s.player; if (p.isJumping || p.inCarId) return; p.isJumping = true; p.jumpVy = 8.5; playPickupSound(); onToast('LEAP JUMP! 🚀'); }, [onToast]);
+  const purchaseMissileTank = useCallback(async () => {
+    if (missileBusy) return;
+    const s = gameStateRef.current;
+    const tankKey = `mt_${myPlayerId}_${Date.now()}`;
+    setMissileBusy(true);
+    try {
+      const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'purchase_missile_tank', initData: getTelegramInitData(), roomCode, tankKey }) });
+      const result = await response.json();
+      if (!response.ok || !result?.ok) throw new Error(result?.error || 'Missile tank purchase failed.');
+      const tank = { id: tankKey, type: 'fighter_motor' as const, x: s.player.x + 95, y: s.player.y + 20, vx: 0, vy: 0, health: 20, maxHealth: 20, speed: 1.5, facingAngle: s.player.facingAngle, gun: 'ak_laser' as WeaponType, lastShootTime: 0, vehicleType: 'tank' as const, isPlayerOwned: true, driverId: myPlayerId, isMissileTank: true };
+      s.gangsters.push(tank);
+      s.player.inCarId = tankKey; setHudInCar(true); setMissileTankCount(Number(result.room_tank_count) || missileTankCount + 1); setHudCoins(Number(result.balance_after) || Math.max(0, hudCoins - 1000));
+      onToast('MISSILE TANK PURCHASED! Use FIRE MISSILE to launch guided rockets.');
+    } catch (error) { onToast(error instanceof Error ? error.message : 'Could not buy missile tank.'); }
+    finally { setMissileBusy(false); }
+  }, [missileBusy, roomCode, myPlayerId, missileTankCount, hudCoins, onToast]);
+
+  const fireGuidedMissile = useCallback(() => {
+    const s = gameStateRef.current; const p = s.player;
+    const tank = s.gangsters.find((g) => g.id === p.inCarId && g.vehicleType === 'tank' && g.isMissileTank);
+    if (!tank || tank.driverId !== myPlayerId) { onToast('You must be driving a missile tank to fire.'); return; }
+    if (s.missiles.some((m) => m.ownerId === myPlayerId && m.life > 0)) { onToast('Wait for your guided missile to finish.'); return; }
+    const targets = [...Array.from(s.remotePlayers.values()).map((r) => ({ id: r.id, x: r.x, y: r.y })), ...s.gangsters.filter((g) => g.id !== tank.id && g.driverId !== myPlayerId).map((g) => ({ id: g.id, x: g.x, y: g.y }))];
+    const target = targets.sort((a,b) => Math.hypot(a.x-tank.x,a.y-tank.y)-Math.hypot(b.x-tank.x,b.y-tank.y))[0];
+    if (!target) { onToast('No hostile target is in range.'); return; }
+    s.missiles.push({ id: `guided_${Date.now()}_${Math.random()}`, x: tank.x, y: tank.y, targetId: target.id, ownerId: myPlayerId, life: 180, damage: 20 });
+    playSfx('shoot');
+  }, [myPlayerId, onToast, playSfx]);
+
   const shootPlayerLaser = useCallback(() => {
     const s = gameStateRef.current; const p = s.player; if (p.isReloading) return; if (p.ammo <= 0) { handleReload(); return; }
     const wDef = WEAPONS[p.gun]; const now = Date.now(); if (now - p.lastShootTime < wDef.fireRateMs) return;
@@ -248,7 +279,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           body: JSON.stringify({
             action: 'heartbeat', initData: getTelegramInitData(), roomCode,
             playerState: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, hitCount: p.hitCount || 0, team: myTeam, gun: p.gun, isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset, recentShots: p.recentShots },
-            roomState: isHost ? { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters, ejectedDrivers: s.ejectedDrivers } : undefined
+            roomState: isHost ? { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters, ejectedDrivers: s.ejectedDrivers, missiles: s.missiles } : undefined
           })
         });
         const result = await response.json();
@@ -265,6 +296,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           if (Array.isArray(state.civilians)) s.civilians = state.civilians;
           if (Array.isArray(state.gangsters)) s.gangsters = state.gangsters;
           if (Array.isArray(state.ejectedDrivers)) s.ejectedDrivers = state.ejectedDrivers;
+          if (Array.isArray(state.missiles)) s.missiles = state.missiles;
         }
         const active = (snapshot.players || []).filter((member: any) => String(member.telegram_id) !== String(snapshot.playerId));
         const seen = new Set<string>();
@@ -490,6 +522,20 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         if (l.life <= 0 && s.lasers[lIdx]) { s.lasers.splice(lIdx, 1); }
       }
 
+      for (let mIdx = s.missiles.length - 1; mIdx >= 0; mIdx--) {
+        const missile = s.missiles[mIdx];
+        const target = s.remotePlayers.get(missile.targetId || '') || s.gangsters.find((g) => g.id === missile.targetId);
+        if (!target || missile.life-- <= 0) { s.missiles.splice(mIdx, 1); continue; }
+        const dx = target.x - missile.x, dy = target.y - missile.y, distance = Math.hypot(dx, dy);
+        if (distance < 34) {
+          if ('hitCount' in target) { (target as any).hitCount = ((target as any).hitCount || 0) + 10; if ((target as any).hitCount >= 15) s.remotePlayers.delete(missile.targetId || ''); }
+          else { target.health -= missile.damage; if (target.health <= 0) s.gangsters = s.gangsters.filter((g) => g.id !== target.id); }
+          for (let sp = 0; sp < 22; sp++) s.sparks.push({ x: missile.x, y: missile.y, vx: (Math.random() - 0.5) * 13, vy: (Math.random() - 0.5) * 13, color: sp % 2 ? '#F97316' : '#FACC15', life: 26 });
+          s.missiles.splice(mIdx, 1); continue;
+        }
+        const speed = 8; missile.x += dx / Math.max(1, distance) * speed; missile.y += dy / Math.max(1, distance) * speed;
+      }
+
       for (let spIdx = s.sparks.length - 1; spIdx >= 0; spIdx--) { const sp = s.sparks[spIdx]; sp.x += sp.vx; sp.y += sp.vy; sp.life -= 1; if (sp.life <= 0) s.sparks.splice(spIdx, 1); }
 
       // ===== RENDER =====
@@ -511,6 +557,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         ctx.fillStyle = '#000'; ctx.fillRect(g.x - 22, g.y - 40, 44, 5); ctx.fillStyle = g.vehicleType === 'tank' ? '#FACC15' : g.vehicleType === 'bus' ? '#FACC15' : '#EF4444'; ctx.fillRect(g.x - 22, g.y - 40, 44 * (g.health / g.maxHealth), 5);
       });
       s.sparks.forEach((sp) => { ctx.fillStyle = sp.color; ctx.beginPath(); ctx.arc(sp.x, sp.y, 2.8, 0, Math.PI * 2); ctx.fill(); });
+      s.missiles.forEach((m) => { ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(Math.atan2((s.remotePlayers.get(m.targetId || '')?.y || s.gangsters.find(g => g.id === m.targetId)?.y || m.y) - m.y, (s.remotePlayers.get(m.targetId || '')?.x || s.gangsters.find(g => g.id === m.targetId)?.x || m.x) - m.x)); ctx.fillStyle = '#F97316'; ctx.shadowColor = '#F97316'; ctx.shadowBlur = 18; ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(-10, -6); ctx.lineTo(-6, 0); ctx.lineTo(-10, 6); ctx.closePath(); ctx.fill(); ctx.restore(); });
       s.lasers.forEach((l) => { ctx.save(); ctx.strokeStyle = l.color; ctx.shadowColor = l.color; ctx.shadowBlur = 12; ctx.lineWidth = l.isPlayer ? 3.8 : 2.8; ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke(); ctx.restore(); });
 
       function drawHuman(ctx: any, x: number, y: number, angle: number, shirtColor: string, isYou: boolean, team: string, jumpOffset: number, isShield: boolean) {
@@ -599,6 +646,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         <button onClick={() => { playSfx('click'); setShowTeamModal(true); }} type="button" className="p-2 rounded-2xl bg-black/85 border border-white/20 text-white font-black text-xs uppercase active:scale-95 cursor-pointer hover:border-[#FFD700] backdrop-blur-md"><Users className="w-4 h-4" /></button>
       </div>
 
+      <div className="absolute bottom-5 right-4 z-40 flex flex-col gap-2 pointer-events-auto"><button type="button" disabled={missileBusy || missileTankCount >= 4} onClick={purchaseMissileTank} className="rounded-xl border border-amber-300/60 bg-black/90 px-3 py-2 text-[10px] font-black uppercase text-amber-300 shadow-lg disabled:opacity-50">{missileBusy ? 'BUYING…' : 'BUY MISSILE TANK · 1,000 SC'}</button><button type="button" onClick={fireGuidedMissile} className="rounded-xl border border-red-400/70 bg-red-950/90 px-3 py-2 text-[10px] font-black uppercase text-red-200 shadow-lg">FIRE GUIDED MISSILE</button><span className="text-center text-[9px] font-bold text-white/70">{missileTankCount}/4 ROOM TANKS</span></div>
       <GangChat roomCode={roomCode} playerId={myPlayerId} playerName={myPlayerName} playerTeam={myTeam} onToast={onToast} />
       <StreetJoystick onMove={(movement) => { gameStateRef.current.joystickMovement = movement; if (movement.isMoving) { gameStateRef.current.isMouseActive = false; } }} onJump={handleJump} onShoot={shootPlayerLaser} onRunToggle={(running) => { gameStateRef.current.isRunActive = running; }} onHijackOrEnterCar={handleToggleCar} isNearCar={hudIsNearCar} isInCar={hudInCar} isCover={hudInCover} onCoverToggle={handleToggleCover} onReload={handleReload} ammo={hudAmmo} maxAmmo={hudMaxAmmo} />
       {isPlayerDown && (
