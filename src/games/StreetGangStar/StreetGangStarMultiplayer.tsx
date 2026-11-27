@@ -32,6 +32,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
   const [missileBusy, setMissileBusy] = useState(false);
   const missilePurchaseKeyRef = useRef<string | null>(null);
+  const [weaponPurchaseBusy, setWeaponPurchaseBusy] = useState(false);
+  const weaponPurchaseKeysRef = useRef<Partial<Record<WeaponType, string>>>({});
   const [hijackInProgress, setHijackInProgress] = useState(false);
   const hijackTargetRef = useRef<string | null>(null);
   const hijackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -276,6 +278,43 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     } catch (error) { onToast(error instanceof Error ? error.message : 'Could not buy missile tank.'); }
     finally { setMissileBusy(false); }
   }, [missileBusy, roomCode, myPlayerId, missileTankCount, onToast]);
+
+  const purchaseWeapon = useCallback(async (weaponKey: WeaponType) => {
+    if (weaponPurchaseBusy) return;
+    const s = gameStateRef.current;
+    const weapon = WEAPONS[weaponKey];
+    if (s.unlockedGuns[weaponKey]) {
+      s.player.gun = weaponKey; s.player.ammo = weapon.maxAmmo; s.player.maxAmmo = weapon.maxAmmo;
+      setHudGun(weaponKey); setHudAmmo(weapon.maxAmmo); setHudMaxAmmo(weapon.maxAmmo);
+      setShowShopModal(false);
+      return;
+    }
+    if (weapon.price <= 0) return;
+    const initData = getTelegramInitData();
+    if (!initData) { onToast('Open Street Life inside Telegram to buy weapons with your real SC balance.'); return; }
+    const purchaseKey = weaponPurchaseKeysRef.current[weaponKey] || `mp_weapon_${myPlayerId}_${weaponKey}_${Date.now()}`;
+    weaponPurchaseKeysRef.current[weaponKey] = purchaseKey;
+    setWeaponPurchaseBusy(true);
+    try {
+      const response = await fetch('/api/streetgangstar/rooms', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'purchase_weapon', initData, purchaseKey, weaponKey }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result?.ok) throw new Error(result?.error || 'Weapon purchase failed.');
+      weaponPurchaseKeysRef.current[weaponKey] = undefined;
+      s.unlockedGuns[weaponKey] = true; s.player.gun = weaponKey;
+      s.player.ammo = weapon.maxAmmo; s.player.maxAmmo = weapon.maxAmmo;
+      setHudGun(weaponKey); setHudAmmo(weapon.maxAmmo); setHudMaxAmmo(weapon.maxAmmo);
+      setAccountBalance(Number(result.balance_after));
+      setShowShopModal(false);
+      onToast(`${weapon.nameKey === 'weapon_ak' ? 'AK laser' : weapon.nameKey === 'weapon_sniper' ? 'Sniper laser' : 'Shotgun'} purchased — ${Number(result.cost || weapon.price).toLocaleString()} SC deducted.`);
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Could not buy this weapon.');
+    } finally {
+      setWeaponPurchaseBusy(false);
+    }
+  }, [weaponPurchaseBusy, myPlayerId, onToast]);
 
   useEffect(() => {
     if (!showShopModal) return;
@@ -732,7 +771,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       </div>
 
       <div className="absolute bottom-5 right-4 z-40 flex flex-col gap-2 pointer-events-auto"><button type="button" onClick={fireGuidedMissile} className="rounded-xl border border-red-400/70 bg-red-950/90 px-3 py-2 text-[10px] font-black uppercase text-red-200 shadow-lg">FIRE GUIDED MISSILE</button><span className="text-center text-[9px] font-bold text-white/70">{missileTankCount}/4 ROOM TANKS</span></div>
-      {showShopModal && (<div className="absolute inset-0 z-[80] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"><div className="w-full max-w-sm rounded-3xl border-2 border-[#FFD700] bg-[#12131C] p-5 shadow-[0_0_35px_rgba(255,215,0,0.3)]"><div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3"><div className="flex items-center gap-2 text-[#FFD700]"><ShoppingBag className="h-5 w-5" /><h3 className="text-sm font-black uppercase tracking-wider">Weapon & Vehicle Shop</h3></div><button type="button" onClick={() => setShowShopModal(false)} className="rounded-xl bg-white/10 p-1.5 text-white"><X className="h-5 w-5" /></button></div><div className="mb-3 rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-3 py-2 text-[11px] text-emerald-200">Street Life account balance: <b>{accountBalance === null ? 'Open in Telegram to check' : accountBalance.toLocaleString() + ' SC'}</b></div><div className="rounded-2xl border border-amber-300/40 bg-amber-950/25 p-3"><div className="flex items-center justify-between gap-3"><div><h4 className="text-xs font-black uppercase text-amber-200">Guided Missile Tank</h4><p className="mt-1 text-[10px] text-gray-300">Armoured driver seat · guided missiles · driver only · maximum 4 tanks per room</p></div><span className="text-xs font-black text-amber-300">1,000 SC</span></div><button type="button" disabled={missileBusy || missileTankCount >= 4} onClick={purchaseMissileTank} className="mt-3 w-full rounded-xl bg-amber-400 px-3 py-2.5 text-xs font-black uppercase text-black disabled:opacity-50">{missileBusy ? 'PURCHASING…' : missileTankCount >= 4 ? 'ROOM TANK LIMIT REACHED' : 'BUY MISSILE TANK · 1,000 SC'}</button><p className="mt-2 text-[9px] text-gray-400">The purchase is charged to your Street Life account balance only after the server confirms it. Room tanks: {missileTankCount}/4.</p></div></div></div>)}
+      {showShopModal && (<div className="absolute inset-0 z-[80] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"><div className="w-full max-w-sm rounded-3xl border-2 border-[#FFD700] bg-[#12131C] p-5 shadow-[0_0_35px_rgba(255,215,0,0.3)]"><div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3"><div className="flex items-center gap-2 text-[#FFD700]"><ShoppingBag className="h-5 w-5" /><h3 className="text-sm font-black uppercase tracking-wider">Weapon & Vehicle Shop</h3></div><button type="button" onClick={() => setShowShopModal(false)} className="rounded-xl bg-white/10 p-1.5 text-white"><X className="h-5 w-5" /></button></div><div className="mb-3 rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-3 py-2 text-[11px] text-emerald-200">Street Life account balance: <b>{accountBalance === null ? 'Open in Telegram to check' : accountBalance.toLocaleString() + ' SC'}</b></div><div className="mb-4 space-y-2"><h4 className="text-[10px] font-black uppercase tracking-wider text-gray-300">Weapons</h4>{(Object.keys(WEAPONS) as WeaponType[]).map((weaponKey) => { const weapon = WEAPONS[weaponKey]; const owned = gameStateRef.current.unlockedGuns[weaponKey]; const equipped = hudGun === weaponKey; return (<div key={weaponKey} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/50 p-3"><div><div className="text-xs font-black text-white">{weaponKey === 'pistol' ? 'Pistol' : weaponKey === 'shotgun_laser' ? 'Shotgun Laser' : weaponKey === 'ak_laser' ? 'AK Laser' : 'Sniper Laser'}</div><div className="text-[9px] text-gray-400">Damage {weapon.damage} · Ammo {weapon.maxAmmo}</div></div>{equipped ? <span className="text-[9px] font-black text-amber-300">EQUIPPED</span> : owned ? <button type="button" onClick={() => void purchaseWeapon(weaponKey)} className="rounded-lg bg-white/10 px-3 py-2 text-[9px] font-black text-white">EQUIP</button> : <button type="button" disabled={weaponPurchaseBusy} onClick={() => void purchaseWeapon(weaponKey)} className="rounded-lg bg-amber-400 px-3 py-2 text-[9px] font-black text-black disabled:opacity-50">{weaponPurchaseBusy ? 'PROCESSING…' : `${weapon.price} SC`}</button>}</div>); })}</div><div className="rounded-2xl border border-amber-300/40 bg-amber-950/25 p-3"><div className="flex items-center justify-between gap-3"><div><h4 className="text-xs font-black uppercase text-amber-200">Guided Missile Tank</h4><p className="mt-1 text-[10px] text-gray-300">Armoured driver seat · guided missiles · driver only · maximum 4 tanks per room</p></div><span className="text-xs font-black text-amber-300">1,000 SC</span></div><button type="button" disabled={missileBusy || missileTankCount >= 4} onClick={purchaseMissileTank} className="mt-3 w-full rounded-xl bg-amber-400 px-3 py-2.5 text-xs font-black uppercase text-black disabled:opacity-50">{missileBusy ? 'PURCHASING…' : missileTankCount >= 4 ? 'ROOM TANK LIMIT REACHED' : 'BUY MISSILE TANK · 1,000 SC'}</button><p className="mt-2 text-[9px] text-gray-400">The purchase is charged to your Street Life account balance only after the server confirms it. Room tanks: {missileTankCount}/4.</p></div></div></div>)}
       {hijackInProgress && (<div className="absolute inset-x-5 top-24 z-[85] mx-auto max-w-xs rounded-2xl border border-amber-300/70 bg-black/90 px-4 py-3 text-center text-amber-200 shadow-xl"><div className="text-xs font-black uppercase tracking-wider">Hijacking tank…</div><div className="mt-1 text-[10px] text-white">Stay close and still for 5 seconds. Moving, shooting, or taking a hit cancels the attempt.</div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15"><div className="h-full w-full origin-left animate-[pulse_5s_ease-in-out]" style={{ background: '#FACC15' }} /></div></div>)}
       <GangChat roomCode={roomCode} playerId={myPlayerId} playerName={myPlayerName} playerTeam={myTeam} onToast={onToast} />
       <StreetJoystick onMove={(movement) => { gameStateRef.current.joystickMovement = movement; if (movement.isMoving) { gameStateRef.current.isMouseActive = false; if (hijackTargetRef.current) cancelTankHijack('Hijack failed because you moved.'); } }} onJump={handleJump} onShoot={shootPlayerLaser} onRunToggle={(running) => { gameStateRef.current.isRunActive = running; }} onHijackOrEnterCar={handleToggleCar} isNearCar={hudIsNearCar} isInCar={hudInCar} isCover={hudInCover} onCoverToggle={handleToggleCover} onReload={handleReload} ammo={hudAmmo} maxAmmo={hudMaxAmmo} />
