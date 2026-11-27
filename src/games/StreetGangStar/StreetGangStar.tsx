@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Shield, Zap, Volume2, VolumeX, Heart, Coins, ShoppingBag, X, ArrowLeft, Users } from 'lucide-react';
 import { playShootSound, playReloadSound, playPickupSound, playCoinSound, playSuccessSound, playSirenSound, playClickSound } from '@/lib/sound';
 import { addGameCoins } from '@/lib/storage';
+import { getTelegramInitData } from '@/lib/telegram';
 import { showAdsgramRewardedAd } from '@/lib/adsgram';
 import { getRandomCityByCountry, CityData, isPointInsideBuilding } from './CityGenerator';
 import { getGangStarText, GangStarTextKey } from './language';
@@ -31,6 +32,9 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   const [showAvatarModal, setShowAvatarModal] = useState<boolean>(false);
   const [avatarColor, setAvatarColor] = useState<string>(() => { if (typeof window !== 'undefined') { return localStorage.getItem('gangstar_avatar_color') || '#FFD700'; } return '#FFD700'; });
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
+  const [tankPurchaseBusy, setTankPurchaseBusy] = useState(false);
+  const [tankPurchasedThisMatch, setTankPurchasedThisMatch] = useState(false);
+  const [accountBalance, setAccountBalance] = useState<number | null>(null);
   const [showTeamModal, setShowTeamModal] = useState<boolean>(false);
   const [playerTeam, setPlayerTeam] = useState<'blue' | 'red'>('blue');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
@@ -66,7 +70,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   }, [cityData]);
   const setupGame = useCallback(() => {
     const s = gameStateRef.current; s.player.x = cityData.spawnPoints[0].x; s.player.y = cityData.spawnPoints[0].y; s.player.health = 100; s.player.hitCount = 0; s.player.ammo = WEAPONS.pistol.maxAmmo; s.player.maxAmmo = WEAPONS.pistol.maxAmmo; s.player.gun = 'pistol'; s.player.isCover = false; s.player.inCarId = null; s.gangsters = []; s.ejectedDrivers = []; s.lasers = []; s.sparks = []; s.lastSpawnTime = Date.now(); s.isRunning = true;
-    setHudHealth(100); setHudAmmo(WEAPONS.pistol.maxAmmo); setHudMaxAmmo(WEAPONS.pistol.maxAmmo); setHudGun('pistol'); setHudInCover(false); setHudInCar(false); initTrafficAndCivilians();
+    setHudHealth(100); setHudAmmo(WEAPONS.pistol.maxAmmo); setHudMaxAmmo(WEAPONS.pistol.maxAmmo); setHudGun('pistol'); setHudInCover(false); setHudInCar(false); setTankPurchasedThisMatch(false); setAccountBalance(null); initTrafficAndCivilians();
   }, [initTrafficAndCivilians]);
   const handleStartFromIntro = () => { setShowIntro(false); setupGame(); };
   const handleWatchAdRevive = async () => {
@@ -111,6 +115,59 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     spreadAngles.forEach((ang) => { const beamLength = 450; const endX = startX + Math.cos(ang) * beamLength; const endY = startY + Math.sin(ang) * beamLength; s.lasers.push({ id: `laser_${Date.now()}_${Math.random()}`, x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, life: 7, maxLife: 7, isPlayer: true, damage: wDef.damage }); });
   }, [handleReload, playSfx]);
   const handleBuyWeapon = (wKey: WeaponType) => { const s = gameStateRef.current; const wDef = WEAPONS[wKey]; if (s.player.coins < wDef.price) { onToast(t('insufficient_coins')); return; } s.player.coins -= wDef.price; s.unlockedGuns[wKey] = true; s.player.gun = wKey; s.player.ammo = wDef.maxAmmo; s.player.maxAmmo = wDef.maxAmmo; setHudCoins(s.player.coins); setHudGun(wKey); setHudAmmo(wDef.maxAmmo); setHudMaxAmmo(wDef.maxAmmo); playSfx('success'); onToast(`${t('purchased')} ${t(wDef.nameKey)}`); setShowShopModal(false); };
+
+  const handleBuyTank = async () => {
+    if (tankPurchaseBusy || tankPurchasedThisMatch) return;
+    setTankPurchaseBusy(true);
+    const tankKey = `single_tank_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    try {
+      const response = await fetch('/api/streetgangstar/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'purchase_singleplayer_tank', initData: getTelegramInitData(), tankKey }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result?.ok) throw new Error(result?.error || 'Tank purchase failed.');
+      const s = gameStateRef.current;
+      const p = s.player;
+      const tank: Gangster = {
+        id: tankKey, type: 'fighter_motor', x: Math.min(cityData.mapWidth - 100, p.x + 100), y: p.y + 24,
+        vx: 0, vy: 0, health: 20, maxHealth: 20, speed: 1.5, facingAngle: p.facingAngle,
+        gun: 'ak_laser', lastShootTime: Date.now(), vehicleType: 'tank', isPlayerOwned: true, driverId: 'single_player',
+      };
+      s.gangsters.push(tank);
+      p.inCarId = tankKey;
+      p.x = tank.x;
+      p.y = tank.y;
+      setHudInCar(true);
+      setTankPurchasedThisMatch(true);
+      setAccountBalance(Number(result.balance_after));
+      playSfx('success');
+      setShowShopModal(false);
+      onToast('ARMOURED TANK PURCHASED! 1,000 SC deducted from your Street Life balance. You are protected while driving.');
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : 'Could not buy the armoured tank.');
+    } finally {
+      setTankPurchaseBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showShopModal) return;
+    let cancelled = false;
+    fetch('/api/streetgangstar/rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_balance', initData: getTelegramInitData() }),
+    }).then(async (response) => {
+      const result = await response.json();
+      if (!response.ok || !result?.ok) throw new Error(result?.error || 'Balance unavailable.');
+      if (!cancelled) setAccountBalance(Number(result.balance) || 0);
+    }).catch(() => {
+      if (!cancelled) setAccountBalance(null);
+    });
+    return () => { cancelled = true; };
+  }, [showShopModal]);
   useEffect(() => {
     if (showIntro) return; const onKeyDown = (e: KeyboardEvent) => { const k = e.key.toLowerCase(); const s = gameStateRef.current; if (k === 'w' || e.key === 'ArrowUp') s.keys.w = true; if (k === 'a' || e.key === 'ArrowLeft') s.keys.a = true; if (k === 's' || e.key === 'ArrowDown') s.keys.s = true; if (k === 'd' || e.key === 'ArrowRight') s.keys.d = true; if (e.key === 'Shift') s.keys.shift = true; if (e.code === 'Space') handleJump(); if (k === 'r') handleReload(); if (k === 'e') handleToggleCar(); if (k === 'q') handleToggleCover(); if (k === 'b') { setShowShopModal((prev) => !prev); playSfx('click'); } if (k === 't') { setShowTeamModal((prev) => !prev); playSfx('click'); } };
     const onKeyUp = (e: KeyboardEvent) => { const k = e.key.toLowerCase(); const s = gameStateRef.current; if (k === 'w' || e.key === 'ArrowUp') s.keys.w = false; if (k === 'a' || e.key === 'ArrowLeft') s.keys.a = false; if (k === 's' || e.key === 'ArrowDown') s.keys.s = false; if (k === 'd' || e.key === 'ArrowRight') s.keys.d = false; if (e.key === 'Shift') s.keys.shift = false; };
@@ -340,7 +397,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
         <button onClick={() => { playSfx('click'); setShowAvatarModal(true); }} type="button" className="p-2 rounded-2xl bg-black/85 border border-white/20 text-white font-black text-xs uppercase active:scale-95 transition-all cursor-pointer hover:border-[#FFD700] backdrop-blur-md"><Users className="w-4 h-4" /></button>
       </div>
       <StreetJoystick onMove={(movement) => { gameStateRef.current.joystickMovement = movement; if (movement.isMoving) { gameStateRef.current.isMouseActive = false; } }} onJump={handleJump} onShoot={shootPlayerLaser} onRunToggle={(running) => { gameStateRef.current.isRunActive = running; }} onHijackOrEnterCar={handleToggleCar} isNearCar={hudIsNearCar} isInCar={hudInCar} isCover={hudInCover} onCoverToggle={handleToggleCover} onReload={handleReload} ammo={hudAmmo} maxAmmo={hudMaxAmmo} />
-      {showShopModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-[#FFD700] p-5 shadow-[0_0_35px_rgba(255,215,0,0.3)] text-left relative animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><div className="flex items-center gap-2 text-[#FFD700]"><ShoppingBag className="w-5 h-5" /><h3 className="text-base font-black uppercase tracking-wider">{t('gun_shop')}</h3></div><button onClick={() => setShowShopModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="space-y-2.5">{(Object.keys(WEAPONS) as WeaponType[]).map((wKey) => { const w = WEAPONS[wKey]; const isOwned = gameStateRef.current.unlockedGuns[wKey]; const isEquipped = hudGun === wKey; return (<div key={wKey} className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${isEquipped ? 'bg-[#FFD700]/15 border-[#FFD700]' : 'bg-black/60 border-white/10'}`}><div><h4 className="text-xs font-black text-white">{t(w.nameKey)}</h4><p className="text-[10px] text-gray-400">DMG: {w.damage} | Ammo: {w.maxAmmo}</p></div>{isEquipped ? (<span className="text-[10px] font-mono text-[#FFD700] font-black uppercase">EQUIPPED</span>) : isOwned ? (<button onClick={() => { gameStateRef.current.player.gun = wKey; gameStateRef.current.player.ammo = w.maxAmmo; gameStateRef.current.player.maxAmmo = w.maxAmmo; setHudGun(wKey); setHudAmmo(w.maxAmmo); setHudMaxAmmo(w.maxAmmo); playSfx('click'); setShowShopModal(false); }} type="button" className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase active:scale-95">EQUIP</button>) : (<button onClick={() => handleBuyWeapon(wKey)} type="button" className="px-3 py-1.5 rounded-xl bg-[#FFD700] text-black font-black text-xs uppercase active:scale-95 hover:brightness-110 shadow-md">{w.price} SC</button>)}</div>); })}</div></div></div>)}
+      {showShopModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm max-h-[88vh] overflow-y-auto rounded-3xl bg-[#12131C] border-2 border-[#FFD700] p-5 shadow-[0_0_35px_rgba(255,215,0,0.3)] text-left relative animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><div className="flex items-center gap-2 text-[#FFD700]"><ShoppingBag className="w-5 h-5" /><h3 className="text-base font-black uppercase tracking-wider">{t('gun_shop')}</h3></div><button onClick={() => setShowShopModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="mb-3 rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-3 py-2 text-[11px] text-emerald-200">Street Life account balance: <b>{accountBalance === null ? 'Open in Telegram to check' : `${accountBalance.toLocaleString()} SC`}</b></div><div className="space-y-2.5">{(Object.keys(WEAPONS) as WeaponType[]).map((wKey) => { const w = WEAPONS[wKey]; const isOwned = gameStateRef.current.unlockedGuns[wKey]; const isEquipped = hudGun === wKey; return (<div key={wKey} className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${isEquipped ? 'bg-[#FFD700]/15 border-[#FFD700]' : 'bg-black/60 border-white/10'}`}><div><h4 className="text-xs font-black text-white">{t(w.nameKey)}</h4><p className="text-[10px] text-gray-400">DMG: {w.damage} | Ammo: {w.maxAmmo}</p></div>{isEquipped ? (<span className="text-[10px] font-mono text-[#FFD700] font-black uppercase">EQUIPPED</span>) : isOwned ? (<button onClick={() => { gameStateRef.current.player.gun = wKey; gameStateRef.current.player.ammo = w.maxAmmo; gameStateRef.current.player.maxAmmo = w.maxAmmo; setHudGun(wKey); setHudAmmo(w.maxAmmo); setHudMaxAmmo(w.maxAmmo); playSfx('click'); setShowShopModal(false); }} type="button" className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase active:scale-95">EQUIP</button>) : (<button onClick={() => handleBuyWeapon(wKey)} type="button" className="px-3 py-1.5 rounded-xl bg-[#FFD700] text-black font-black text-xs uppercase active:scale-95 hover:brightness-110 shadow-md">{w.price} SC</button>)}</div>); })}</div><div className="mt-4 rounded-2xl border border-amber-300/40 bg-amber-950/25 p-3"><div className="flex items-center justify-between gap-3"><div><h4 className="text-xs font-black uppercase text-amber-200">Armoured Tank</h4><p className="mt-1 text-[10px] text-gray-300">Heavy armour · 20 HP · protects the driver · one tank purchase per match</p></div><span className="text-xs font-black text-amber-300">1,000 SC</span></div><button type="button" disabled={tankPurchaseBusy || tankPurchasedThisMatch} onClick={handleBuyTank} className="mt-3 w-full rounded-xl bg-amber-400 px-3 py-2.5 text-xs font-black uppercase text-black disabled:opacity-50">{tankPurchaseBusy ? 'PURCHASING…' : tankPurchasedThisMatch ? 'ALREADY PURCHASED' : 'BUY ARMOURED TANK · 1,000 SC'}</button><p className="mt-2 text-[9px] text-gray-400">Charged directly to your Street Life account balance.</p></div></div></div>)}
       {showAvatarModal && (<div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-[#12131C] border-2 border-white/20 p-5 shadow-2xl text-left relative animate-in zoom-in-95"><div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4"><h3 className="text-sm font-black uppercase tracking-wider text-white">{t('customize_avatar')}</h3><button onClick={() => setShowAvatarModal(false)} type="button" className="p-1 rounded-xl bg-white/10 hover:bg-white/20 text-white"><X className="w-5 h-5" /></button></div><div className="mb-4"><span className="text-xs font-bold text-gray-300 block mb-2">{t('choose_color')}</span><div className="flex items-center gap-2">{['#FFD700', '#22C55E', '#3B82F6', '#EF4444', '#A855F7', '#E2E8F0'].map((col) => (<button key={col} onClick={() => { setAvatarColor(col); if (typeof window !== 'undefined') { localStorage.setItem('gangstar_avatar_color', col); } playSfx('click'); }} type="button" className={`w-9 h-9 rounded-2xl border-2 transition-all cursor-pointer ${avatarColor === col ? 'scale-110 border-white shadow-lg' : 'border-transparent'}`} style={{ backgroundColor: col }} />))}</div></div><button onClick={() => setShowAvatarModal(false)} type="button" className="w-full py-3 rounded-2xl bg-[#FFD700] text-black font-black text-xs uppercase active:scale-95 cursor-pointer shadow-lg shadow-[#FFD700]/30">{t('close')}</button></div></div>)}
       {showDeathAdPrompt && (
         <div className="absolute inset-0 z-[90] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
