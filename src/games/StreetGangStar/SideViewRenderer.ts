@@ -50,52 +50,6 @@ export function drawSideViewScene(ctx: CanvasRenderingContext2D, scene: SideView
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Parallax skyline and recognizable building fronts, not overhead roof blocks.
-  const first = Math.max(0, Math.floor(cameraX / 260) - 2);
-  const last = Math.min(Math.ceil(city.mapWidth / 260), Math.ceil((cameraX + screenWidth) / 260) + 2);
-  for (let i = first; i < last; i++) {
-    const x = i * 260 - cameraX;
-    const h = 115 + ((i * 47) % 135);
-    ctx.fillStyle = ['#C7D0D8', '#E1D2BE', '#C0CDD6', '#D9C3AA'][i % 4];
-    ctx.fillRect(x, groundY - h - 24, 225, h);
-    ctx.fillStyle = 'rgba(65,75,85,.10)'; ctx.fillRect(x + 8, groundY - h - 16, 209, 9);
-    for (let wy = groundY - h + 12; wy < groundY - 42; wy += 28) {
-      for (let wx = x + 14; wx < x + 210; wx += 34) {
-        ctx.fillStyle = (Math.floor(wx + wy + i) % 3 === 0) ? '#FFF0B8' : '#B9DCEB';
-        ctx.fillRect(wx, wy, 17, 15);
-      }
-    }
-    ctx.fillStyle = '#71808B'; ctx.fillRect(x + 12, groundY - 39, 58, 15);
-    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 9px sans-serif';
-    ctx.fillText(city.cityName.toUpperCase(), x + 17, groundY - 28);
-  }
-
-  city.buildings.forEach((b, i) => {
-    const x = b.x - cameraX;
-    if (x + b.width < -20 || x > screenWidth + 20) return;
-    const h = Math.max(90, Math.min(230, b.height * 0.45));
-    ctx.fillStyle = 'rgba(65,75,85,.10)'; ctx.fillRect(x + 7, groundY - h + 8, Math.max(35, b.width * .55), h);
-    ctx.fillStyle = lightenColor(b.wallColor, 0.42); ctx.fillRect(x, groundY - h, Math.max(35, b.width * .55), h);
-    ctx.fillStyle = lightenColor(b.roofColor, 0.48); ctx.fillRect(x - 4, groundY - h - 8, Math.max(43, b.width * .55) + 8, 10);
-    for (let wx = x + 10; wx < x + b.width * .5 - 8; wx += 28) {
-      ctx.fillStyle = '#B7D5E3'; ctx.fillRect(wx, groundY - h + 18, 17, 22);
-    }
-    ctx.fillStyle = '#A87952'; ctx.fillRect(x + 12, groundY - 38, 18, 38);
-    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 10px sans-serif'; ctx.fillText(b.name.slice(0, 22), x + 8, groundY - h - 14);
-  });
-
-  city.roads.filter(r => r.direction === 'horizontal').forEach(r => {
-    const x = r.x - cameraX;
-    if (x < screenWidth && x + r.width > 0) {
-      ctx.fillStyle = '#8996A1'; ctx.fillRect(Math.max(0, x), groundY + 6, Math.min(screenWidth, r.width), screenHeight - groundY - 6);
-    }
-  });
-  // Prominent street sign stays readable as the player travels.
-  ctx.fillStyle = '#14532D'; ctx.fillRect(16, 18, 210, 34);
-  ctx.strokeStyle = '#D1FAE5'; ctx.lineWidth = 2; ctx.strokeRect(16, 18, 210, 34);
-  ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 13px sans-serif';
-  ctx.fillText(city.streetName.toUpperCase().slice(0, 28), 25, 40);
-
   const drawPerson = (a: Actor, shirt: string, scale = 1) => {
     const x = a.x - cameraX, y = groundY - 20 + laneOffset(a.y) - (a.jumpOffset || 0);
     if (x < -50 || x > screenWidth + 50) return;
