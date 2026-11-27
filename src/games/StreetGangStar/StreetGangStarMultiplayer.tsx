@@ -226,7 +226,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       onToast('MISSILE TANK PURCHASED! Use FIRE MISSILE to launch guided rockets.');
     } catch (error) { onToast(error instanceof Error ? error.message : 'Could not buy missile tank.'); }
     finally { setMissileBusy(false); }
-  }, [missileBusy, roomCode, myPlayerId, missileTankCount, hudCoins, onToast]);
+  }, [missileBusy, roomCode, myPlayerId, missileTankCount, onToast]);
 
   useEffect(() => {
     if (!showShopModal) return;
@@ -441,7 +441,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           let hit = false;
           for (let gIdx = s.gangsters.length - 1; gIdx >= 0; gIdx--) {
             const g = s.gangsters[gIdx];
-            if (g.driverId === myPlayerId) continue;
+            if (g.driverId) continue;
             if (distToSegment(g.x, g.y, l.x1, l.y1, l.x2, l.y2) < 38) {
               const playerIsDrivingTank = s.gangsters.some((vehicle) => vehicle.id === p.inCarId && vehicle.vehicleType === 'tank');
               g.health -= tankDamagePerHit(playerIsDrivingTank, g.vehicleType === 'tank'); // 10 tank hits vs 20 ordinary hits
