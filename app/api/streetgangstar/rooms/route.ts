@@ -40,6 +40,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, balance: Number(player.coins) || 0 });
     }
 
+    if (action === 'purchase_weapon') {
+      const purchaseKey = cleanText(body?.purchaseKey, 100, '');
+      const weaponKey = cleanText(body?.weaponKey, 40, '');
+      if (!/^[a-zA-Z0-9_-]{1,100}$/.test(purchaseKey)) {
+        return NextResponse.json({ error: 'Invalid purchase identifier.' }, { status: 400 });
+      }
+      const { data, error } = await db.rpc('streetgangstar_purchase_weapon', {
+        p_telegram_id: user.id,
+        p_purchase_key: purchaseKey,
+        p_weapon_key: weaponKey,
+      });
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
+    }
+
     if (action === 'purchase_singleplayer_tank') {
       const tankKey = cleanText(body?.tankKey, 100, '');
       if (!/^[a-zA-Z0-9_-]{1,100}$/.test(tankKey)) {
