@@ -30,6 +30,9 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const [showTeamModal, setShowTeamModal] = useState<boolean>(false);
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
   const [missileBusy, setMissileBusy] = useState(false);
+  const [hijackInProgress, setHijackInProgress] = useState(false);
+  const hijackTargetRef = useRef<string | null>(null);
+  const hijackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [missileTankCount, setMissileTankCount] = useState(0);
   const [accountBalance, setAccountBalance] = useState<number | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
@@ -197,13 +200,52 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     s.player.isReloading = true; playSfx('reload'); onToast(t('reload_alert'));
     setTimeout(() => { s.player.ammo = wDef.maxAmmo; s.player.isReloading = false; setHudAmmo(wDef.maxAmmo); }, 900);
   }, [onToast, playSfx, t]);
+  const cancelTankHijack = useCallback((reason = 'Hijack interrupted.') => {
+    const tankKey = hijackTargetRef.current;
+    if (!tankKey) return;
+    if (hijackTimerRef.current) clearTimeout(hijackTimerRef.current);
+    hijackTimerRef.current = null; hijackTargetRef.current = null; setHijackInProgress(false);
+    void fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel_tank_hijack', initData: getTelegramInitData(), roomCode, tankKey }) });
+    onToast(reason);
+  }, [roomCode, onToast]);
+
   const handleToggleCar = useCallback(() => {
-    const s = gameStateRef.current; const p = s.player; if (p.inCarId) { const tank = s.gangsters.find((g) => g.id === p.inCarId && g.vehicleType === 'tank'); if (tank) { tank.driverId = null; tank.isPlayerOwned = true; p.x = tank.x + 54; p.y = tank.y + 18; } else { const car = s.cars.find((c) => c.id === p.inCarId); if (car) { car.isOccupied = false; car.hasDriver = false; car.driverType = null; p.x = car.x + 30; p.y = car.y + 30; } } p.inCarId = null; setHudInCar(false); playSfx('click'); onToast(t('car_exit')); return; }
-    let nearestTank: any = null; let tankDistance = 92; for (const g of s.gangsters) { if (g.vehicleType !== 'tank') continue; const dist = Math.hypot(g.x - p.x, g.y - p.y); if (dist < tankDistance && (!g.driverId || g.driverId === myPlayerId)) { tankDistance = dist; nearestTank = g; } }
-    if (nearestTank) { if (nearestTank.isMissileTank) { void fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'hijack_missile_tank', initData: getTelegramInitData(), roomCode, tankKey: nearestTank.id }) }).then(async (r) => { const result = await r.json(); if (!r.ok) throw new Error(result?.error || 'Missile tank hijack failed.'); }).catch((error) => onToast(error instanceof Error ? error.message : 'Missile tank hijack failed.')); } nearestTank.isPlayerOwned = true; nearestTank.driverId = myPlayerId; p.inCarId = nearestTank.id; p.x = nearestTank.x; p.y = nearestTank.y; setHudInCar(true); playSfx('siren'); onToast('ARMOURED TANK HIJACKED! You are protected while inside.'); return; }
+    const s = gameStateRef.current; const p = s.player;
+    if (hijackTargetRef.current) { cancelTankHijack(); return; }
+    if (p.inCarId) { const tank = s.gangsters.find((g) => g.id === p.inCarId && g.vehicleType === 'tank'); if (tank) { tank.driverId = null; tank.isPlayerOwned = true; p.x = tank.x + 54; p.y = tank.y + 18; } else { const car = s.cars.find((c) => c.id === p.inCarId); if (car) { car.isOccupied = false; car.hasDriver = false; car.driverType = null; p.x = car.x + 30; p.y = car.y + 30; } } p.inCarId = null; setHudInCar(false); playSfx('click'); onToast(t('car_exit')); return; }
+    let nearestTank: any = null; let tankDistance = 92;
+    for (const g of s.gangsters) { if (g.vehicleType !== 'tank') continue; const dist = Math.hypot(g.x - p.x, g.y - p.y); if (dist < tankDistance && g.driverId !== myPlayerId) { tankDistance = dist; nearestTank = g; } }
+    if (nearestTank && nearestTank.driverId) {
+      const tankKey = nearestTank.id; hijackTargetRef.current = tankKey; setHijackInProgress(true);
+      const begin = async () => {
+        if (nearestTank.isMissileTank) {
+          const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start_tank_hijack', initData: getTelegramInitData(), roomCode, tankKey }) });
+          const result = await response.json(); if (!response.ok || !result?.ok) throw new Error(result?.error || 'Could not start hijacking.');
+        }
+        onToast('HIJACKING… STAY STILL FOR 5 SECONDS. Do not shoot.');
+        hijackTimerRef.current = setTimeout(async () => {
+          try {
+            const current = gameStateRef.current; const currentTank = current.gangsters.find((g) => g.id === tankKey);
+            if (!currentTank || Math.hypot(current.player.x - currentTank.x, current.player.y - currentTank.y) > 105) throw new Error('You moved too far away.');
+            if (currentTank.isMissileTank) {
+              const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'complete_tank_hijack', initData: getTelegramInitData(), roomCode, tankKey }) });
+              const result = await response.json(); if (!response.ok || !result?.ok) throw new Error(result?.error || 'Hijack failed.');
+            }
+            currentTank.driverId = myPlayerId; currentTank.isPlayerOwned = true; current.player.inCarId = tankKey; current.player.x = currentTank.x; current.player.y = currentTank.y;
+            setHudInCar(true); playSfx('siren'); onToast('TANK HIJACKED! You are now the driver.');
+          } catch (error) {
+            void fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel_tank_hijack', initData: getTelegramInitData(), roomCode, tankKey }) });
+            onToast(error instanceof Error ? error.message : 'Hijack failed.');
+          } finally { hijackTargetRef.current = null; hijackTimerRef.current = null; setHijackInProgress(false); }
+        }, 5000);
+      };
+      void begin().catch((error) => { hijackTargetRef.current = null; setHijackInProgress(false); onToast(error instanceof Error ? error.message : 'Hijack failed.'); });
+      return;
+    }
+    if (nearestTank && !nearestTank.driverId) { nearestTank.isPlayerOwned = true; nearestTank.driverId = myPlayerId; p.inCarId = nearestTank.id; p.x = nearestTank.x; p.y = nearestTank.y; setHudInCar(true); playSfx('siren'); onToast('TANK ENTERED. You are now the driver.'); return; }
     let nearestCar: any = null; let minDist = 70; for (const c of s.cars) { const dist = Math.hypot(c.x - p.x, c.y - p.y); if (dist < minDist) { minDist = dist; nearestCar = c; } }
     if (nearestCar) { if (nearestCar.hasDriver && nearestCar.driverType === 'civilian') { const ejected = { id: `ejected_${nearestCar.id}_${Date.now()}_${myPlayerId}`, x: nearestCar.x - 24, y: nearestCar.y + 18, facingAngle: Math.atan2(p.y - nearestCar.y, p.x - nearestCar.x), state: 'falling' as const, stateAt: Date.now() }; s.ejectedDrivers.push(ejected); channelRef.current?.postMessage({ type: 'driver_eject', senderId: myPlayerId, payload: ejected }); nearestCar.hasDriver = false; nearestCar.driverType = 'player'; nearestCar.isOccupied = true; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('siren'); onToast(t('car_hijacked')); } else if (!nearestCar.isOccupied) { nearestCar.isOccupied = true; nearestCar.hasDriver = true; nearestCar.driverType = 'player'; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('click'); onToast(t('car_enter')); } }
-  }, [onToast, playSfx, t]);
+  }, [cancelTankHijack, myPlayerId, onToast, playSfx, roomCode, t]);
   const handleToggleCover = useCallback(() => {
     const s = gameStateRef.current; const p = s.player; let nearObstacle = false;
     for (const bld of cityData.buildings) { if (p.x >= bld.x - 40 && p.x <= bld.x + bld.width + 40 && p.y >= bld.y - 40 && p.y <= bld.y + bld.height + 40) { nearObstacle = true; break; } }
@@ -255,7 +297,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   }, [myPlayerId, onToast, playSfx]);
 
   const shootPlayerLaser = useCallback(() => {
-    const s = gameStateRef.current; const p = s.player; if (p.isReloading) return; if (p.ammo <= 0) { handleReload(); return; }
+    const s = gameStateRef.current; const p = s.player; if (hijackTargetRef.current) { cancelTankHijack('Hijack failed because you tried to shoot.'); return; } if (p.isReloading) return; if (p.ammo <= 0) { handleReload(); return; }
     const wDef = WEAPONS[p.gun]; const now = Date.now(); if (now - p.lastShootTime < wDef.fireRateMs) return;
     p.lastShootTime = now; p.ammo -= 1; setHudAmmo(p.ammo); playSfx('shoot');
     const startX = p.inCarId ? (s.cars.find((c) => c.id === p.inCarId)?.x || p.x) : p.x + Math.cos(p.facingAngle) * 22;
@@ -271,7 +313,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     });
     p.recentShots.push({ id: now, beams });
     if (p.recentShots.length > 8) p.recentShots.splice(0, p.recentShots.length - 8);
-  }, [handleReload, myPlayerId, myTeam, playSfx]);
+  }, [cancelTankHijack, handleReload, myPlayerId, myTeam, playSfx]);
 
   useEffect(() => {
     if (inLobby) return;
@@ -664,7 +706,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       <div className="absolute bottom-5 right-4 z-40 flex flex-col gap-2 pointer-events-auto"><button type="button" onClick={fireGuidedMissile} className="rounded-xl border border-red-400/70 bg-red-950/90 px-3 py-2 text-[10px] font-black uppercase text-red-200 shadow-lg">FIRE GUIDED MISSILE</button><span className="text-center text-[9px] font-bold text-white/70">{missileTankCount}/4 ROOM TANKS</span></div>
       {showShopModal && (<div className="absolute inset-0 z-[80] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"><div className="w-full max-w-sm rounded-3xl border-2 border-[#FFD700] bg-[#12131C] p-5 shadow-[0_0_35px_rgba(255,215,0,0.3)]"><div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3"><div className="flex items-center gap-2 text-[#FFD700]"><ShoppingBag className="h-5 w-5" /><h3 className="text-sm font-black uppercase tracking-wider">Weapon & Vehicle Shop</h3></div><button type="button" onClick={() => setShowShopModal(false)} className="rounded-xl bg-white/10 p-1.5 text-white"><X className="h-5 w-5" /></button></div><div className="mb-3 rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-3 py-2 text-[11px] text-emerald-200">Street Life account balance: <b>{accountBalance === null ? 'Open in Telegram to check' : accountBalance.toLocaleString() + ' SC'}</b></div><div className="rounded-2xl border border-amber-300/40 bg-amber-950/25 p-3"><div className="flex items-center justify-between gap-3"><div><h4 className="text-xs font-black uppercase text-amber-200">Guided Missile Tank</h4><p className="mt-1 text-[10px] text-gray-300">Armoured driver seat · guided missiles · driver only · maximum 4 tanks per room</p></div><span className="text-xs font-black text-amber-300">1,000 SC</span></div><button type="button" disabled={missileBusy || missileTankCount >= 4} onClick={purchaseMissileTank} className="mt-3 w-full rounded-xl bg-amber-400 px-3 py-2.5 text-xs font-black uppercase text-black disabled:opacity-50">{missileBusy ? 'PURCHASING…' : missileTankCount >= 4 ? 'ROOM TANK LIMIT REACHED' : 'BUY MISSILE TANK · 1,000 SC'}</button><p className="mt-2 text-[9px] text-gray-400">The purchase is charged to your Street Life account balance only after the server confirms it. Room tanks: {missileTankCount}/4.</p></div></div></div>)}
       <GangChat roomCode={roomCode} playerId={myPlayerId} playerName={myPlayerName} playerTeam={myTeam} onToast={onToast} />
-      <StreetJoystick onMove={(movement) => { gameStateRef.current.joystickMovement = movement; if (movement.isMoving) { gameStateRef.current.isMouseActive = false; } }} onJump={handleJump} onShoot={shootPlayerLaser} onRunToggle={(running) => { gameStateRef.current.isRunActive = running; }} onHijackOrEnterCar={handleToggleCar} isNearCar={hudIsNearCar} isInCar={hudInCar} isCover={hudInCover} onCoverToggle={handleToggleCover} onReload={handleReload} ammo={hudAmmo} maxAmmo={hudMaxAmmo} />
+      <StreetJoystick onMove={(movement) => { gameStateRef.current.joystickMovement = movement; if (movement.isMoving) { gameStateRef.current.isMouseActive = false; if (hijackTargetRef.current) cancelTankHijack('Hijack failed because you moved.'); } }} onJump={handleJump} onShoot={shootPlayerLaser} onRunToggle={(running) => { gameStateRef.current.isRunActive = running; }} onHijackOrEnterCar={handleToggleCar} isNearCar={hudIsNearCar} isInCar={hudInCar} isCover={hudInCover} onCoverToggle={handleToggleCover} onReload={handleReload} ammo={hudAmmo} maxAmmo={hudMaxAmmo} />
       {isPlayerDown && (
         <div className="absolute inset-0 z-[90] flex items-center justify-center bg-black/85 p-5 backdrop-blur-md">
           <div className="w-full max-w-sm rounded-3xl border-2 border-red-500/60 bg-gradient-to-b from-[#1B1118] to-[#0B0B10] p-6 text-center shadow-[0_0_35px_rgba(239,68,68,0.25)]">
