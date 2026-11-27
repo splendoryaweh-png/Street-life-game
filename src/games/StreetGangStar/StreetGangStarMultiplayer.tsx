@@ -74,13 +74,21 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       connectToRoom(code, true);
     } catch (error) { onToast(error instanceof Error ? error.message : 'Room creation failed. Open Street Life inside Telegram and try again.'); }
   };
-  const joinRandomCity = () => {
-    playClickSound(); let targetCode = ''; try { const saved = JSON.parse(localStorage.getItem('gangstar_rooms') || '[]'); const active = saved.filter((r: any) => Date.now() - r.createdAt < 30 * 60 * 1000); if (active.length > 0) { targetCode = active[Math.floor(Math.random() * active.length)].code; } } catch {}
-    const shouldHost = !targetCode;
-    if (shouldHost) { targetCode = `STREET${Math.floor(100 + Math.random() * 900)}`; }
-    setIsHost(shouldHost);
-    setRoomCode(targetCode);
-    connectToRoom(targetCode, shouldHost);
+  const joinRandomCity = async () => {
+    playClickSound();
+    try {
+      let response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'random_join', initData: getTelegramInitData(), playerName: myPlayerName, team: myTeam }) });
+      let result = await response.json();
+      if (!response.ok && response.status === 404) {
+        response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', initData: getTelegramInitData(), countryCode: initialCountry, playerName: myPlayerName, maxPlayers: 16 }) });
+        result = await response.json();
+      }
+      if (!response.ok || !result?.room?.room_code) throw new Error(result?.error || 'No city room is available.');
+      const code = String(result.room.room_code);
+      const host = String(result.room.host_telegram_id) === String(result.playerId);
+      setRoomCode(code); setIsHost(host); serverRoomReadyRef.current = true;
+      connectToRoom(code, host);
+    } catch (error) { onToast(error instanceof Error ? error.message : 'Random matchmaking failed. Open Street Life inside Telegram and try again.'); }
   };
   const joinWithCode = async (e: React.FormEvent) => {
     e.preventDefault(); const cleaned = customRoomInput.toUpperCase().trim(); if (!cleaned) { onToast('Please enter a valid room code!'); return; }
