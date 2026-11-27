@@ -132,6 +132,17 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     setInLobby(false); gameStateRef.current.isRunning = true; playSuccessSound(); onToast(`Connected to District Lobby: ${code}!`);
   };
 
+  const leaveRoom = () => {
+    if (!serverRoomReadyRef.current || !roomCode) return;
+    const initData = getTelegramInitData();
+    void fetch('/api/streetgangstar/rooms', {
+      method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'leave', initData, roomCode })
+    }).catch((error) => console.warn('Unable to leave Street Gang Star room cleanly:', error));
+    serverRoomReadyRef.current = false;
+    if (channelRef.current) { channelRef.current.close(); channelRef.current = null; }
+  };
+
   const handleWatchAdContinue = async () => {
     if (reviveRequestRef.current || !isPlayerDown) return;
     reviveRequestRef.current = true;
@@ -170,10 +181,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const handleBackToLobbyAfterDeath = () => {
     playSfx('click');
     gameStateRef.current.isRunning = false;
-    if (channelRef.current) {
-      channelRef.current.close();
-      channelRef.current = null;
-    }
+    leaveRoom();
     setIsPlayerDown(false);
     setIsReviving(false);
     setInLobby(true);
@@ -571,7 +579,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       <div className="absolute top-3 left-3 z-30 flex flex-col gap-1 max-w-[185px] scale-[0.75] origin-top-left pointer-events-none">
         <div className="p-2.5 rounded-2xl bg-black/80 border border-white/15 backdrop-blur-md shadow-xl flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button onClick={() => { playSfx('click'); onBack(); }} type="button" className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 pointer-events-auto text-white"><ArrowLeft className="w-4 h-4 text-[#FFD700]" /></button>
+            <button onClick={() => { playSfx('click'); leaveRoom(); onBack(); }} type="button" className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 pointer-events-auto text-white"><ArrowLeft className="w-4 h-4 text-[#FFD700]" /></button>
             <div><div className="flex items-center gap-1.5"><span className="text-[11px] font-black uppercase text-white tracking-wider">{roomCode}</span><span className="text-[8px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40">{activePlayerCount} ONLINE</span></div><p className="text-[9px] text-gray-400">{cityData.streetName}</p></div>
           </div>
           <button onClick={() => { navigator.clipboard?.writeText(roomCode); setCopiedCode(true); onToast(`Copied: ${roomCode}`); setTimeout(() => setCopiedCode(false), 2000); }} type="button" className="p-1.5 rounded-xl bg-[#FFD700]/20 hover:bg-[#FFD700]/30 text-[#FFD700] pointer-events-auto">{copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button>
