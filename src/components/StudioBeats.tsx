@@ -1364,7 +1364,7 @@ export function StudioBeats({
                       step={cameraZoomRange?.step ?? 0.1}
                       value={cameraZoom}
                       onChange={(event) => void handleCameraZoomChange(Number(event.target.value))}
-                      disabled={!cameraZoomRange || isRecording}
+                      disabled={!cameraZoomRange}
                       aria-label="Camera zoom"
                       className="h-24 w-7 cursor-pointer accent-yellow-400 [writing-mode:vertical-lr] [direction:rtl] disabled:opacity-40"
                     />
