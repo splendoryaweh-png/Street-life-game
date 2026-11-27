@@ -179,7 +179,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp); return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
   }, [showIntro, handleReload, handleToggleCar, handleToggleCover, handleJump, playSfx]);
   useEffect(() => {
-    if (showIntro) return; const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return; let animId: number;
+    if (showIntro || showPauseMenu) return; const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return; let animId: number;
     const handleResize = () => { if (!canvas) return; canvas.width = window.innerWidth; canvas.height = window.innerHeight; gameStateRef.current.screenDim = { w: canvas.width, h: canvas.height }; }; handleResize(); window.addEventListener('resize', handleResize);
     const onMouseMove = (e: MouseEvent) => { const rect = canvas.getBoundingClientRect(); gameStateRef.current.mousePos = { x: e.clientX - rect.left, y: e.clientY - rect.top }; gameStateRef.current.isMouseActive = true; };
     const onMouseDown = (e: MouseEvent) => { if (e.button === 0) { gameStateRef.current.keys.mouseLeft = true; shootPlayerLaser(); } };
@@ -378,7 +378,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     };
     animId = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', handleResize); canvas.removeEventListener('mousemove', onMouseMove); canvas.removeEventListener('mousedown', onMouseDown); window.removeEventListener('mouseup', onMouseUp); };
-  }, [showIntro, cityData, avatarColor, playerTeam, shootPlayerLaser, playSfx, onToast, t]);
+  }, [showIntro, showPauseMenu, cityData, avatarColor, playerTeam, shootPlayerLaser, playSfx, onToast, t]);
   if (showIntro) { return (<StreetGangStarIntro language={language} cityName={cityData.cityName} streetName={cityData.streetName} onStartGame={handleStartFromIntro} onBack={onBack} />); }
   return (
     <div className="fixed inset-0 z-50 bg-black text-white select-none overflow-hidden font-sans">
