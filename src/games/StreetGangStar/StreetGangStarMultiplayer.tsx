@@ -14,7 +14,7 @@ import { stepSideScrollerCamera } from './SideScrollerPhysics';
 import { playerHealthAfterHits, tankDamagePerHit, isPlayerDown as hasReachedPlayerHitLimit } from './CombatRules';
 import { getTelegramInitData } from '@/lib/telegram';
 
-export interface RemotePlayer { id: string; name: string; x: number; y: number; targetX: number; targetY: number; facingAngle: number; health: number; maxHealth: number; team: 'blue' | 'red'; gun: WeaponType; avatarColor: string; isCover: boolean; inCarId: string | null; jumpOffset?: number; lastReaction?: { emoji: string; until: number }; lastSeen: number; hitCount?: number; }
+export interface RemotePlayer { id: string; name: string; x: number; y: number; targetX: number; targetY: number; facingAngle: number; health: number; maxHealth: number; team: 'blue' | 'red'; gun: WeaponType; avatarColor: string; isCover: boolean; inCarId: string | null; jumpOffset?: number; lastReaction?: { emoji: string; until: number }; lastSeen: number; hitCount?: number; lastShotAt?: number; }
 export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert' | 'driver_eject'; senderId: string; payload: any; }
 interface StreetGangStarMultiplayerProps { onBack: () => void; onToast: (msg: string) => void; language?: string; initialCountry?: string; }
 
@@ -51,7 +51,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const serverRoomReadyRef = useRef(false);
 
   const gameStateRef = useRef({
-    player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, hitCount: 0, ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false },
+    player: { id: myPlayerId, name: myPlayerName, team: 'blue' as 'blue' | 'red', x: cityData.spawnPoints[0].x, y: cityData.spawnPoints[0].y, vx: 0, vy: 0, speed: 4.5, health: 100, maxHealth: 100, hitCount: 0, recentShots: [] as { id: number; beams: { x1: number; y1: number; x2: number; y2: number; color: string; damage: number }[] }[], ammo: 30, maxAmmo: 30, gun: 'pistol' as WeaponType, coins: 0, facingAngle: 0, isCover: false, inCarId: null as string | null, lastShootTime: 0, isReloading: false, kills: 0, civiliansSaved: 0, jumpOffset: 0, jumpVy: 0, isJumping: false },
     remotePlayers: new Map<string, RemotePlayer>(), ejectedDrivers: [] as { id: string; x: number; y: number; facingAngle: number; state: 'falling' | 'standing'; stateAt: number }[],
     unlockedGuns: { pistol: true, shotgun_laser: false, ak_laser: false, sniper_laser: false } as Record<WeaponType, boolean>,
     cars: [] as (CityCar & { health: number; maxHealth: number })[], civilians: [] as Civilian[], gangsters: [] as (Gangster & { isPlayerOwned?: boolean; driverId?: string | null; })[], lasers: [] as LaserBeam[], sparks: [] as SparkParticle[],
@@ -209,11 +209,16 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     const startX = p.inCarId ? (s.cars.find((c) => c.id === p.inCarId)?.x || p.x) : p.x + Math.cos(p.facingAngle) * 22;
     const startY = p.inCarId ? (s.cars.find((c) => c.id === p.inCarId)?.y || p.y) : p.y + Math.sin(p.facingAngle) * 22;
     const baseAngle = p.facingAngle; const spreadAngles = wDef.spread === 3 ? [baseAngle - 0.14, baseAngle, baseAngle + 0.14] : [baseAngle];
+    const beams: { x1: number; y1: number; x2: number; y2: number; color: string; damage: number }[] = [];
     spreadAngles.forEach((ang) => {
       const beamLength = 480; const endX = startX + Math.cos(ang) * beamLength; const endY = startY + Math.sin(ang) * beamLength;
-      s.lasers.push({ id: `laser_${now}_${Math.random()}`, x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, life: 7, maxLife: 7, isPlayer: true, damage: wDef.damage });
-      if (channelRef.current) { channelRef.current.postMessage({ type: 'laser_fire', senderId: myPlayerId, payload: { x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, damage: wDef.damage, team: myTeam } }); }
+      const beam = { x1: startX, y1: startY, x2: endX, y2: endY, color: wDef.laserColor, damage: wDef.damage };
+      beams.push(beam);
+      s.lasers.push({ id: `laser_${now}_${Math.random()}`, ...beam, life: 7, maxLife: 7, isPlayer: true });
+      if (channelRef.current) { channelRef.current.postMessage({ type: 'laser_fire', senderId: myPlayerId, payload: { ...beam, team: myTeam } }); }
     });
+    p.recentShots.push({ id: now, beams });
+    if (p.recentShots.length > 8) p.recentShots.splice(0, p.recentShots.length - 8);
   }, [handleReload, myPlayerId, myTeam, playSfx]);
 
   useEffect(() => {
@@ -236,7 +241,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'heartbeat', initData: getTelegramInitData(), roomCode,
-            playerState: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, hitCount: p.hitCount || 0, team: myTeam, gun: p.gun, isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset },
+            playerState: { name: myPlayerName, x: p.x, y: p.y, facingAngle: p.facingAngle, health: p.health, hitCount: p.hitCount || 0, team: myTeam, gun: p.gun, isCover: p.isCover, inCarId: p.inCarId, jumpOffset: p.jumpOffset, recentShots: p.recentShots },
             roomState: isHost ? { cars: s.cars, civilians: s.civilians, gangsters: s.gangsters, ejectedDrivers: s.ejectedDrivers } : undefined
           })
         });
@@ -271,8 +276,19 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             team: member.team === 'red' ? 'red' as const : 'blue' as const,
             gun: (value.gun || 'pistol') as WeaponType, avatarColor: '#FFD700',
             isCover: Boolean(value.isCover), inCarId: typeof value.inCarId === 'string' ? value.inCarId : null,
-            jumpOffset: Number(value.jumpOffset) || 0, lastSeen: Date.now(), hitCount: Number(value.hitCount) || 0
+            jumpOffset: Number(value.jumpOffset) || 0, lastSeen: Date.now(), hitCount: Number(value.hitCount) || 0,
+            lastShotAt: existing?.lastShotAt || 0
           };
+          const recentShots = Array.isArray(value.recentShots) ? value.recentShots : [];
+          for (const shot of recentShots) {
+            const shotId = Number(shot?.id);
+            if (!Number.isFinite(shotId) || shotId <= (remote.lastShotAt || 0) || !Array.isArray(shot?.beams)) continue;
+            for (const beam of shot.beams) {
+              if (![beam?.x1, beam?.y1, beam?.x2, beam?.y2].every((n) => typeof n === 'number' && Number.isFinite(n))) continue;
+              s.lasers.push({ id: `server_shot_${id}_${shotId}_${Math.random()}`, x1: beam.x1, y1: beam.y1, x2: beam.x2, y2: beam.y2, color: typeof beam.color === 'string' ? beam.color : '#38BDF8', life: 7, maxLife: 7, isPlayer: false, damage: Math.max(1, Math.min(100, Number(beam.damage) || 1)) });
+            }
+            remote.lastShotAt = Math.max(remote.lastShotAt || 0, shotId);
+          }
           s.remotePlayers.set(id, { ...(existing || remote), ...remote });
         }
         for (const id of Array.from(s.remotePlayers.keys())) if (!seen.has(id)) s.remotePlayers.delete(id);
