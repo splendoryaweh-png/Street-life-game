@@ -213,10 +213,10 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
   const handleToggleCar = useCallback(() => {
     const s = gameStateRef.current; const p = s.player;
     if (hijackTargetRef.current) { cancelTankHijack(); return; }
-    if (p.inCarId) { const tank = s.gangsters.find((g) => g.id === p.inCarId && g.vehicleType === 'tank'); if (tank) { tank.driverId = null; tank.isPlayerOwned = true; p.x = tank.x + 54; p.y = tank.y + 18; } else { const car = s.cars.find((c) => c.id === p.inCarId); if (car) { car.isOccupied = false; car.hasDriver = false; car.driverType = null; p.x = car.x + 30; p.y = car.y + 30; } } p.inCarId = null; setHudInCar(false); playSfx('click'); onToast(t('car_exit')); return; }
+    if (p.inCarId) { const tank = s.gangsters.find((g) => g.id === p.inCarId && g.vehicleType === 'tank'); if (tank) { tank.driverId = null; tank.isPlayerOwned = true; if (tank.isMissileTank) { void fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'release_missile_tank', initData: getTelegramInitData(), roomCode, tankKey: tank.id }) }).catch(() => onToast('Tank exit could not sync. Please reconnect.')); } p.x = tank.x + 54; p.y = tank.y + 18; } else { const car = s.cars.find((c) => c.id === p.inCarId); if (car) { car.isOccupied = false; car.hasDriver = false; car.driverType = null; p.x = car.x + 30; p.y = car.y + 30; } } p.inCarId = null; setHudInCar(false); playSfx('click'); onToast(t('car_exit')); return; }
     let nearestTank: any = null; let tankDistance = 92;
-    for (const g of s.gangsters) { if (g.vehicleType !== 'tank') continue; const dist = Math.hypot(g.x - p.x, g.y - p.y); if (dist < tankDistance && g.driverId !== myPlayerId) { tankDistance = dist; nearestTank = g; } }
-    if (nearestTank && nearestTank.driverId) {
+    for (const g of s.gangsters) { if (g.vehicleType !== 'tank') continue; const dist = Math.hypot(g.x - p.x, g.y - p.y); if (dist < tankDistance && (g.driverId !== myPlayerId || (g.ownerId && g.ownerId !== myPlayerId))) { tankDistance = dist; nearestTank = g; } }
+    if (nearestTank && (nearestTank.driverId || (nearestTank.ownerId && nearestTank.ownerId !== myPlayerId))) {
       const tankKey = nearestTank.id; hijackTargetRef.current = tankKey; setHijackInProgress(true);
       const begin = async () => {
         if (nearestTank.isMissileTank) {
@@ -233,7 +233,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
               const response = await fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'complete_tank_hijack', initData: getTelegramInitData(), roomCode, tankKey }) });
               const result = await response.json(); if (!response.ok || !result?.ok) throw new Error(result?.error || 'Hijack failed.');
             }
-            currentTank.driverId = myPlayerId; currentTank.isPlayerOwned = true; current.player.inCarId = tankKey; current.player.x = currentTank.x; current.player.y = currentTank.y;
+            currentTank.driverId = myPlayerId; currentTank.ownerId = myPlayerId; currentTank.isPlayerOwned = true; current.player.inCarId = tankKey; current.player.x = currentTank.x; current.player.y = currentTank.y;
             setHudInCar(true); playSfx('siren'); onToast('TANK HIJACKED! You are now the driver.');
           } catch (error) {
             void fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel_tank_hijack', initData: getTelegramInitData(), roomCode, tankKey }) });
@@ -244,7 +244,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       void begin().catch((error) => { hijackTargetRef.current = null; setHijackInProgress(false); onToast(error instanceof Error ? error.message : 'Hijack failed.'); });
       return;
     }
-    if (nearestTank && !nearestTank.driverId) { nearestTank.isPlayerOwned = true; nearestTank.driverId = myPlayerId; p.inCarId = nearestTank.id; p.x = nearestTank.x; p.y = nearestTank.y; setHudInCar(true); playSfx('siren'); onToast('TANK ENTERED. You are now the driver.'); return; }
+    if (nearestTank && !nearestTank.driverId) { nearestTank.isPlayerOwned = true; nearestTank.ownerId = nearestTank.ownerId || myPlayerId; nearestTank.driverId = myPlayerId; p.inCarId = nearestTank.id; p.x = nearestTank.x; p.y = nearestTank.y; setHudInCar(true); playSfx('siren'); onToast('TANK ENTERED. You are now the driver.'); return; }
     let nearestCar: any = null; let minDist = 70; for (const c of s.cars) { const dist = Math.hypot(c.x - p.x, c.y - p.y); if (dist < minDist) { minDist = dist; nearestCar = c; } }
     if (nearestCar) { if (nearestCar.hasDriver && nearestCar.driverType === 'civilian') { const ejected = { id: `ejected_${nearestCar.id}_${Date.now()}_${myPlayerId}`, x: nearestCar.x - 24, y: nearestCar.y + 18, facingAngle: Math.atan2(p.y - nearestCar.y, p.x - nearestCar.x), state: 'falling' as const, stateAt: Date.now() }; s.ejectedDrivers.push(ejected); channelRef.current?.postMessage({ type: 'driver_eject', senderId: myPlayerId, payload: ejected }); nearestCar.hasDriver = false; nearestCar.driverType = 'player'; nearestCar.isOccupied = true; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('siren'); onToast(t('car_hijacked')); } else if (!nearestCar.isOccupied) { nearestCar.isOccupied = true; nearestCar.hasDriver = true; nearestCar.driverType = 'player'; p.inCarId = nearestCar.id; setHudInCar(true); playSfx('click'); onToast(t('car_enter')); } }
   }, [cancelTankHijack, myPlayerId, onToast, playSfx, roomCode, t]);
@@ -266,7 +266,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       const result = await response.json();
       if (!response.ok || !result?.ok) throw new Error(result?.error || 'Missile tank purchase failed.');
       missilePurchaseKeyRef.current = null;
-      const tank = { id: tankKey, type: 'fighter_motor' as const, x: s.player.x + 95, y: s.player.y + 20, vx: 0, vy: 0, health: 20, maxHealth: 20, speed: 1.5, facingAngle: s.player.facingAngle, gun: 'ak_laser' as WeaponType, lastShootTime: 0, vehicleType: 'tank' as const, isPlayerOwned: true, driverId: myPlayerId, isMissileTank: true };
+      const tank = { id: tankKey, type: 'fighter_motor' as const, x: s.player.x + 95, y: s.player.y + 20, vx: 0, vy: 0, health: 20, maxHealth: 20, speed: 1.5, facingAngle: s.player.facingAngle, gun: 'ak_laser' as WeaponType, lastShootTime: 0, vehicleType: 'tank' as const, isPlayerOwned: true, ownerId: myPlayerId, driverId: myPlayerId, isMissileTank: true };
       s.gangsters.push(tank);
       s.player.inCarId = tankKey; setHudInCar(true); setMissileTankCount(Number(result.room_tank_count) || missileTankCount + 1); setAccountBalance(Number(result.balance_after));
       onToast('MISSILE TANK PURCHASED! Use FIRE MISSILE to launch guided rockets.');
@@ -560,7 +560,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
           if (occupiedTank && distToSegment(occupiedTank.x, occupiedTank.y, l.x1, l.y1, l.x2, l.y2) < 54) {
             occupiedTank.health -= 1; s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 7; sp++) s.sparks.push({ x: occupiedTank.x, y: occupiedTank.y, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, color: '#FACC15', life: 18 });
-            if (occupiedTank.health <= 0) { const tx = occupiedTank.x; const ty = occupiedTank.y; for (let sp = 0; sp < 22; sp++) s.sparks.push({ x: tx, y: ty, vx: (Math.random() - 0.5) * 13, vy: (Math.random() - 0.5) * 13, color: sp % 2 ? '#F97316' : '#FACC15', life: 28 }); s.gangsters = s.gangsters.filter((g) => g.id !== occupiedTank.id); p.inCarId = null; p.x = tx + 58; p.y = ty + 20; setHudInCar(false); onToast('YOUR TANK WAS DESTROYED! You are exposed again.'); }
+            if (occupiedTank.health <= 0) { if (occupiedTank.isMissileTank) { void fetch('/api/streetgangstar/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'destroy_missile_tank', initData: getTelegramInitData(), roomCode, tankKey: occupiedTank.id }) }).then(async (response) => { const result = await response.json(); if (response.ok && result?.ok && typeof result.room_tank_count === 'number') setMissileTankCount(result.room_tank_count); }).catch(() => onToast('Tank destruction could not sync with the room.')); } const tx = occupiedTank.x; const ty = occupiedTank.y; for (let sp = 0; sp < 22; sp++) s.sparks.push({ x: tx, y: ty, vx: (Math.random() - 0.5) * 13, vy: (Math.random() - 0.5) * 13, color: sp % 2 ? '#F97316' : '#FACC15', life: 28 }); s.gangsters = s.gangsters.filter((g) => g.id !== occupiedTank.id); p.inCarId = null; p.x = tx + 58; p.y = ty + 20; setHudInCar(false); onToast('YOUR TANK WAS DESTROYED! You are exposed again.'); }
             continue;
           }
           if (!occupiedTank && distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 32) {
