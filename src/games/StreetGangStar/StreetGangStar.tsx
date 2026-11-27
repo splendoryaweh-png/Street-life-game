@@ -33,6 +33,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
   const [avatarColor, setAvatarColor] = useState<string>(() => { if (typeof window !== 'undefined') { return localStorage.getItem('gangstar_avatar_color') || '#FFD700'; } return '#FFD700'; });
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
   const [tankPurchaseBusy, setTankPurchaseBusy] = useState(false);
+  const tankPurchaseKeyRef = useRef<string | null>(null);
   const [accountBalance, setAccountBalance] = useState<number | null>(null);
   const [showTeamModal, setShowTeamModal] = useState<boolean>(false);
   const [playerTeam, setPlayerTeam] = useState<'blue' | 'red'>('blue');
@@ -120,7 +121,8 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
     const s = gameStateRef.current;
     if (s.gangsters.some((g) => g.vehicleType === 'tank' && g.isPlayerOwned && g.health > 0)) { onToast('You already have an active tank.'); return; }
     setTankPurchaseBusy(true);
-    const tankKey = `single_tank_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const tankKey = tankPurchaseKeyRef.current || `single_tank_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    tankPurchaseKeyRef.current = tankKey;
     try {
       const response = await fetch('/api/streetgangstar/rooms', {
         method: 'POST',
@@ -130,6 +132,7 @@ export function StreetGangStar({ onBack, onToast, language = 'en', initialCountr
       const result = await response.json();
       if (!response.ok || !result?.ok) throw new Error(result?.error || 'Tank purchase failed.');
       const p = s.player;
+      tankPurchaseKeyRef.current = null;
       const tank: Gangster = {
         id: tankKey, type: 'fighter_motor', x: Math.min(cityData.mapWidth - 100, p.x + 100), y: p.y + 24,
         vx: 0, vy: 0, health: 20, maxHealth: 20, speed: 1.5, facingAngle: p.facingAngle,
