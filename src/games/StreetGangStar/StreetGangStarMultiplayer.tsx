@@ -10,6 +10,7 @@ import { WEAPONS, WeaponType, CityCar, Civilian, Gangster, LaserBeam, SparkParti
 import { GangChat } from './GangChat';
 import { StreetJoystick } from './StreetJoystick';
 import { drawSideViewScene } from './SideViewRenderer';
+import { stepSideScrollerCamera } from './SideScrollerPhysics';
 import { playerHealthAfterHits, tankDamagePerHit, isPlayerDown as hasReachedPlayerHitLimit } from './CombatRules';
 import { getTelegramInitData } from '@/lib/telegram';
 
@@ -55,7 +56,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
     unlockedGuns: { pistol: true, shotgun_laser: false, ak_laser: false, sniper_laser: false } as Record<WeaponType, boolean>,
     cars: [] as (CityCar & { health: number; maxHealth: number })[], civilians: [] as Civilian[], gangsters: [] as (Gangster & { isPlayerOwned?: boolean; driverId?: string | null; })[], lasers: [] as LaserBeam[], sparks: [] as SparkParticle[],
     keys: { w: false, a: false, s: false, d: false, shift: false, mouseLeft: false },
-    joystickMovement: { dx: 0, dy: 0, isMoving: false }, isRunActive: false, isMouseActive: false, mousePos: { x: 0, y: 0 }, screenDim: { w: 800, h: 600 }, lastSpawnTime: Date.now(), lastBroadcastTime: 0, myReaction: null as { emoji: string; until: number } | null, isRunning: false,
+    joystickMovement: { dx: 0, dy: 0, isMoving: false }, isRunActive: false, isMouseActive: false, mousePos: { x: 0, y: 0 }, screenDim: { w: 800, h: 600 }, cameraX: 0, lastSpawnTime: Date.now(), lastBroadcastTime: 0, myReaction: null as { emoji: string; until: number } | null, isRunning: false,
   });
 
   const playSfx = useCallback((name: 'shoot' | 'reload' | 'pickup' | 'coin' | 'success' | 'siren' | 'click') => {
@@ -515,7 +516,8 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
         ctx.save(); ctx.translate(p.x, p.y - (p.jumpOffset || 0)); ctx.fillStyle = '#FFD700'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${myPlayerName} (YOU)`, 0, -20); if (s.myReaction && now < s.myReaction.until) { ctx.font = '16px sans-serif'; ctx.fillText(s.myReaction.emoji, 0, -32); } ctx.restore();
       }
       ctx.restore();
-      drawSideViewScene(ctx, { city: cityData, player: p, cars: s.cars, civilians: s.civilians, gangsters: s.gangsters, lasers: s.lasers, remotePlayers: Array.from(s.remotePlayers.values()), screenWidth: s.screenDim.w, screenHeight: s.screenDim.h, cameraX: p.x - s.screenDim.w / 2 });
+      s.cameraX = stepSideScrollerCamera({ x: s.cameraX, targetX: s.cameraX }, p.x, s.screenDim.w, cityData.mapWidth);
+      drawSideViewScene(ctx, { city: cityData, player: p, cars: s.cars, civilians: s.civilians, gangsters: s.gangsters, lasers: s.lasers, remotePlayers: Array.from(s.remotePlayers.values()), screenWidth: s.screenDim.w, screenHeight: s.screenDim.h, cameraX: s.cameraX });
 
       // SMALL RADAR - 62px BOTTOM RIGHT (LIKE SECOND PICTURE)
       const mmSize = 62; const mmX = s.screenDim.w - mmSize - 12; const mmY = s.screenDim.h - mmSize - 190;
