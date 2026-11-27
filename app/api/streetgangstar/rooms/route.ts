@@ -11,7 +11,7 @@ function cleanText(value: unknown, max: number, fallback: string): string {
 function safeState(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   const encoded = JSON.stringify(value);
-  if (encoded.length > 8192) throw new Error('Game state payload is too large.');
+  if (encoded.length > 65536) throw new Error('Game state payload is too large.');
   return value as Record<string, unknown>;
 }
 
@@ -59,6 +59,37 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true, room, playerId: user.id });
       }
       return NextResponse.json({ error: 'Could not create a unique room. Try again.' }, { status: 503 });
+    }
+
+    if (action === 'random_join') {
+      const { data: candidates, error: candidatesError } = await db.from('streetgangstar_rooms')
+        .select('id, room_code, host_telegram_id, country_code, status, max_players, room_state, expires_at')
+        .in('status', ['waiting', 'active']).gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false }).limit(20);
+      if (candidatesError) throw candidatesError;
+      for (const candidate of candidates || []) {
+        const { data: existing } = await db.from('streetgangstar_room_players')
+          .select('telegram_id').eq('room_id', candidate.id).eq('telegram_id', user.id).maybeSingle();
+        if (existing) {
+          await db.from('streetgangstar_room_players').update({ last_seen_at: new Date().toISOString() })
+            .eq('room_id', candidate.id).eq('telegram_id', user.id);
+          return NextResponse.json({ ok: true, room: candidate, playerId: user.id });
+        }
+        const { count, error: countError } = await db.from('streetgangstar_room_players')
+          .select('*', { count: 'exact', head: true }).eq('room_id', candidate.id);
+        if (countError) throw countError;
+        if ((count || 0) >= candidate.max_players) continue;
+        const { error: joinError } = await db.from('streetgangstar_room_players').insert({
+          room_id: candidate.id, telegram_id: user.id,
+          player_name: cleanText(body?.playerName, 24, player.username || player.first_name || 'Street Player'),
+          team: body?.team === 'red' ? 'red' : 'blue', is_host: false,
+          player_state: {}, last_seen_at: new Date().toISOString(),
+        });
+        if (joinError?.code === '23505') continue;
+        if (joinError) throw joinError;
+        return NextResponse.json({ ok: true, room: candidate, playerId: user.id });
+      }
+      return NextResponse.json({ error: 'No active city room is available.' }, { status: 404 });
     }
 
     const roomCode = cleanText(body?.roomCode, 8, '').toUpperCase();
