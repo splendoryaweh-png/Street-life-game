@@ -65,7 +65,13 @@ export async function POST(request: Request) {
         : action === 'release_missile_tank' ? 'streetgangstar_release_missile_tank'
         : action === 'destroy_missile_tank' ? 'streetgangstar_destroy_missile_tank'
         : 'streetgangstar_cancel_tank_hijack';
-      const { data, error } = await db.rpc(rpcName, { p_room_code: roomCode, p_telegram_id: user.id, p_tank_key: tankKey });
+      const rpcArgs: Record<string, unknown> = { p_room_code: roomCode, p_telegram_id: user.id, p_tank_key: tankKey };
+      if (action === 'purchase_missile_tank') {
+        const x = Number(body?.x); const y = Number(body?.y);
+        if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0) return NextResponse.json({ error: 'Tank position is invalid.' }, { status: 400 });
+        rpcArgs.p_x = x; rpcArgs.p_y = y;
+      }
+      const { data, error } = await db.rpc(rpcName, rpcArgs);
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       return NextResponse.json(data);
     }
@@ -141,7 +147,11 @@ export async function POST(request: Request) {
         .select('telegram_id, player_name, team, player_state, is_host, last_seen_at')
         .eq('room_id', room.id).gte('last_seen_at', new Date(Date.now() - 12000).toISOString());
       if (playersError) throw playersError;
-      return NextResponse.json({ ok: true, room, players: players || [], playerId: user.id });
+      const { data: missileTanks, error: tanksError } = await db.from('streetgangstar_missile_tanks')
+        .select('tank_key, owner_telegram_id, driver_telegram_id, source, pos_x, pos_y, health, facing_angle')
+        .eq('room_id', room.id);
+      if (tanksError) throw tanksError;
+      return NextResponse.json({ ok: true, room, players: players || [], missileTanks: missileTanks || [], playerId: user.id });
     }
 
     if (action === 'join') {
@@ -186,6 +196,14 @@ export async function POST(request: Request) {
         player_state: state, last_seen_at: new Date().toISOString(),
       }).eq('room_id', room.id).eq('telegram_id', user.id);
       if (updateError) throw updateError;
+      if (typeof state.inCarId === 'string' && typeof state.x === 'number' && typeof state.y === 'number') {
+        const tankUpdate: Record<string, number> = { pos_x: state.x, pos_y: state.y };
+        if (typeof state.facingAngle === 'number') tankUpdate.facing_angle = state.facingAngle;
+        if (typeof state.tankHealth === 'number') tankUpdate.health = Math.max(0, Math.min(20, Math.floor(state.tankHealth)));
+        const { error: tankSyncError } = await db.from('streetgangstar_missile_tanks').update(tankUpdate)
+          .eq('room_id', room.id).eq('tank_key', state.inCarId).eq('driver_telegram_id', user.id);
+        if (tankSyncError) throw tankSyncError;
+      }
       if (membership.is_host && body?.roomState !== undefined) {
         const roomState = safeState(body.roomState);
         const { error: hostUpdateError } = await db.from('streetgangstar_rooms').update({
