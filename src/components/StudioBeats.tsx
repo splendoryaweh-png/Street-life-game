@@ -342,10 +342,10 @@ export function StudioBeats({
 
   const openCameraStream = async (facing: 'user' | 'environment') => {
     const base = {
-      width: { ideal: 720, max: 1280 },
-      height: { ideal: 1280, max: 1920 },
-      frameRate: { ideal: 30, max: 30 },
-      resizeMode: 'crop-and-scale' as const
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      aspectRatio: { ideal: 16 / 9 },
+      frameRate: { ideal: 30, max: 30 }
     };
     try {
       return await navigator.mediaDevices.getUserMedia({
@@ -1126,7 +1126,7 @@ export function StudioBeats({
   const unlockPercentage = Math.round((unlockedCount / LONG_BEATS_CATALOG.length) * 100);
 
   return (
-    <div className="w-full min-h-0 h-auto flex flex-col space-y-4 pb-8 text-white select-none overflow-visible">
+    <div className="w-full min-h-0 h-auto max-h-[100dvh] flex flex-col space-y-4 pb-8 text-white select-none overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
 
       <div className="p-4 rounded-3xl bg-gradient-to-b from-[#18181b] to-[#0f0f12] border-2 border-[#FFD700]/50">
 
@@ -1352,7 +1352,7 @@ export function StudioBeats({
               playsInline
               muted
               disablePictureInPicture
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ filter: activeVideoFilter, objectPosition: 'center center', transform: `scale(${cameraZoom})` }}
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none bg-black" style={{ filter: activeVideoFilter, objectPosition: 'center center' }}
             />
             <div
               className="absolute inset-0 z-[101] h-full min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y"
@@ -1401,7 +1401,7 @@ export function StudioBeats({
                       {t('studio_close_camera', 'Close')}
                     </button>
                   </div>
-                  <div className="w-full flex items-center justify-center gap-2 overflow-x-auto touch-pan-x pb-0.5">
+                  <div className="sticky bottom-0 z-[103] w-full flex flex-col items-center justify-center gap-2 overflow-x-auto touch-pan-x rounded-2xl border border-white/25 bg-black/95 px-2 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.65)]"><span className="text-[10px] font-black tracking-[0.2em] text-[#FFD700]">VIDEO FILTERS</span><div className="flex w-full items-center justify-center gap-2">
                     {videoFilterOptions.map((filter) => (
                       <button
                         key={filter.id}
@@ -1412,7 +1412,7 @@ export function StudioBeats({
                         {filter.label}
                       </button>
                     ))}
-                  </div>
+                  </div></div>
                 </div>
               </div>
             </div>
