@@ -71,6 +71,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'This room is no longer available.' }, { status: 404 });
     }
 
+    if (action === 'poll') {
+      const { data: membership, error: memberError } = await db.from('streetgangstar_room_players')
+        .select('telegram_id').eq('room_id', room.id).eq('telegram_id', user.id).maybeSingle();
+      if (memberError) throw memberError;
+      if (!membership) return NextResponse.json({ error: 'You are not a member of this room.' }, { status: 403 });
+      const { data: players, error: playersError } = await db.from('streetgangstar_room_players')
+        .select('telegram_id, player_name, team, player_state, is_host, last_seen_at')
+        .eq('room_id', room.id).gte('last_seen_at', new Date(Date.now() - 12000).toISOString());
+      if (playersError) throw playersError;
+      return NextResponse.json({ ok: true, room, players: players || [], playerId: user.id });
+    }
+
     if (action === 'join') {
       const { data: existing, error: existingError } = await db.from('streetgangstar_room_players')
         .select('telegram_id').eq('room_id', room.id).eq('telegram_id', user.id).maybeSingle();
