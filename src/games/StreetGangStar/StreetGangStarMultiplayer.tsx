@@ -10,6 +10,7 @@ import { WEAPONS, WeaponType, CityCar, Civilian, Gangster, LaserBeam, SparkParti
 import { GangChat } from './GangChat';
 import { StreetJoystick } from './StreetJoystick';
 import { drawSideViewScene } from './SideViewRenderer';
+import { playerHealthAfterHits, tankDamagePerHit, isPlayerDown } from './CombatRules';
 
 export interface RemotePlayer { id: string; name: string; x: number; y: number; targetX: number; targetY: number; facingAngle: number; health: number; maxHealth: number; team: 'blue' | 'red'; gun: WeaponType; avatarColor: string; isCover: boolean; inCarId: string | null; jumpOffset?: number; lastReaction?: { emoji: string; until: number }; lastSeen: number; hitCount?: number; }
 export interface MultiplayerMessage { type: 'player_sync' | 'laser_fire' | 'reaction' | 'host_sync' | 'kill_alert' | 'driver_eject'; senderId: string; payload: any; }
@@ -286,7 +287,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             if (g.driverId === myPlayerId) continue;
             if (distToSegment(g.x, g.y, l.x1, l.y1, l.x2, l.y2) < 38) {
               const playerIsDrivingTank = s.gangsters.some((vehicle) => vehicle.id === p.inCarId && vehicle.vehicleType === 'tank');
-              g.health -= g.vehicleType === 'tank' && playerIsDrivingTank ? 2 : 1; // Tank-on-tank: 10 hits; ordinary weapons: 20 hits
+              g.health -= tankDamagePerHit(playerIsDrivingTank, g.vehicleType === 'tank'); // 10 tank hits vs 20 ordinary hits
               for (let sp = 0; sp < 6; sp++) { s.sparks.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7, color: l.color, life: 16 }); }
               s.lasers.splice(lIdx, 1); hit = true;
               if (g.health <= 0) {
@@ -358,10 +359,10 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
             continue;
           }
           if (!occupiedTank && distToSegment(p.x, p.y, l.x1, l.y1, l.x2, l.y2) < 32) {
-            p.hitCount = (p.hitCount || 0) + 1; p.health = Math.max(0, 100 - (p.hitCount / 15) * 100); setHudHealth(p.health);
+            p.hitCount = (p.hitCount || 0) + 1; p.health = playerHealthAfterHits(p.hitCount); setHudHealth(p.health);
             s.lasers.splice(lIdx, 1);
             for (let sp = 0; sp < 5; sp++) { s.sparks.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, color: '#38BDF8', life: 14 }); }
-            if (p.health <= 0 || p.hitCount >= 15) {
+            if (p.health <= 0 || isPlayerDown(p.hitCount)) {
               playSfx('siren');
               p.health = 0;
               p.hitCount = 15;
@@ -418,7 +419,7 @@ export function StreetGangStarMultiplayer({ onBack, onToast, language = 'en', in
       s.remotePlayers.forEach((rem) => {
         const shirt = rem.team === 'blue' ? '#0EA5E9' : '#DC2626';
         drawHuman(ctx, rem.x, rem.y, rem.facingAngle, shirt, false, rem.team, rem.jumpOffset || 0, rem.isCover);
-        ctx.save(); ctx.translate(rem.x, rem.y - (rem.jumpOffset || 0)); ctx.fillStyle = '#FFF'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(rem.name, 0, -20); if (rem.lastReaction && now < rem.lastReaction.until) { ctx.font = '16px sans-serif'; ctx.fillText(rem.lastReaction.emoji, 0, -32); } ctx.fillStyle = '#000'; ctx.fillRect(-14, -28, 28, 4); ctx.fillStyle = '#22C55E'; ctx.fillRect(-14, -28, 28 * (rem.health / 100) * (15 - (rem.hitCount || 0)) / 15, 4); ctx.restore();
+        ctx.save(); ctx.translate(rem.x, rem.y - (rem.jumpOffset || 0)); ctx.fillStyle = '#FFF'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(rem.name, 0, -20); if (rem.lastReaction && now < rem.lastReaction.until) { ctx.font = '16px sans-serif'; ctx.fillText(rem.lastReaction.emoji, 0, -32); } ctx.fillStyle = '#000'; ctx.fillRect(-14, -28, 28, 4); ctx.fillStyle = '#22C55E'; ctx.fillRect(-14, -28, 28 * Math.max(0, Math.min(1, rem.health / 100)), 4); ctx.restore();
       });
 
       if (!p.inCarId) {
