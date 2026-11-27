@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useSyncExternalStore } from 'react';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 
 const LazyScreenLoading = () => (
   <div className="w-full min-h-[45vh] flex items-center justify-center text-xs font-bold tracking-widest text-[#FFD700]">
@@ -34,22 +34,22 @@ import { DailyRewardStrip } from '@/components/DailyRewardStrip';
 import { ReferralCard } from '@/components/ReferralCard';
 import { Leaderboard } from '@/components/Leaderboard';
 import { GameCards } from '@/components/GameCards';
-const BankScreen = dynamic(() => import('@/components/BankScreen').then((m) => m.BankScreen), { loading: () => <LazyScreenLoading /> }));
-const InventoryScreen = dynamic(() => import('@/components/InventoryScreen').then((m) => m.InventoryScreen), { loading: () => <LazyScreenLoading /> }));
-const WatchScreen = dynamic(() => import('@/components/WatchScreen').then((m) => m.WatchScreen), { loading: () => <LazyScreenLoading /> }));
-const TasksScreen = dynamic(() => import('@/components/TasksScreen').then((m) => m.TasksScreen), { loading: () => <LazyScreenLoading /> }));
-const GamesScreen = dynamic(() => import('@/components/GamesScreen').then((m) => m.GamesScreen), { loading: () => <LazyScreenLoading /> }));
+const BankScreen = nextDynamic(() => import('@/components/BankScreen').then((m) => m.BankScreen), { loading: () => <LazyScreenLoading /> });
+const InventoryScreen = nextDynamic(() => import('@/components/InventoryScreen').then((m) => m.InventoryScreen), { loading: () => <LazyScreenLoading /> });
+const WatchScreen = nextDynamic(() => import('@/components/WatchScreen').then((m) => m.WatchScreen), { loading: () => <LazyScreenLoading /> });
+const TasksScreen = nextDynamic(() => import('@/components/TasksScreen').then((m) => m.TasksScreen), { loading: () => <LazyScreenLoading /> });
+const GamesScreen = nextDynamic(() => import('@/components/GamesScreen').then((m) => m.GamesScreen), { loading: () => <LazyScreenLoading /> });
 import { BottomNav } from '@/components/BottomNav';
 import { TabPlaceholder } from '@/components/TabPlaceholder';
-const StudioScreen = dynamic(() => import('@/components/StudioScreen').then((m) => m.StudioScreen), { loading: () => <LazyScreenLoading /> }));
-const ProfileScreen = dynamic(() => import('@/components/ProfileScreen').then((m) => m.ProfileScreen), { loading: () => <LazyScreenLoading /> }));
-const AdminPanelScreen = dynamic(() => import('@/components/AdminPanelScreen').then((m) => m.AdminPanelScreen), { loading: () => <LazyScreenLoading /> }));
-const ToughWarScreen = dynamic(() => import('@/components/ToughWarScreen').then((m) => m.ToughWarScreen), { loading: () => <LazyScreenLoading /> }));
+const StudioScreen = nextDynamic(() => import('@/components/StudioScreen').then((m) => m.StudioScreen), { loading: () => <LazyScreenLoading /> });
+const ProfileScreen = nextDynamic(() => import('@/components/ProfileScreen').then((m) => m.ProfileScreen), { loading: () => <LazyScreenLoading /> });
+const AdminPanelScreen = nextDynamic(() => import('@/components/AdminPanelScreen').then((m) => m.AdminPanelScreen), { loading: () => <LazyScreenLoading /> });
+const ToughWarScreen = nextDynamic(() => import('@/components/ToughWarScreen').then((m) => m.ToughWarScreen), { loading: () => <LazyScreenLoading /> });
 import { ProfileModal } from '@/components/ProfileModal';
 import { TonModal } from '@/components/TonModal';
-const StreetGalaxyShooterModal = dynamic(() => import('@/components/StreetGalaxyShooterModal').then((m) => m.StreetGalaxyShooterModal), { loading: () => <LazyScreenLoading /> }));
-const StreetRaceModal = dynamic(() => import('@/components/StreetRaceModal').then((m) => m.StreetRaceModal), { loading: () => <LazyScreenLoading /> }));
-const StreetRiderModal = dynamic(() => import('@/components/StreetRiderModal').then((m) => m.StreetRiderModal), { loading: () => <LazyScreenLoading /> }));
+const StreetGalaxyShooterModal = nextDynamic(() => import('@/components/StreetGalaxyShooterModal').then((m) => m.StreetGalaxyShooterModal), { loading: () => <LazyScreenLoading /> });
+const StreetRaceModal = nextDynamic(() => import('@/components/StreetRaceModal').then((m) => m.StreetRaceModal), { loading: () => <LazyScreenLoading /> });
+const StreetRiderModal = nextDynamic(() => import('@/components/StreetRiderModal').then((m) => m.StreetRiderModal), { loading: () => <LazyScreenLoading /> });
 import { TransactionsModal } from '@/components/TransactionsModal';
 import { HowToPlayModal } from '@/components/HowToPlayModal';
 import { useLanguage } from '@/src/contexts/LanguageContext';
