@@ -209,6 +209,7 @@ export function StudioBeats({
   };
   const [videoFilter, setVideoFilter] = useState<'none' | 'warm' | 'mono' | 'cool' | 'vintage'>('none');
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
+  const [isZoomPanelOpen, setIsZoomPanelOpen] = useState(true);
   const cameraSwitchingRef = useRef(false);
   const videoFilterOptions = [
     { id: 'none' as const, label: t('studio_filter_normal', 'Normal'), style: 'none' },
@@ -1371,7 +1372,7 @@ export function StudioBeats({
               playsInline
               muted
               disablePictureInPicture
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none bg-black" style={{ filter: activeVideoFilter, objectPosition: 'center center' }}
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none bg-black" style={{ filter: activeVideoFilter, objectPosition: 'center center', transform: `scale(${cameraZoom})`, transformOrigin: 'center center' }}
             />
             <div
               className="absolute inset-0 z-[101] h-full min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y"
@@ -1384,25 +1385,6 @@ export function StudioBeats({
                 {cameraError && <div role="alert" className="relative z-[102] mx-3 mt-2 rounded-lg bg-red-950/90 p-2 text-xs font-semibold text-white">{cameraError}</div>}
                 <div className="min-h-[12vh] flex-1" aria-hidden="true" />
                 <div className="relative z-[101] flex flex-col items-center gap-2 px-3 pt-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/90 via-black/55 to-transparent">
-                  <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-white/20 bg-black/70 px-3 py-2">
-                    <span className="text-[10px] font-black tracking-wider text-white">ZOOM</span>
-                    <span className="text-[10px] font-mono text-[#FFD700]">{cameraZoom.toFixed(1)}×</span>
-                    <input
-                      type="range"
-                      min={1}
-                      max={3}
-                      step={0.1}
-                      value={cameraZoom}
-                      onChange={(event) => handleCameraZoomChange(Number(event.target.value))}
-                      aria-label="Camera zoom"
-                      className="h-24 w-7 cursor-pointer accent-yellow-400 [writing-mode:vertical-lr] [direction:rtl] disabled:opacity-40"
-                    />
-                    <div className="flex flex-col justify-between self-stretch py-1 text-white">
-                      <span aria-hidden="true" className="text-sm">＋</span>
-                      <span aria-hidden="true" className="text-sm">−</span>
-                    </div>
-                    <span className="max-w-28 text-[9px] leading-tight text-white/60">Software zoom</span>
-                  </div>
                   <div className="flex w-full max-w-sm flex-wrap items-center justify-center gap-2">
                     <button type="button" onClick={handleSwitchCamera} disabled={isRecording} className="pointer-events-auto rounded-full border border-white/35 bg-black/70 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95">
                       <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5"/> {t('studio_flip', 'Flip')}</span>
@@ -1446,6 +1428,21 @@ export function StudioBeats({
                       className="flex h-10 w-7 items-center justify-center rounded-r-xl border border-white/30 bg-black/85 text-white shadow-lg active:scale-95"
                     >
                       {isFilterPanelOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <div className="pointer-events-auto absolute right-2 top-1/2 z-[105] flex -translate-y-1/2 items-center gap-1">
+                    {isZoomPanelOpen && (
+                      <div className="flex h-56 w-14 flex-col items-center justify-between rounded-2xl border border-white/25 bg-black/90 px-2 py-3 shadow-xl">
+                        <span className="text-[9px] font-black tracking-wider text-[#FFD700]">ZOOM</span>
+                        <span className="text-[10px] font-mono font-bold text-white">{cameraZoom.toFixed(1)}×</span>
+                        <span aria-hidden="true" className="text-sm text-white">＋</span>
+                        <input type="range" min={1} max={3} step={0.1} value={cameraZoom} onChange={(event) => handleCameraZoomChange(Number(event.target.value))} aria-label="Camera zoom" className="h-32 w-7 cursor-pointer accent-yellow-400 [writing-mode:vertical-lr] [direction:rtl] touch-pan-y" />
+                        <span aria-hidden="true" className="text-sm text-white">−</span>
+                        <button type="button" onClick={() => handleCameraZoomChange(1)} className="rounded-lg bg-white/15 px-2 py-1 text-[9px] font-bold text-white">1×</button>
+                      </div>
+                    )}
+                    <button type="button" onClick={() => setIsZoomPanelOpen(open => !open)} aria-label={isZoomPanelOpen ? "Hide camera zoom" : "Show camera zoom"} aria-expanded={isZoomPanelOpen} className="flex h-10 w-7 items-center justify-center rounded-l-xl border border-white/30 bg-black/85 text-white shadow-lg active:scale-95">
+                      {isZoomPanelOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
