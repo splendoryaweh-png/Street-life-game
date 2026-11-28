@@ -467,6 +467,29 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       beatAudio.playbackRate = 1;
       beatAudio.defaultPlaybackRate = 1;
       beatAudio.src = beat.filePath;
+      // Wait until the selected backing track is ready before showing the
+      // recording as started, so the player never sings over a silent delay.
+      await new Promise<void>((resolve, reject) => {
+        if (beatAudio && beatAudio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+          resolve();
+          return;
+        }
+        const media = beatAudio!;
+        const cleanup = () => {
+          window.clearTimeout(timeoutId);
+          media.removeEventListener('canplay', onReady);
+          media.removeEventListener('error', onError);
+        };
+        const onReady = () => { cleanup(); resolve(); };
+        const onError = () => { cleanup(); reject(new Error('The selected beat could not be loaded.')); };
+        const timeoutId = window.setTimeout(() => {
+          cleanup();
+          reject(new Error('The selected beat took too long to load.'));
+        }, 12000);
+        media.addEventListener('canplay', onReady, { once: true });
+        media.addEventListener('error', onError, { once: true });
+        media.load();
+      });
 
       const beatSource = audioContext.createMediaElementSource(beatAudio);
       const beatGain = audioContext.createGain();
