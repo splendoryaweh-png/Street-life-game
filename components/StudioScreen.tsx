@@ -246,6 +246,10 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
   const previewBeatAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewVoiceAudioRef = useRef<HTMLAudioElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  // Capture the microphone and backing beat together on one audio clock.
+  const recordingAudioContextRef = useRef<AudioContext | null>(null);
+  const recordingInputStreamRef = useRef<MediaStream | null>(null);
+  const recordingBeatSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<NodeJS.Timeout | null>(null);
   const recordSecondsRef = useRef<number>(0);
@@ -401,119 +405,133 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
     recordSecondsRef.current = 0;
     setRecordSeconds(0);
 
-    let stream: MediaStream | null = null;
-    let isVirtual = false;
-
-    // 1. Try real device microphone first (safely checking permissions and availability)
-    if (
-      typeof navigator !== 'undefined' &&
-      navigator.mediaDevices &&
-      typeof navigator.mediaDevices.getUserMedia === 'function'
-    ) {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (micErr) {
-        // Log as non-fatal warning so tests and sandboxes do not report uncaught errors
-        console.warn('Microphone permission not granted or device unavailable in this context:', micErr);
+    let inputStream: MediaStream;
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Microphone access is not available in this browser.');
       }
+      inputStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+    } catch (micErr) {
+      console.warn('Studio microphone permission/access failed:', micErr);
+      onToast('🎙️ Microphone permission is required. Allow microphone access and try again.');
+      setIsVirtualMic(false);
+      return;
     }
 
-    // 2. If real microphone is blocked/unavailable, activate Studio Virtual Mic stream
-    if (!stream) {
-      isVirtual = true;
-      const virtual = getVirtualMicStream();
-      if (virtual.stream) {
-        stream = virtual.stream;
-        virtualMicCleanupRef.current = virtual.cleanup;
-      }
-    }
-    setIsVirtualMic(isVirtual);
-
-    let mimeType = 'audio/webm';
-    if (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function') {
-      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-        mimeType = 'audio/webm;codecs=opus';
-      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-        mimeType = 'audio/mp4';
-      }
-    }
-
-    // Helper to finalize recording and save playable audio blob
     const finalizeRecording = () => {
-      if (virtualMicCleanupRef.current) {
-        virtualMicCleanupRef.current();
-        virtualMicCleanupRef.current = null;
+      if (!recordedChunksRef.current.length) {
+        onToast('No audio was captured. Please check your microphone and try again.');
+        return;
       }
-      let blob: Blob;
-      if (recordedChunksRef.current.length > 0) {
-        blob = new Blob(recordedChunksRef.current, { type: mimeType });
-      } else {
-        blob = createSyntheticVocalWavBlob(recordSecondsRef.current || 3);
-      }
+      const actualType = recordedChunksRef.current[0]?.type || 'audio/webm';
+      const blob = new Blob(recordedChunksRef.current, { type: actualType });
       addDailyStudioRecord();
       const url = URL.createObjectURL(blob);
       setRecordedBlobUrl(url);
       setRecordedBeatId(beat.id);
       setHasPreviewed(false);
       setIsPreviewPlaying(false);
-      onToast(`🎤 ${t('studio_recorded', 'Vocal recording captured!')} ${t('studio_preview_prompt', 'Click PREVIEW to listen before posting.')}`);
+      onToast('🎤 Your voice and the beat have been recorded together. Preview the original mix.');
     };
 
-    // 3. Start MediaRecorder if a stream is available, otherwise fall back directly to timer recording
-    if (stream && typeof MediaRecorder !== 'undefined') {
-      try {
-        const recorder = new MediaRecorder(stream, { mimeType });
-        recorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) {
-            recordedChunksRef.current.push(e.data);
-          }
-        };
-
-        recorder.onstop = () => {
-          try {
-            stream?.getTracks().forEach((track) => track.stop());
-          } catch {}
-          finalizeRecording();
-        };
-
-        recorder.start(250);
-        mediaRecorderRef.current = recorder;
-      } catch (recErr) {
-        console.warn('MediaRecorder error, falling back to simulated recording:', recErr);
-        mediaRecorderRef.current = null;
-      }
-    } else {
-      mediaRecorderRef.current = null;
+    const AudioContextClass = window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass || typeof MediaRecorder === 'undefined') {
+      inputStream.getTracks().forEach(track => track.stop());
+      onToast('This device does not support Studio audio recording. Please update Telegram or use Safari.');
+      return;
     }
 
-    setRecordingBeatId(beat.id);
+    let audioContext: AudioContext | null = null;
+    let beatAudio: HTMLAudioElement | null = null;
+    try {
+      audioContext = new AudioContextClass();
+      await audioContext.resume();
 
-    // Play beat in background while recording so beat voices out
-    const beatAudio = new Audio(beat.filePath);
-    beatAudio.loop = true;
-    beatAudio.volume = 0.9;
-    audioElementRef.current = beatAudio;
+      const mixDestination = audioContext.createMediaStreamDestination();
+      const microphoneSource = audioContext.createMediaStreamSource(inputStream);
+      const microphoneGain = audioContext.createGain();
+      microphoneGain.gain.value = 1;
+      microphoneSource.connect(microphoneGain);
+      microphoneGain.connect(mixDestination);
 
-    // Force browser to allow sound
-    beatAudio.play().catch((e) => {
-      // Ask user to tap screen first to allow sound
-      setAudioUnlockNotice({
-        message: `Tap screen to allow beat sound for "${beat.name}"! 🔊`,
-        action: () => {
-          beatAudio.play().catch(() => {
-            startBeatAudioLoop(beat.id);
-          });
-          setAudioUnlockNotice(null);
-        },
-      });
-      startBeatAudioLoop(beat.id);
-    });
+      // The audible beat and the recorded beat are now the same audio source.
+      beatAudio = new Audio();
+      beatAudio.crossOrigin = 'anonymous';
+      beatAudio.preload = 'auto';
+      beatAudio.loop = true;
+      beatAudio.volume = 1;
+      beatAudio.playbackRate = 1;
+      beatAudio.defaultPlaybackRate = 1;
+      beatAudio.src = beat.filePath;
 
-    // Toast notification
-    if (isVirtual) {
-      onToast('🎙️ Virtual Studio Mic active! Recording your freestyle vocal...');
-    } else {
-      onToast('🎙️ Live Microphone active! Recording vocals over beat...');
+      const beatSource = audioContext.createMediaElementSource(beatAudio);
+      const beatGain = audioContext.createGain();
+      beatGain.gain.value = 0.85;
+      beatSource.connect(beatGain);
+      beatGain.connect(mixDestination);
+      beatGain.connect(audioContext.destination);
+
+      const supportedTypes = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm'];
+      const mimeType = supportedTypes.find(type =>
+        typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(type)
+      );
+      const recorder = new MediaRecorder(
+        mixDestination.stream,
+        mimeType ? { mimeType } : undefined
+      );
+
+      recordedChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size) recordedChunksRef.current.push(event.data);
+      };
+      recorder.onerror = (event) => {
+        console.error('Studio mixed recorder error:', event);
+        onToast('Recording encountered an audio error. Please try again.');
+      };
+      recorder.onstop = () => {
+        try { inputStream.getTracks().forEach(track => track.stop()); } catch {}
+        try { beatAudio?.pause(); } catch {}
+        if (audioElementRef.current === beatAudio) audioElementRef.current = null;
+        recordingInputStreamRef.current = null;
+        recordingBeatSourceRef.current = null;
+        const activeContext = recordingAudioContextRef.current;
+        recordingAudioContextRef.current = null;
+        if (activeContext && activeContext.state !== 'closed') {
+          activeContext.close().catch(() => {});
+        }
+        finalizeRecording();
+      };
+
+      recordingAudioContextRef.current = audioContext;
+      recordingInputStreamRef.current = inputStream;
+      recordingBeatSourceRef.current = beatSource;
+      audioElementRef.current = beatAudio;
+      mediaRecorderRef.current = recorder;
+
+      setRecordingBeatId(beat.id);
+      setIsVirtualMic(false);
+      recorder.start(250);
+      // Start beat after recording begins, avoiding a beat lead-in being lost.
+      await beatAudio.play();
+      onToast('🎙️ Recording your voice and beat together. Preview will replay this exact mix.');
+    } catch (recordingError) {
+      console.error('Could not start mixed Studio recording:', recordingError);
+      try { mediaRecorderRef.current?.stop(); } catch {}
+      try { inputStream.getTracks().forEach(track => track.stop()); } catch {}
+      try { beatAudio?.pause(); } catch {}
+      if (audioContext && audioContext.state !== 'closed') audioContext.close().catch(() => {});
+      recordingAudioContextRef.current = null;
+      recordingInputStreamRef.current = null;
+      recordingBeatSourceRef.current = null;
+      mediaRecorderRef.current = null;
+      audioElementRef.current = null;
+      setRecordingBeatId(null);
+      setIsVirtualMic(false);
+      onToast('Could not start the beat and voice recording. Please check microphone permission and try again.');
+      return;
     }
 
     // Timer (max 60 seconds)
@@ -532,11 +550,6 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       clearInterval(recordTimerRef.current);
       recordTimerRef.current = null;
     }
-
-    if (audioElementRef.current) {
-      audioElementRef.current.pause();
-    }
-    stopBeatAudioLoop();
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try {
@@ -562,6 +575,11 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       }
     }
 
+    if (audioElementRef.current) {
+      try { audioElementRef.current.pause(); } catch {}
+      audioElementRef.current.currentTime = 0;
+    }
+    stopBeatAudioLoop();
     setRecordingBeatId(null);
     setIsVirtualMic(false);
   };
@@ -581,61 +599,40 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       return;
     }
 
-    // Play both beat and voice simultaneously with full volume
-    const beatAudio = new Audio(beat.filePath);
-    const voiceAudio = new Audio(recordedBlobUrl);
-    beatAudio.volume = 0.85;
-    voiceAudio.volume = 1.0;
+    // The captured file already contains both beat and voice. Replay that
+    // exact mixed file instead of restarting two separate players.
+    const mixedAudio = new Audio(recordedBlobUrl);
+    mixedAudio.volume = 1;
+    mixedAudio.currentTime = 0;
+    previewVoiceAudioRef.current = mixedAudio;
+    previewBeatAudioRef.current = null;
 
-    previewBeatAudioRef.current = beatAudio;
-    previewVoiceAudioRef.current = voiceAudio;
-
-    beatAudio.currentTime = 0;
-    voiceAudio.currentTime = 0;
-
-    // Force browser to allow sound
-    beatAudio.play().catch((e) => {
-      // Ask user to tap screen first to allow sound
-      setAudioUnlockNotice({
-        message: 'Tap screen to allow beat sound during preview! 🔊',
-        action: () => {
-          beatAudio.play().catch(() => {
-            startBeatAudioLoop(beat.id);
-          });
-          voiceAudio.play().catch(() => {});
-          setAudioUnlockNotice(null);
-        },
-      });
-      startBeatAudioLoop(beat.id);
-    });
-
-    voiceAudio.play().catch((e) => {
-      // Ask user to tap screen first to allow sound
-      setAudioUnlockNotice({
-        message: 'Tap screen to allow vocal sound playback! 🔊',
-        action: () => {
-          voiceAudio.play().catch(() => {});
-          beatAudio.play().catch(() => {});
-          setAudioUnlockNotice(null);
-        },
-      });
-    });
-
-    setIsPreviewPlaying(true);
-    setHasPreviewed(true);
-
-    voiceAudio.onended = () => {
-      beatAudio.pause();
-      stopBeatAudioLoop();
+    mixedAudio.onended = () => {
       setIsPreviewPlaying(false);
+      previewVoiceAudioRef.current = null;
     };
-    beatAudio.onended = () => {
-      if (voiceAudio.paused) {
-        setIsPreviewPlaying(false);
-      }
+    mixedAudio.onerror = () => {
+      setIsPreviewPlaying(false);
+      onToast('Could not play the recorded mix. Please record again.');
     };
 
-    onToast('🎧 Playing mixed track (Beat + Vocals). Post button unlocked!');
+    mixedAudio.play().then(() => {
+      setIsPreviewPlaying(true);
+      setHasPreviewed(true);
+      onToast('🎧 Playing your original recorded mix. Post is now available.');
+    }).catch(() => {
+      setIsPreviewPlaying(false);
+      setAudioUnlockNotice({
+        message: 'Tap to play your recorded mix.',
+        action: () => {
+          mixedAudio.play().then(() => {
+            setIsPreviewPlaying(true);
+            setHasPreviewed(true);
+          }).catch(() => onToast('Could not play the recorded mix. Please record again.'));
+          setAudioUnlockNotice(null);
+        },
+      });
+    });
   };
 
   // POST FINAL SONG: upload the actual recorded audio to the official Telegram group.
