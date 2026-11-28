@@ -7,6 +7,7 @@ import {
   Play, Pause, Square, RotateCcw, RotateCw, SkipBack, SkipForward,
   Volume2, VolumeX, Volume1, Lock, Disc3, Clock, Coins, CheckCircle2,
   Info, Search, Award, Zap, X, Mic, Music2, Share2, Download, Camera,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import {
   LongBeat, BeatSection, LONG_BEATS_CATALOG, STUDIO_LEVELS, isLongBeatUnlocked,
@@ -207,6 +208,7 @@ export function StudioBeats({
     setCameraZoom(next);
   };
   const [videoFilter, setVideoFilter] = useState<'none' | 'warm' | 'mono' | 'cool' | 'vintage'>('none');
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
   const cameraSwitchingRef = useRef(false);
   const videoFilterOptions = [
     { id: 'none' as const, label: t('studio_filter_normal', 'Normal'), style: 'none' },
@@ -570,6 +572,7 @@ export function StudioBeats({
         (beat as any).previewUrl;
 
       let beatEl: HTMLAudioElement | null = null;
+      let startProceduralBeat = false;
       if (beatUrl) {
         beatEl = new Audio(beatUrl);
         beatEl.crossOrigin = 'anonymous';
@@ -588,9 +591,7 @@ export function StudioBeats({
         beatGain.connect(dest);
         beatGain.connect(audioCtx.destination);
 
-        try {
-          await beatEl.play();
-        } catch {}
+        // Playback is started immediately after MediaRecorder.start().
       } else {
         // The long-beat engine synthesizes the backing track in its own
         // AudioContext. Route a copy of that output into this recording mix;
@@ -605,8 +606,10 @@ export function StudioBeats({
         beatGainNodeRef.current = beatGain;
         synthBeatSource.connect(beatGain);
         beatGain.connect(dest);
-        longBeatEngine.play(beat.id, 0);
-        setIsPlaying(true);
+        // Recording always uses the beat's original tempo, regardless of any
+        // playback-speed setting left over from listening to a beat earlier.
+        longBeatEngine.setPlaybackRate(1);
+        startProceduralBeat = true;
       }
 
       let finalStream: MediaStream = dest.stream;
@@ -631,7 +634,9 @@ export function StudioBeats({
             const sx = (width - cropWidth) / 2;
             const sy = (height - cropHeight) / 2;
             context.clearRect(0, 0, width, height);
+            context.filter = activeVideoFilter;
             context.drawImage(sourceVideo, sx, sy, cropWidth, cropHeight, 0, 0, width, height);
+            context.filter = 'none';
           }
           softwareVideoFrame = requestAnimationFrame(drawZoomedFrame);
         };
@@ -771,7 +776,21 @@ export function StudioBeats({
       recorder.start(100);
       setIsRecording(true);
 
-      toast(`🔴 Recording "${beat.name}" - Beat and voice are being recorded!`);
+      try {
+        if (beatEl) {
+          await beatEl.play();
+        } else if (startProceduralBeat) {
+          longBeatEngine.setPlaybackRate(1);
+          longBeatEngine.play(beat.id, 0);
+          setIsPlaying(true);
+        }
+      } catch (beatStartError) {
+        console.warn('Studio beat could not start for recording:', beatStartError);
+        if (recorder.state === 'recording') recorder.stop();
+        throw new Error('The beat could not start. Please try recording again.');
+      }
+
+      toast(`🔴 Recording "${beat.name}" - Beat and voice are being recorded at the original tempo!`);
 
       if (timerRef.current) clearInterval(timerRef.current);
 
@@ -1352,7 +1371,7 @@ export function StudioBeats({
               playsInline
               muted
               disablePictureInPicture
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none bg-black" style={{ filter: activeVideoFilter, objectPosition: 'center center' }}
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none bg-black" style={{ filter: activeVideoFilter, objectPosition: 'center center' }}
             />
             <div
               className="absolute inset-0 z-[101] h-full min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y"
@@ -1401,18 +1420,34 @@ export function StudioBeats({
                       {t('studio_close_camera', 'Close')}
                     </button>
                   </div>
-                  <div className="sticky bottom-0 z-[103] w-full flex flex-col items-center justify-center gap-2 overflow-x-auto touch-pan-x rounded-2xl border border-white/25 bg-black/95 px-2 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.65)]"><span className="text-[10px] font-black tracking-[0.2em] text-[#FFD700]">VIDEO FILTERS</span><div className="flex w-full items-center justify-center gap-2">
-                    {videoFilterOptions.map((filter) => (
-                      <button
-                        key={filter.id}
-                        type="button"
-                        onClick={() => setVideoFilter(filter.id)}
-                        className={"shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-bold transition-colors " + (videoFilter === filter.id ? 'border-[#FFD700] bg-[#FFD700] text-black' : 'border-white/35 bg-black/65 text-white')}
-                      >
-                        {filter.label}
-                      </button>
-                    ))}
-                  </div></div>
+                  <div className="pointer-events-auto absolute left-2 top-1/2 z-[104] flex -translate-y-1/2 items-center gap-1">
+                    {isFilterPanelOpen && (
+                      <div className="flex max-h-[52dvh] w-[70px] flex-col items-center gap-2 overflow-y-auto overscroll-contain rounded-2xl border border-white/25 bg-black/90 px-1.5 py-3 shadow-xl">
+                        <span className="text-[9px] font-black tracking-wider text-[#FFD700]">FILTERS</span>
+                        {videoFilterOptions.map((filter) => (
+                          <button
+                            key={filter.id}
+                            type="button"
+                            onClick={() => setVideoFilter(filter.id)}
+                            aria-pressed={videoFilter === filter.id}
+                            className={"w-full rounded-xl border px-1 py-2 text-[10px] font-bold transition-colors " + (videoFilter === filter.id ? 'border-[#FFD700] bg-[#FFD700] text-black' : 'border-white/35 bg-black/70 text-white')}
+                          >
+                            <span className="mb-1 block h-5 w-full rounded-md bg-gradient-to-br from-amber-200 via-rose-300 to-sky-400" style={{ filter: filter.style }} />
+                            {filter.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setIsFilterPanelOpen(open => !open)}
+                      aria-label={isFilterPanelOpen ? 'Hide video filters' : 'Show video filters'}
+                      aria-expanded={isFilterPanelOpen}
+                      className="flex h-10 w-7 items-center justify-center rounded-r-xl border border-white/30 bg-black/85 text-white shadow-lg active:scale-95"
+                    >
+                      {isFilterPanelOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
