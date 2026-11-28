@@ -558,21 +558,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
         console.warn('Error stopping media recorder:', e);
       }
     } else {
-      // If mediaRecorder was null or failed to start, finalize directly with synthetic vocal blob
-      if (virtualMicCleanupRef.current) {
-        virtualMicCleanupRef.current();
-        virtualMicCleanupRef.current = null;
-      }
-      if (recordingBeatId) {
-        const blob = createSyntheticVocalWavBlob(recordSecondsRef.current || 3);
-        addDailyStudioRecord();
-        const url = URL.createObjectURL(blob);
-        setRecordedBlobUrl(url);
-        setRecordedBeatId(recordingBeatId);
-        setHasPreviewed(false);
-        setIsPreviewPlaying(false);
-        onToast(`🎤 ${t('studio_recorded', 'Vocal recording captured!')} ${t('studio_preview_prompt', 'Click PREVIEW to listen before posting.')}`);
-      }
+      onToast('No active recording was found. Please start recording again.');
     }
 
     if (audioElementRef.current) {
@@ -591,13 +577,14 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       return;
     }
 
-    stopAllAudio();
-    playClickSound();
-
     if (isPreviewPlaying) {
+      stopAllAudio();
       setIsPreviewPlaying(false);
       return;
     }
+
+    stopAllAudio();
+    playClickSound();
 
     // The captured file already contains both beat and voice. Replay that
     // exact mixed file instead of restarting two separate players.
