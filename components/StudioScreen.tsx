@@ -446,6 +446,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
 
     let audioContext: AudioContext | null = null;
     let beatAudio: HTMLAudioElement | null = null;
+    let beatPlaybackStarted = false;
     try {
       audioContext = new AudioContextClass();
       await audioContext.resume();
@@ -502,6 +503,10 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
         if (activeContext && activeContext.state !== 'closed') {
           activeContext.close().catch(() => {});
         }
+        if (!beatPlaybackStarted) {
+          onToast('The beat did not start, so this recording was not saved. Please try again.');
+          return;
+        }
         finalizeRecording();
       };
 
@@ -516,6 +521,7 @@ export function StudioScreen({ gameState, onToast }: StudioScreenProps) {
       recorder.start(250);
       // Start beat after recording begins, avoiding a beat lead-in being lost.
       await beatAudio.play();
+      beatPlaybackStarted = true;
       onToast('🎙️ Recording your voice and beat together. Preview will replay this exact mix.');
     } catch (recordingError) {
       console.error('Could not start mixed Studio recording:', recordingError);
